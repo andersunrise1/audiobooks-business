@@ -1,0 +1,18 @@
+{
+  "name": "techspeak",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TechSpeak - plataforma de aprendizado de ingles tecnico para profissionais de TI",
+  "workspaces": [
+    "packages/backend",
+    "packages/web",
+    "packages/desktop"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "dev:web": "npm run dev --workspace=packages/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

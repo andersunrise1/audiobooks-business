@@ -5,6 +5,8 @@ import HomePage from './components/pages/HomePage.jsx';
 import DashboardPage from './components/pages/DashboardPage.jsx';
 import AudiobookListPage from './components/pages/AudiobookListPage.jsx';
 import PlayerPage from './components/pages/PlayerPage.jsx';
+import LoginPage from './components/pages/LoginPage.jsx';
+import RegisterPage from './components/pages/RegisterPage.jsx';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
             <Route path="/audiobooks" element={<AudiobookListPage />} />
             <Route path="/audiobooks/:id/player" element={<PlayerPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

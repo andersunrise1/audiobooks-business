@@ -26,6 +26,7 @@ Exemplo: `feat(backend): add auth endpoints`
 ## CI
 
 Todo push/PR para `main`, `staging` e `develop` roda automaticamente:
+
 - `test.yml` — testes (`npm test --workspaces`)
 - `lint.yml` — ESLint + Prettier
 

@@ -4,6 +4,7 @@ import 'dotenv/config';
 import authRoutes from './routes/authRoutes.js';
 import audiobookRoutes from './routes/audiobookRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/audiobooks', audiobookRoutes);
 app.use('/api/user', userRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`TechSpeak API listening on port ${PORT}`);

@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 const isDev = !app.isPackaged;
@@ -22,6 +22,8 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '..', '..', 'web', 'dist', 'index.html'));
   }
 }
+
+ipcMain.handle('app:getVersion', () => app.getVersion());
 
 app.whenReady().then(createWindow);
 

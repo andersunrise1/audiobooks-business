@@ -2,5 +2,12 @@
   "name": "@techspeak/desktop",
   "private": true,
   "version": "0.1.0",
-  "scripts": {}
+  "main": "public/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^43.2.0"
+  }
 }

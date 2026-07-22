@@ -25,6 +25,9 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/techspeak_test
+      JWT_SECRET: ci-test-secret
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+      PORT: 3000
     steps:
       - uses: actions/checkout@v4
 
@@ -38,3 +41,10 @@ jobs:
       - run: npm run migrate --workspace=packages/backend
 
       - run: npm test --workspaces --if-present
+
+      - name: backend smoke test
+        run: |
+          node packages/backend/src/index.js &
+          SERVER_PID=$!
+          bash packages/backend/tests/smoke.sh
+          kill "$SERVER_PID"

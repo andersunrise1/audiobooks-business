@@ -2,3 +2,9 @@ node_modules
 dist
 build
 package-lock.json
+
+# Documentacao/planejamento pre-existente, nao reformatada por este projeto
+.claude
+CLAUDE.md
+Audiobooks_English_Business.txt
+Projeto_detalhado

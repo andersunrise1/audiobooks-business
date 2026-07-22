@@ -1,0 +1,24 @@
+name: deploy-staging
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build --workspace=packages/web
+
+      # TODO: definir o provedor de hospedagem (ex. S3+CloudFront, Vercel,
+      # Railway) e adicionar aqui o passo de deploy do artefato gerado em
+      # packages/web/dist. Nenhuma infra de hospedagem foi escolhida ainda.

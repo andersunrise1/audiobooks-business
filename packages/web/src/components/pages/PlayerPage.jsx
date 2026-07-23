@@ -23,6 +23,8 @@ function PlayerPage() {
   const [words, setWords] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioSrc, setAudioSrc] = useState(null);
+  const [playbackVolume, setPlaybackVolume] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -125,6 +127,10 @@ function PlayerPage() {
         src={audioSrc ?? chapter.audio_url}
         onEnded={handleChapterEnded}
         onTimeUpdate={setCurrentTime}
+        volume={playbackVolume}
+        onVolumeChange={setPlaybackVolume}
+        speed={playbackSpeed}
+        onSpeedChange={setPlaybackSpeed}
       />
 
       <TranscriptDisplay

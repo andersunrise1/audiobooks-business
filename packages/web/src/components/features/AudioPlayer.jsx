@@ -9,13 +9,20 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function AudioPlayer({ src, startTime = 0, onTimeUpdate, onEnded }) {
+function AudioPlayer({
+  src,
+  startTime = 0,
+  onTimeUpdate,
+  onEnded,
+  volume = 1,
+  onVolumeChange,
+  speed = 1,
+  onSpeedChange,
+}) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(startTime);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [speed, setSpeed] = useState(1);
 
   function togglePlay() {
     const audio = audioRef.current;
@@ -35,12 +42,12 @@ function AudioPlayer({ src, startTime = 0, onTimeUpdate, onEnded }) {
 
   function handleVolumeChange(event) {
     const value = Number(event.target.value);
-    setVolume(value);
+    onVolumeChange?.(value);
     if (audioRef.current) audioRef.current.volume = value;
   }
 
   function handleSpeedChange(value) {
-    setSpeed(value);
+    onSpeedChange?.(value);
     if (audioRef.current) audioRef.current.playbackRate = value;
   }
 
@@ -48,6 +55,8 @@ function AudioPlayer({ src, startTime = 0, onTimeUpdate, onEnded }) {
     const audio = audioRef.current;
     if (!audio) return;
     setDuration(audio.duration);
+    audio.volume = volume;
+    audio.playbackRate = speed;
     if (startTime) audio.currentTime = startTime;
   }
 

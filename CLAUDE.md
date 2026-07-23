@@ -12,7 +12,9 @@ Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO
 
 **Dia 23 is done, scoped to what's real at this stage**: `AudioPlayer`'s `<audio>` now uses `preload="metadata"` (don't download full audio until played); every route except `/` is `React.lazy()`-loaded behind a `Suspense` boundary; `vite.config.js` splits React/ReactDOM/React Router into a dedicated `vendor` chunk via `manualChunks` (note: Vite 8's Rolldown bundler requires `manualChunks` as a function, not the classic Rollup object form). All three verified against a real production build — per-route and vendor chunks confirmed loading independently via network requests. The plan's other two Dia 23 items ("caching de imagens", "compressão de áudio") were skipped honestly: there's no cover-image field/UI yet and no audio upload/processing pipeline (that's Etapa 4, Dia 43+) — nothing real to optimize yet.
 
-Next up per the plan: Dia 24 (Responsividade Mobile).
+**Dia 24 is done**: fixed a real mobile bug — `Sidebar` (with the `Flashcards` link) is `hidden` below the `sm` breakpoint with no replacement, so mobile users had no way to reach `/flashcards`; `Navbar` now carries all primary links itself and wraps (`flex-wrap`) instead of overflowing on narrow screens. `Layout`'s main area got `min-w-0` (prevents flex children from forcing horizontal scroll) and tighter mobile padding. Touch targets were measured for real at 375px width via `getBoundingClientRect()` and enlarged where under ~40px: play button 40→44px, speed buttons 28→36px tall, transcript word spans 26→40px tall; `touch-manipulation` added throughout to drop the ~300ms tap delay. Verified visually at mobile (375×812) and tablet (768×1024) via `resize_window` on the home, dashboard, and player pages.
+
+Next up per the plan: Dia 25 (Review & Bug Fixes) — the last day of Etapa 2 / Semana 5, closing out the audiobook player & translation phase before Etapa 3 (IA & Chat) begins.
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.

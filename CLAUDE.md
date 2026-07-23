@@ -8,7 +8,9 @@ Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO
 
 **Dia 21 is done**: backend testing uses Node's built-in test runner (`node --test`, zero new dependencies) instead of Vitest — `packages/backend/src/index.js` was split into `app.js` (`createApp()` factory, importable without binding a port) + a thin `index.js` entrypoint. `tests/unit/` covers `srsService`/`statsService` pure functions; `tests/integration/` (`auth.test.js`, `player.test.js`, matching the plan's exact filenames) spins up a real server on an ephemeral port against the actual local Postgres and cleans up its fixtures afterward. `npm run test:coverage --workspace=packages/backend` runs `--experimental-test-coverage`; CI's `test.yml` now posts the coverage table to the GitHub Actions job summary. Also fixed along the way: CI's `lint` job (which runs `prettier --check`) had been silently failing since Dia 11 or so because the Husky pre-commit hook only ran `eslint`, never `format:check` — added it to pre-commit and reformatted the 3 affected files.
 
-Next up per the plan: Dia 22 (Testes Automatizados - Frontend, likely Vitest + React Testing Library this time since the frontend needs component/DOM testing that Node's test runner doesn't provide).
+**Dia 22 is done**: `packages/web` now has Vitest + React Testing Library (`npm test` → `vitest run`; `npm run test:watch` for local dev). Component tests cover `pronunciationScore`, `useWordSync`, `StatCard`, `TranscriptDisplay`; integration tests (`LoginPage.test.jsx`, `PlayerPage.test.jsx`) mock `services/api.js` and render through the real `AuthProvider` + React Router, exercising the exact login and word-click flows verified manually in-browser earlier this project — 19 tests total, all passing.
+
+Next up per the plan: Dia 23 (Performance Optimization — lazy loading, image caching, code splitting).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.

@@ -6,7 +6,7 @@ function createMessage(role, content) {
   return { id: crypto.randomUUID(), role, content, feedback: null };
 }
 
-function ChatWidget() {
+function ChatWidget({ chapterId }) {
   const { accessToken } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -35,7 +35,10 @@ function ChatWidget() {
       const { reply } = await apiRequest('/api/ai/chat', {
         method: 'POST',
         token: accessToken,
-        body: { messages: nextMessages.map(({ role, content }) => ({ role, content })) },
+        body: {
+          messages: nextMessages.map(({ role, content }) => ({ role, content })),
+          chapterId,
+        },
       });
       setMessages((prev) => [...prev, createMessage('assistant', reply)]);
     } catch (err) {

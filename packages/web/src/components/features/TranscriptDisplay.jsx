@@ -26,7 +26,7 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
 
   return (
     <>
-      <p className="leading-relaxed text-slate-700">
+      <p className="leading-loose text-slate-700">
         {words.map((word) => (
           <span
             key={word.id}
@@ -36,7 +36,7 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') selectWord(word);
             }}
-            className={`inline-block mr-1 rounded px-0.5 cursor-pointer transition-colors hover:bg-slate-200 ${
+            className={`inline-block mr-1 rounded px-1 py-1 cursor-pointer touch-manipulation transition-colors hover:bg-slate-200 ${
               word.id === activeWordId ? 'bg-yellow-200 font-semibold' : ''
             }`}
           >

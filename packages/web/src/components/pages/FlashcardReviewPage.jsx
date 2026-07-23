@@ -74,7 +74,7 @@ function FlashcardReviewPage() {
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="px-4 py-2 rounded bg-slate-900 text-white"
+            className="px-4 py-3 rounded bg-slate-900 text-white touch-manipulation"
           >
             Mostrar resposta
           </button>
@@ -86,21 +86,21 @@ function FlashcardReviewPage() {
           <button
             type="button"
             onClick={() => handleRate(1)}
-            className="px-3 py-2 rounded bg-red-100 text-red-700"
+            className="px-3 py-3 rounded bg-red-100 text-red-700 touch-manipulation"
           >
             Não lembrei
           </button>
           <button
             type="button"
             onClick={() => handleRate(3)}
-            className="px-3 py-2 rounded bg-amber-100 text-amber-700"
+            className="px-3 py-3 rounded bg-amber-100 text-amber-700 touch-manipulation"
           >
             Difícil
           </button>
           <button
             type="button"
             onClick={() => handleRate(5)}
-            className="px-3 py-2 rounded bg-green-100 text-green-700"
+            className="px-3 py-3 rounded bg-green-100 text-green-700 touch-manipulation"
           >
             Fácil
           </button>

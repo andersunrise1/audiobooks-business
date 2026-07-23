@@ -16,7 +16,7 @@ function TranslationPopup({ word, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white leading-none"
+            className="w-8 h-8 -m-1.5 flex items-center justify-center text-slate-400 hover:text-white touch-manipulation"
             aria-label="Fechar"
           >
             ✕

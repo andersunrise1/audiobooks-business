@@ -1,0 +1,3 @@
+ALTER TABLE flashcards
+  ADD COLUMN ease_factor NUMERIC NOT NULL DEFAULT 2.5,
+  ADD COLUMN interval_days INT NOT NULL DEFAULT 0;

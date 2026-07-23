@@ -1,4 +1,5 @@
 import { pool } from '../config/database.js';
+import { applySm2 } from '../services/srsService.js';
 
 export async function getProgress(req, res) {
   const { rows } = await pool.query('SELECT * FROM user_progress WHERE user_id = $1', [
@@ -68,4 +69,45 @@ export async function getFlashcards(req, res) {
     [req.user.id],
   );
   res.json(rows);
+}
+
+export async function reviewFlashcard(req, res) {
+  const { id } = req.params;
+  const { quality } = req.body;
+
+  if (typeof quality !== 'number' || quality < 0 || quality > 5) {
+    return res.status(400).json({ error: 'quality must be a number between 0 and 5' });
+  }
+
+  const { rows: existingRows } = await pool.query(
+    'SELECT * FROM flashcards WHERE id = $1 AND user_id = $2',
+    [id, req.user.id],
+  );
+  const flashcard = existingRows[0];
+
+  if (!flashcard) {
+    return res.status(404).json({ error: 'flashcard not found' });
+  }
+
+  const { easeFactor, intervalDays, reviewCount, learningStatus } = applySm2({
+    quality,
+    easeFactor: Number(flashcard.ease_factor),
+    intervalDays: flashcard.interval_days,
+    reviewCount: flashcard.review_count,
+  });
+
+  const { rows } = await pool.query(
+    `UPDATE flashcards SET
+       ease_factor = $1,
+       interval_days = $2,
+       review_count = $3,
+       learning_status = $4,
+       last_reviewed = now(),
+       next_review = now() + ($2 || ' days')::interval
+     WHERE id = $5
+     RETURNING *`,
+    [easeFactor, intervalDays, reviewCount, learningStatus, id],
+  );
+
+  res.json(rows[0]);
 }

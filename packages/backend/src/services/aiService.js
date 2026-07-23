@@ -5,7 +5,8 @@ export const client = new Anthropic({
 });
 
 const SYSTEM_PROMPT =
-  'Você é um professor de inglês técnico especializado em software. Respostas curtas e diretas.';
+  'Você é um professor de inglês técnico especializado em software, respondendo dentro de um popup pequeno no app. ' +
+  'Responda em texto simples, sem markdown (sem #, sem **, sem listas), em no máximo 2 frases curtas.';
 
 export async function explainTechnicalTerm(word, context) {
   const response = await client.messages.create({

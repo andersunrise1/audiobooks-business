@@ -10,7 +10,9 @@ Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO
 
 **Dia 22 is done**: `packages/web` now has Vitest + React Testing Library (`npm test` → `vitest run`; `npm run test:watch` for local dev). Component tests cover `pronunciationScore`, `useWordSync`, `StatCard`, `TranscriptDisplay`; integration tests (`LoginPage.test.jsx`, `PlayerPage.test.jsx`) mock `services/api.js` and render through the real `AuthProvider` + React Router, exercising the exact login and word-click flows verified manually in-browser earlier this project — 19 tests total, all passing.
 
-Next up per the plan: Dia 23 (Performance Optimization — lazy loading, image caching, code splitting).
+**Dia 23 is done, scoped to what's real at this stage**: `AudioPlayer`'s `<audio>` now uses `preload="metadata"` (don't download full audio until played); every route except `/` is `React.lazy()`-loaded behind a `Suspense` boundary; `vite.config.js` splits React/ReactDOM/React Router into a dedicated `vendor` chunk via `manualChunks` (note: Vite 8's Rolldown bundler requires `manualChunks` as a function, not the classic Rollup object form). All three verified against a real production build — per-route and vendor chunks confirmed loading independently via network requests. The plan's other two Dia 23 items ("caching de imagens", "compressão de áudio") were skipped honestly: there's no cover-image field/UI yet and no audio upload/processing pipeline (that's Etapa 4, Dia 43+) — nothing real to optimize yet.
+
+Next up per the plan: Dia 24 (Responsividade Mobile).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.

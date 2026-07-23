@@ -63,6 +63,7 @@ function AudioPlayer({ src, startTime = 0, onTimeUpdate, onEnded }) {
       <audio
         ref={audioRef}
         src={src}
+        preload="metadata"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onLoadedMetadata={handleLoadedMetadata}

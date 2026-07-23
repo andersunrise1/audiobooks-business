@@ -30,11 +30,16 @@ export async function getAudiobookChapters(req, res) {
 
 export async function getChapterWords(req, res) {
   const { rows } = await pool.query(
-    `SELECT id, word, pronunciation, portuguese_translation, technical_explanation,
-            chapter_id, example_sentence, start_seconds, end_seconds
-     FROM words
-     WHERE chapter_id = $1
-     ORDER BY start_seconds ASC NULLS LAST`,
+    `SELECT w.id, w.word, w.pronunciation,
+            COALESCE(w.portuguese_translation, d.portuguese_translation) AS portuguese_translation,
+            COALESCE(w.technical_explanation, d.technical_explanation) AS technical_explanation,
+            COALESCE(w.example_sentence, d.example_sentence) AS example_sentence,
+            d.part_of_speech, d.contexts,
+            w.chapter_id, w.start_seconds, w.end_seconds
+     FROM words w
+     LEFT JOIN technical_dictionary d ON lower(d.word) = lower(w.word)
+     WHERE w.chapter_id = $1
+     ORDER BY w.start_seconds ASC NULLS LAST`,
     [req.params.chapterId],
   );
   res.json(rows);

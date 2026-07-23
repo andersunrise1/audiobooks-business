@@ -1,10 +1,15 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const db = require('./db');
+const { syncNow } = require('./sync');
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+const SYNC_INTERVAL_MS = 60_000;
 
 let mainWindow = null;
+let syncTimer = null;
+let session = { apiUrl: null, token: null };
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -35,7 +40,35 @@ function createWindow() {
   }
 }
 
+async function triggerSync() {
+  const status = await syncNow(session);
+  mainWindow?.webContents.send('sync:status', status);
+  return status;
+}
+
+function startAutoSync() {
+  clearInterval(syncTimer);
+  syncTimer = setInterval(triggerSync, SYNC_INTERVAL_MS);
+}
+
 ipcMain.handle('app:getVersion', () => app.getVersion());
+
+ipcMain.handle('auth:setSession', (_event, newSession) => {
+  session = { apiUrl: newSession?.apiUrl ?? null, token: newSession?.token ?? null };
+  if (session.token) {
+    triggerSync();
+  }
+});
+
+ipcMain.handle('cache:getProgress', () => db.getCachedProgress());
+ipcMain.handle('cache:getFlashcards', () => db.getCachedFlashcards());
+
+ipcMain.handle('cache:queueProgress', (_event, chapterId, payload) => {
+  db.queueProgressUpdate(chapterId, payload);
+  triggerSync();
+});
+
+ipcMain.handle('sync:now', () => triggerSync());
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -49,7 +82,11 @@ if (!gotSingleInstanceLock) {
     }
   });
 
-  app.whenReady().then(createWindow);
+  app.whenReady().then(() => {
+    db.init(app.getPath('userData'));
+    createWindow();
+    startAutoSync();
+  });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
@@ -57,5 +94,10 @@ if (!gotSingleInstanceLock) {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+
+  app.on('before-quit', () => {
+    clearInterval(syncTimer);
+    db.close();
   });
 }

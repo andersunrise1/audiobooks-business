@@ -103,7 +103,7 @@ export async function reviewFlashcard(req, res) {
        review_count = $3,
        learning_status = $4,
        last_reviewed = now(),
-       next_review = now() + ($2 || ' days')::interval
+       next_review = now() + make_interval(days => $2::int)
      WHERE id = $5
      RETURNING *`,
     [easeFactor, intervalDays, reviewCount, learningStatus, id],

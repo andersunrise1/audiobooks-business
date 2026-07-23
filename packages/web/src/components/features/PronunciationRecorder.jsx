@@ -79,7 +79,8 @@ function PronunciationRecorder({ targetSentence }) {
           <span
             key={i}
             className={
-              result && (result.matchedWords.has(normalizeForMatch(word)) ? 'text-green-600' : 'text-red-500')
+              result &&
+              (result.matchedWords.has(normalizeForMatch(word)) ? 'text-green-600' : 'text-red-500')
             }
           >
             {word}{' '}

@@ -69,10 +69,9 @@ describe('Audio Player', () => {
     ]);
     assert.equal(clicks.length, 1);
 
-    const { rows: flashcards } = await pool.query(
-      'SELECT * FROM flashcards WHERE word_id = $1',
-      [wordId],
-    );
+    const { rows: flashcards } = await pool.query('SELECT * FROM flashcards WHERE word_id = $1', [
+      wordId,
+    ]);
     assert.equal(flashcards.length, 1);
   });
 });

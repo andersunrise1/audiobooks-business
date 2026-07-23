@@ -38,6 +38,13 @@ export async function saveWordClick(req, res) {
     [req.user.id, wordId, chapterId],
   );
 
+  await pool.query(
+    `INSERT INTO flashcards (user_id, word_id)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id, word_id) DO NOTHING`,
+    [req.user.id, wordId],
+  );
+
   const { rows } = await pool.query(
     `INSERT INTO user_progress (user_id, chapter_id, words_learned, last_accessed)
      VALUES ($1, $2, 1, now())

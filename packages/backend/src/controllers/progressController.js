@@ -26,6 +26,26 @@ export async function upsertProgress(req, res) {
   res.json(rows[0]);
 }
 
+export async function saveWordClick(req, res) {
+  const { chapterId, wordId } = req.body;
+
+  if (!chapterId || !wordId) {
+    return res.status(400).json({ error: 'chapterId and wordId are required' });
+  }
+
+  const { rows } = await pool.query(
+    `INSERT INTO user_progress (user_id, chapter_id, words_learned, last_accessed)
+     VALUES ($1, $2, 1, now())
+     ON CONFLICT (user_id, chapter_id) DO UPDATE SET
+       words_learned = user_progress.words_learned + 1,
+       last_accessed = now()
+     RETURNING *`,
+    [req.user.id, chapterId],
+  );
+
+  res.status(201).json(rows[0]);
+}
+
 export async function getFlashcards(req, res) {
   const { rows } = await pool.query(
     `SELECT f.*, w.word, w.portuguese_translation, w.technical_explanation, w.example_sentence

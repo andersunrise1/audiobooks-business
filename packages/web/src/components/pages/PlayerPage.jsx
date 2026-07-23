@@ -162,7 +162,7 @@ function PlayerPage() {
         </button>
       </div>
 
-      <ChatWidget key={chapter.id} />
+      <ChatWidget key={`chat-${chapter.id}`} />
     </div>
   );
 }

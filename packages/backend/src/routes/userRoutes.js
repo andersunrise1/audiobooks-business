@@ -7,6 +7,7 @@ import {
   saveWordClick,
   reviewFlashcard,
 } from '../controllers/progressController.js';
+import { getUserStats } from '../controllers/statsController.js';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.post('/progress/:chapterId', upsertProgress);
 router.get('/flashcards', getFlashcards);
 router.post('/flashcards/:id/review', reviewFlashcard);
 router.post('/words-learned', saveWordClick);
+router.get('/stats', getUserStats);
 
 export default router;

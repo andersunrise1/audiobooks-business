@@ -7,6 +7,18 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom)\//.test(id)) {
+            return 'vendor';
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: './src/tests/setup.js',

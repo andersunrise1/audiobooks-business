@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AudioPlayer from '../features/AudioPlayer.jsx';
 import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
+import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
@@ -104,6 +105,8 @@ function PlayerPage() {
         transcript={chapter.transcript}
         onWordClick={handleWordClick}
       />
+
+      {chapter.transcript && <PronunciationRecorder targetSentence={chapter.transcript} />}
 
       <div className="flex gap-2">
         <button

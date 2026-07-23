@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import { scorePronunciation } from '../../utils/pronunciationScore.js';
 
 function getSpeechRecognition() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
+function normalizeForMatch(word) {
+  return word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
 function PronunciationRecorder({ targetSentence }) {
   const [status, setStatus] = useState('idle'); // idle | recording | done | error
   const [transcript, setTranscript] = useState('');
+  const [result, setResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const recognitionRef = useRef(null);
 
@@ -27,6 +33,7 @@ function PronunciationRecorder({ targetSentence }) {
 
     recognition.onresult = (event) => {
       setTranscript(event.results[0][0].transcript);
+      setResult(scorePronunciation(targetSentence, event.results[0][0].transcript));
       setStatus('done');
     };
 
@@ -45,6 +52,7 @@ function PronunciationRecorder({ targetSentence }) {
 
     recognitionRef.current = recognition;
     setTranscript('');
+    setResult(null);
     setErrorMessage('');
     setStatus('recording');
     recognition.start();
@@ -65,7 +73,20 @@ function PronunciationRecorder({ targetSentence }) {
   return (
     <div className="rounded-lg border border-slate-200 p-4 flex flex-col gap-3">
       <p className="text-sm text-slate-500">Pratique a pronúncia desta frase:</p>
-      <p className="italic">“{targetSentence}”</p>
+      <p className="italic">
+        “
+        {targetSentence.split(/\s+/).map((word, i) => (
+          <span
+            key={i}
+            className={
+              result && (result.matchedWords.has(normalizeForMatch(word)) ? 'text-green-600' : 'text-red-500')
+            }
+          >
+            {word}{' '}
+          </span>
+        ))}
+        ”
+      </p>
 
       <div className="flex items-center gap-3">
         <button
@@ -92,7 +113,12 @@ function PronunciationRecorder({ targetSentence }) {
       </div>
 
       {status === 'error' && <p className="text-sm text-red-500">{errorMessage}</p>}
-      {status === 'done' && <p className="text-sm text-slate-500">Você disse: “{transcript}”</p>}
+      {status === 'done' && result && (
+        <div className="text-sm text-slate-500">
+          <p>Você disse: “{transcript}”</p>
+          <p className="font-semibold mt-1">Pronúncia: {result.score}%</p>
+        </div>
+      )}
     </div>
   );
 }

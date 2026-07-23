@@ -34,6 +34,12 @@ function init(userDataPath) {
       payload TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS audio_cache (
+      chapter_id TEXT PRIMARY KEY,
+      file_path TEXT NOT NULL,
+      cached_at TEXT NOT NULL
+    );
   `);
 
   return db;
@@ -116,6 +122,19 @@ function clearQueuedUpdate(id) {
   db.prepare('DELETE FROM sync_queue WHERE id = ?').run(id);
 }
 
+function getCachedAudioPath(chapterId) {
+  const row = db.prepare('SELECT file_path FROM audio_cache WHERE chapter_id = ?').get(chapterId);
+  return row?.file_path ?? null;
+}
+
+function recordCachedAudio(chapterId, filePath) {
+  db.prepare(
+    `INSERT INTO audio_cache (chapter_id, file_path, cached_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(chapter_id) DO UPDATE SET file_path = excluded.file_path, cached_at = excluded.cached_at`,
+  ).run(chapterId, filePath, new Date().toISOString());
+}
+
 function close() {
   db?.close();
 }
@@ -129,5 +148,7 @@ module.exports = {
   queueProgressUpdate,
   getQueuedUpdates,
   clearQueuedUpdate,
+  getCachedAudioPath,
+  recordCachedAudio,
   close,
 };

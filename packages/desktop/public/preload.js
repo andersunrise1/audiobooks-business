@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('techspeak', {
     getFlashcards: () => ipcRenderer.invoke('cache:getFlashcards'),
     queueProgress: (chapterId, payload) =>
       ipcRenderer.invoke('cache:queueProgress', chapterId, payload),
+    getCachedAudioPath: (chapterId) => ipcRenderer.invoke('cache:getCachedAudioPath', chapterId),
+    downloadChapterAudio: (chapterId, audioUrl) =>
+      ipcRenderer.invoke('cache:downloadChapterAudio', chapterId, audioUrl),
   },
 
   sync: {

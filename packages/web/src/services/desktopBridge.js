@@ -14,3 +14,11 @@ export function setDesktopSession(session) {
 export function queueDesktopProgress(chapterId, payload) {
   return bridge?.cache.queueProgress(chapterId, payload);
 }
+
+export function getCachedAudioPath(chapterId) {
+  return Promise.resolve(bridge?.cache.getCachedAudioPath(chapterId));
+}
+
+export function cacheChapterAudio(chapterId, audioUrl) {
+  return Promise.resolve(bridge?.cache.downloadChapterAudio(chapterId, audioUrl));
+}

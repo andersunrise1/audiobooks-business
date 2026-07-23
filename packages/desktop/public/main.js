@@ -1,7 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const db = require('./db');
 const { syncNow } = require('./sync');
+const audioCache = require('./audioCache');
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
@@ -70,6 +72,16 @@ ipcMain.handle('cache:queueProgress', (_event, chapterId, payload) => {
 
 ipcMain.handle('sync:now', () => triggerSync());
 
+ipcMain.handle('cache:getCachedAudioPath', (_event, chapterId) => {
+  const filePath = audioCache.getCachedAudioPath(chapterId);
+  return filePath ? pathToFileURL(filePath).toString() : null;
+});
+
+ipcMain.handle('cache:downloadChapterAudio', async (_event, chapterId, audioUrl) => {
+  const filePath = await audioCache.downloadChapterAudio(chapterId, audioUrl);
+  return pathToFileURL(filePath).toString();
+});
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 if (!gotSingleInstanceLock) {
@@ -84,6 +96,7 @@ if (!gotSingleInstanceLock) {
 
   app.whenReady().then(() => {
     db.init(app.getPath('userData'));
+    audioCache.init(app.getPath('userData'));
     createWindow();
     startAutoSync();
   });

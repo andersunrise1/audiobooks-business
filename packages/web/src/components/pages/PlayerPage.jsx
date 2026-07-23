@@ -6,7 +6,12 @@ import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
-import { queueDesktopProgress } from '../../services/desktopBridge.js';
+import {
+  queueDesktopProgress,
+  getCachedAudioPath,
+  cacheChapterAudio,
+  isDesktop,
+} from '../../services/desktopBridge.js';
 
 function PlayerPage() {
   const { id } = useParams();
@@ -17,6 +22,7 @@ function PlayerPage() {
   const [progressByChapter, setProgressByChapter] = useState({});
   const [words, setWords] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const [audioSrc, setAudioSrc] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +49,26 @@ function PlayerPage() {
       .then(setWords)
       .catch(() => setWords([]));
   }, [chapter?.id]);
+
+  useEffect(() => {
+    if (!chapter?.id) return undefined;
+    let cancelled = false;
+
+    getCachedAudioPath(chapter.id).then((cachedPath) => {
+      if (cancelled) return;
+      setAudioSrc(cachedPath || chapter.audio_url);
+
+      if (!cachedPath && isDesktop) {
+        cacheChapterAudio(chapter.id, chapter.audio_url).catch((err) =>
+          console.error('failed to cache chapter audio for offline playback', err),
+        );
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chapter?.id, chapter?.audio_url]);
 
   async function saveProgress(chapterId, updates) {
     try {
@@ -96,7 +122,7 @@ function PlayerPage() {
 
       <AudioPlayer
         key={chapter.id}
-        src={chapter.audio_url}
+        src={audioSrc ?? chapter.audio_url}
         onEnded={handleChapterEnded}
         onTimeUpdate={setCurrentTime}
       />

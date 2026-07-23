@@ -8,6 +8,7 @@ import AudiobookListPage from './components/pages/AudiobookListPage.jsx';
 import PlayerPage from './components/pages/PlayerPage.jsx';
 import LoginPage from './components/pages/LoginPage.jsx';
 import RegisterPage from './components/pages/RegisterPage.jsx';
+import FlashcardReviewPage from './components/pages/FlashcardReviewPage.jsx';
 
 function App() {
   return (
@@ -33,6 +34,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/flashcards"
+              element={
+                <ProtectedRoute>
+                  <FlashcardReviewPage />
                 </ProtectedRoute>
               }
             />

@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 const links = [
   { to: '/audiobooks', label: 'Audiobooks' },
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/flashcards', label: 'Flashcards' },
 ];
 
 function Sidebar() {

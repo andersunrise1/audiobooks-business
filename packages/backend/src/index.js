@@ -4,6 +4,7 @@ import 'dotenv/config';
 import authRoutes from './routes/authRoutes.js';
 import audiobookRoutes from './routes/audiobookRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import dictionaryRoutes from './routes/dictionaryRoutes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -19,6 +20,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/audiobooks', audiobookRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/dictionary', dictionaryRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

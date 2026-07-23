@@ -33,6 +33,11 @@ export async function saveWordClick(req, res) {
     return res.status(400).json({ error: 'chapterId and wordId are required' });
   }
 
+  await pool.query(
+    'INSERT INTO word_clicks (user_id, word_id, chapter_id) VALUES ($1, $2, $3)',
+    [req.user.id, wordId, chapterId],
+  );
+
   const { rows } = await pool.query(
     `INSERT INTO user_progress (user_id, chapter_id, words_learned, last_accessed)
      VALUES ($1, $2, 1, now())

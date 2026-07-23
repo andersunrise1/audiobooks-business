@@ -5,26 +5,41 @@ function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (
-    <header className="border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+    <header className="border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
       <Link to="/" className="font-bold text-lg">
         TechSpeak
       </Link>
 
-      <nav className="flex items-center gap-4 text-sm">
-        <Link to="/audiobooks">Audiobooks</Link>
+      <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <Link to="/audiobooks" className="py-2 touch-manipulation">
+          Audiobooks
+        </Link>
 
         {isAuthenticated ? (
           <>
-            <Link to="/dashboard">Dashboard</Link>
+            <Link to="/dashboard" className="py-2 touch-manipulation">
+              Dashboard
+            </Link>
+            <Link to="/flashcards" className="py-2 touch-manipulation">
+              Flashcards
+            </Link>
             <span className="text-slate-500">{user?.name || user?.email}</span>
-            <button type="button" onClick={logout} className="text-slate-500 underline">
+            <button
+              type="button"
+              onClick={logout}
+              className="text-slate-500 underline py-2 touch-manipulation"
+            >
               Sair
             </button>
           </>
         ) : (
           <>
-            <Link to="/login">Entrar</Link>
-            <Link to="/register">Criar conta</Link>
+            <Link to="/login" className="py-2 touch-manipulation">
+              Entrar
+            </Link>
+            <Link to="/register" className="py-2 touch-manipulation">
+              Criar conta
+            </Link>
           </>
         )}
       </nav>

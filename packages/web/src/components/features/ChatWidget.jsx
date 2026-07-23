@@ -3,7 +3,7 @@ import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
 function createMessage(role, content) {
-  return { id: crypto.randomUUID(), role, content };
+  return { id: crypto.randomUUID(), role, content, feedback: null };
 }
 
 function ChatWidget() {
@@ -12,6 +12,7 @@ function ChatWidget() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -44,6 +45,24 @@ function ChatWidget() {
     }
   }
 
+  async function handleCopy(message) {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopiedId(message.id);
+    } catch {
+      setCopiedId(`error:${message.id}`);
+    }
+    setTimeout(() => setCopiedId((id) => (String(id).includes(message.id) ? null : id)), 2000);
+  }
+
+  function handleFeedback(messageId, value) {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId ? { ...m, feedback: m.feedback === value ? null : value } : m,
+      ),
+    );
+  }
+
   return (
     <div className="border border-slate-200 rounded-lg p-4 flex flex-col gap-3">
       <h2 className="font-semibold">Chat com o tutor</h2>
@@ -58,7 +77,7 @@ function ChatWidget() {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div
               className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
@@ -69,6 +88,44 @@ function ChatWidget() {
             >
               {message.content}
             </div>
+
+            {message.role === 'assistant' && (
+              <div className="flex gap-2 mt-1 text-xs text-slate-400">
+                <button
+                  type="button"
+                  onClick={() => handleCopy(message)}
+                  className="hover:text-slate-600"
+                >
+                  {copiedId === message.id
+                    ? 'Copiado!'
+                    : copiedId === `error:${message.id}`
+                      ? 'Erro ao copiar'
+                      : 'Copiar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFeedback(message.id, 'helpful')}
+                  aria-label="Marcar como útil"
+                  aria-pressed={message.feedback === 'helpful'}
+                  className={`rounded px-1 ${
+                    message.feedback === 'helpful' ? 'bg-green-100' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  👍
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFeedback(message.id, 'not-helpful')}
+                  aria-label="Marcar como não útil"
+                  aria-pressed={message.feedback === 'not-helpful'}
+                  className={`rounded px-1 ${
+                    message.feedback === 'not-helpful' ? 'bg-red-100' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  👎
+                </button>
+              </div>
+            )}
           </div>
         ))}
 

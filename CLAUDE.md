@@ -18,7 +18,9 @@ Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO
 
 **Honest gaps, not fixed**: no rate limiting or CORS origin restriction yet (both explicitly deferred to Etapa 5 / Dia 75 in the plan); cross-browser testing only covers Chromium (the available tooling drives a Chromium-based browser, not Safari/Firefox).
 
-Next up per the plan: Etapa 3 (IA & Chat), Semana 6, Dia 26 (Integração OpenAI API) — the first day requiring a real external API key (`OPENAI_API_KEY`, currently blank in `.env`).
+**Dia 26 is done, starting Etapa 3 (IA & Chat)**. **Project decision (2026-07-23): use the Anthropic API instead of OpenAI** for AI features — the plan's original `OPENAI_API_KEY`/OpenAI SDK references are superseded by `ANTHROPIC_API_KEY`/`@anthropic-ai/sdk` everywhere. `packages/backend/src/services/aiService.js` wraps `client.messages.create` (model `claude-sonnet-5`) with a short system prompt ("professor de inglês técnico"); `POST /api/ai/explain` (`{word, context}` → `{word, explanation}`, auth required) is the first consumer. Since there's no real `ANTHROPIC_API_KEY` yet (the user hasn't finished getting one), the client is constructed with a placeholder key that never crashes app startup, and the controller checks `process.env.ANTHROPIC_API_KEY` up front, returning 503 with a clear message instead of a raw failure — verified for real against the actual unconfigured environment (both a curl call and an integration test assert the 503). `aiService`'s request/response handling is unit-tested with `node:test`'s built-in `mock.method` on `client.messages.create`, so no network call or real key is needed to test it. Not yet done: actually calling the real Anthropic API (needs the user's key) and wiring this endpoint into any UI — that's for a later day once a key exists.
+
+Next up per the plan: Dia 27 (Chat Interface — the frontend chat UI, `web: create chat component`).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.
@@ -53,7 +55,7 @@ packages/web/       React 19 + Vite + React Router + Tailwind v4 (@tailwindcss/v
 packages/desktop/   Electron; main process loads packages/web's dev server (dev) or dist/index.html (prod) — no separate renderer/electron-vite. Offline cache + sync queue use node:sqlite (built into Node 22+/Electron's bundled runtime, no native module build step). Renderer talks to main via the `window.techspeak` bridge (public/preload.js): auth.setSession, cache.getProgress/getFlashcards, cache.queueProgress, sync.now/onStatusChange.
 packages/mobile/    React Native + Expo (later phase, not started)
 ```
-External services planned but not yet integrated: OpenAI (chat/explanations), Deepgram (pronunciation/transcription), ElevenLabs (TTS), Stripe (subscriptions), AWS S3 + CloudFront (audio storage/CDN). Redis (caching) also planned, not yet wired up.
+External services: Anthropic Claude (chat/explanations — integrated, Dia 26; see `services/aiService.js`) — used instead of the plan's original OpenAI choice. Still planned but not yet integrated: Deepgram (pronunciation/transcription), ElevenLabs (TTS), Stripe (subscriptions), AWS S3 + CloudFront (audio storage/CDN). Redis (caching) also planned, not yet wired up.
 
 `deploy-staging.yml` only builds `packages/web` — the actual deploy step is a TODO pending a hosting provider decision.
 

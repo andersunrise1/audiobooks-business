@@ -55,6 +55,12 @@ All routes here are public (no auth required) — read-only catalog data.
 
 No auth. Looks up a word in the canonical `technical_dictionary` table (case-insensitive). 200 → `{ word, part_of_speech, portuguese_translation, technical_explanation, example_sentence, contexts }`. 404 if not found.
 
+## AI (`/api/ai`) — requires auth
+
+### `POST /api/ai/explain`
+
+Body: `{ "word", "context" }`. Asks Claude (`@anthropic-ai/sdk`, model `claude-sonnet-5`) to explain the word in that context, as a technical-English tutor. 200 → `{ "word", "explanation" }`. 400 if `word`/`context` is missing. 503 if `ANTHROPIC_API_KEY` isn't configured on the server.
+
 ## User (`/api/user`) — all routes require auth
 
 ### `GET /api/user/progress`

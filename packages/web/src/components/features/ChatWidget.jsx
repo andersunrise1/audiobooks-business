@@ -16,7 +16,7 @@ function ChatWidget() {
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [messages, sending]);
 
   async function handleSubmit(e) {

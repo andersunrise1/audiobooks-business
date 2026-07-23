@@ -22,3 +22,4 @@ Cada workspace terá seu próprio `.env` (ver `.env.example` quando disponível)
 
 - [Plano de desenvolvimento completo](Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO_DETALHADO.md)
 - [Posicionamento / pitch](Audiobooks_English_Business.txt)
+- [Referência da API](packages/backend/API.md)

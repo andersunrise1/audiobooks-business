@@ -1,14 +1,91 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import AudioPlayer from '../features/AudioPlayer.jsx';
+import { apiRequest } from '../../services/api.js';
+import { useAuth } from '../../store/AuthContext.jsx';
 
 function PlayerPage() {
   const { id } = useParams();
+  const { accessToken } = useAuth();
+
+  const [chapters, setChapters] = useState([]);
+  const [chapterIndex, setChapterIndex] = useState(0);
+  const [progressByChapter, setProgressByChapter] = useState({});
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      apiRequest(`/api/audiobooks/${id}/chapters`),
+      apiRequest('/api/user/progress', { token: accessToken }),
+    ])
+      .then(([chapterList, progressList]) => {
+        setChapters(chapterList);
+        setChapterIndex(0);
+        setProgressByChapter(Object.fromEntries(progressList.map((p) => [p.chapter_id, p])));
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id, accessToken]);
+
+  const chapter = chapters[chapterIndex];
+
+  async function saveProgress(chapterId, updates) {
+    try {
+      const updated = await apiRequest(`/api/user/progress/${chapterId}`, {
+        method: 'POST',
+        token: accessToken,
+        body: updates,
+      });
+      setProgressByChapter((prev) => ({ ...prev, [chapterId]: updated }));
+    } catch (err) {
+      console.error('failed to save progress', err);
+    }
+  }
+
+  function handleChapterEnded() {
+    if (!chapter) return;
+    const previous = progressByChapter[chapter.id];
+    saveProgress(chapter.id, {
+      completed: true,
+      listeningCount: (previous?.listening_count ?? 0) + 1,
+    });
+  }
+
+  if (loading) return <p>Carregando...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
+  if (!chapter) return <p className="text-slate-500">Este audiobook ainda não tem capítulos.</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Player</h1>
-      <p className="text-slate-500 mt-2">
-        O player do audiobook {id} será implementado na Etapa 2 do plano.
-      </p>
+    <div className="flex flex-col gap-4">
+      <div>
+        <h1 className="text-2xl font-bold">{chapter.title}</h1>
+        <p className="text-slate-500 text-sm">
+          Capítulo {chapterIndex + 1} de {chapters.length}
+          {progressByChapter[chapter.id]?.completed && ' · concluído'}
+        </p>
+      </div>
+
+      <AudioPlayer key={chapter.id} src={chapter.audio_url} onEnded={handleChapterEnded} />
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={chapterIndex === 0}
+          onClick={() => setChapterIndex((i) => i - 1)}
+          className="px-3 py-1 rounded bg-slate-100 disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          disabled={chapterIndex === chapters.length - 1}
+          onClick={() => setChapterIndex((i) => i + 1)}
+          className="px-3 py-1 rounded bg-slate-100 disabled:opacity-50"
+        >
+          Próximo
+        </button>
+      </div>
     </div>
   );
 }

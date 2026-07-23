@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO_DETALHADO.md](Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO_DETALHADO.md) (full 20-week plan: architecture, DB schema, API routes, pricing, commit/branch conventions). **Etapa 1 / Semana 1 (Dias 1-5) is done**: monorepo scaffold, backend (Express + PostgreSQL config), web (React + Vite + React Router + Tailwind v4), desktop (Electron reusing `web/`'s React), and CI (GitHub Actions test/lint/deploy-staging, Husky pre-commit). Next up per the plan: Semana 2, Dia 6 (DB schema/migrations).
+Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO_DETALHADO.md](Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO_DETALHADO.md) (full 20-week plan: architecture, DB schema, API routes, pricing, commit/branch conventions). **Etapa 1 / Semana 1-2 (Dias 1-10) is done**: monorepo scaffold, backend (Express + PostgreSQL, DB schema/migrations, auth/audiobook/progress endpoints, JWT), web (React + Vite + React Router + Tailwind v4, layout, auth pages, protected routes), desktop (Electron reusing `web/`'s React, IPC handlers, SQLite offline cache, auto-sync with backend), and CI (GitHub Actions test/lint/deploy-staging, Husky pre-commit). Next up per the plan: Semana 3, Dia 11 (Audio Player Component).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.
@@ -32,7 +32,7 @@ Monorepo with npm workspaces:
 ```
 packages/backend/   Node.js + Express, PostgreSQL (pg), .env-based config
 packages/web/       React 19 + Vite + React Router + Tailwind v4 (@tailwindcss/vite, no config file needed)
-packages/desktop/   Electron; main process loads packages/web's dev server (dev) or dist/index.html (prod) — no separate renderer/electron-vite
+packages/desktop/   Electron; main process loads packages/web's dev server (dev) or dist/index.html (prod) — no separate renderer/electron-vite. Offline cache + sync queue use node:sqlite (built into Node 22+/Electron's bundled runtime, no native module build step). Renderer talks to main via the `window.techspeak` bridge (public/preload.js): auth.setSession, cache.getProgress/getFlashcards, cache.queueProgress, sync.now/onStatusChange.
 packages/mobile/    React Native + Expo (later phase, not started)
 ```
 External services planned but not yet integrated: OpenAI (chat/explanations), Deepgram (pronunciation/transcription), ElevenLabs (TTS), Stripe (subscriptions), AWS S3 + CloudFront (audio storage/CDN). Redis (caching) also planned, not yet wired up.

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AudioPlayer from '../features/AudioPlayer.jsx';
+import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
+import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
@@ -11,6 +13,8 @@ function PlayerPage() {
   const [chapters, setChapters] = useState([]);
   const [chapterIndex, setChapterIndex] = useState(0);
   const [progressByChapter, setProgressByChapter] = useState({});
+  const [words, setWords] = useState([]);
+  const [currentTime, setCurrentTime] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +33,14 @@ function PlayerPage() {
   }, [id, accessToken]);
 
   const chapter = chapters[chapterIndex];
+  const activeWordId = useWordSync(words, currentTime);
+
+  useEffect(() => {
+    if (!chapter?.id) return;
+    apiRequest(`/api/audiobooks/chapters/${chapter.id}/words`)
+      .then(setWords)
+      .catch(() => setWords([]));
+  }, [chapter?.id]);
 
   async function saveProgress(chapterId, updates) {
     try {
@@ -66,7 +78,14 @@ function PlayerPage() {
         </p>
       </div>
 
-      <AudioPlayer key={chapter.id} src={chapter.audio_url} onEnded={handleChapterEnded} />
+      <AudioPlayer
+        key={chapter.id}
+        src={chapter.audio_url}
+        onEnded={handleChapterEnded}
+        onTimeUpdate={setCurrentTime}
+      />
+
+      <TranscriptDisplay words={words} activeWordId={activeWordId} transcript={chapter.transcript} />
 
       <div className="flex gap-2">
         <button

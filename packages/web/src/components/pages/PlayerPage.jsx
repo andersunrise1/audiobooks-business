@@ -6,6 +6,7 @@ import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import { queueDesktopProgress } from '../../services/desktopBridge.js';
 
 function PlayerPage() {
   const { id } = useParams();
@@ -52,7 +53,8 @@ function PlayerPage() {
       });
       setProgressByChapter((prev) => ({ ...prev, [chapterId]: updated }));
     } catch (err) {
-      console.error('failed to save progress', err);
+      console.error('failed to save progress, queueing for desktop sync', err);
+      queueDesktopProgress(chapterId, updates);
     }
   }
 

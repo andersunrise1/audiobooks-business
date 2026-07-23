@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { apiRequest } from '../services/api.js';
+import { apiRequest, API_URL } from '../services/api.js';
+import { setDesktopSession } from '../services/desktopBridge.js';
 
 const STORAGE_KEY = 'techspeak_auth';
 
@@ -20,8 +21,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (auth) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+      setDesktopSession({ apiUrl: API_URL, token: auth.accessToken });
     } else {
       localStorage.removeItem(STORAGE_KEY);
+      setDesktopSession(null);
     }
   }, [auth]);
 

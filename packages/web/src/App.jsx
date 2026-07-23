@@ -1,52 +1,56 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext.jsx';
 import Layout from './components/layout/Layout.jsx';
 import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import HomePage from './components/pages/HomePage.jsx';
-import DashboardPage from './components/pages/DashboardPage.jsx';
-import AudiobookListPage from './components/pages/AudiobookListPage.jsx';
-import PlayerPage from './components/pages/PlayerPage.jsx';
-import LoginPage from './components/pages/LoginPage.jsx';
-import RegisterPage from './components/pages/RegisterPage.jsx';
-import FlashcardReviewPage from './components/pages/FlashcardReviewPage.jsx';
+
+const DashboardPage = lazy(() => import('./components/pages/DashboardPage.jsx'));
+const AudiobookListPage = lazy(() => import('./components/pages/AudiobookListPage.jsx'));
+const PlayerPage = lazy(() => import('./components/pages/PlayerPage.jsx'));
+const LoginPage = lazy(() => import('./components/pages/LoginPage.jsx'));
+const RegisterPage = lazy(() => import('./components/pages/RegisterPage.jsx'));
+const FlashcardReviewPage = lazy(() => import('./components/pages/FlashcardReviewPage.jsx'));
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/audiobooks" element={<AudiobookListPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+        <Suspense fallback={<p className="p-6 text-slate-500">Carregando...</p>}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/audiobooks" element={<AudiobookListPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
 
-            <Route
-              path="/audiobooks/:id/player"
-              element={
-                <ProtectedRoute>
-                  <PlayerPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/flashcards"
-              element={
-                <ProtectedRoute>
-                  <FlashcardReviewPage />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
-        </Routes>
+              <Route
+                path="/audiobooks/:id/player"
+                element={
+                  <ProtectedRoute>
+                    <PlayerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/flashcards"
+                element={
+                  <ProtectedRoute>
+                    <FlashcardReviewPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );

@@ -64,6 +64,19 @@ function PlayerPage() {
     });
   }
 
+  async function handleWordClick(word) {
+    try {
+      const updated = await apiRequest('/api/user/words-learned', {
+        method: 'POST',
+        token: accessToken,
+        body: { chapterId: chapter.id, wordId: word.id },
+      });
+      setProgressByChapter((prev) => ({ ...prev, [chapter.id]: updated }));
+    } catch (err) {
+      console.error('failed to save word click', err);
+    }
+  }
+
   if (loading) return <p>Carregando...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!chapter) return <p className="text-slate-500">Este audiobook ainda não tem capítulos.</p>;
@@ -85,7 +98,12 @@ function PlayerPage() {
         onTimeUpdate={setCurrentTime}
       />
 
-      <TranscriptDisplay words={words} activeWordId={activeWordId} transcript={chapter.transcript} />
+      <TranscriptDisplay
+        words={words}
+        activeWordId={activeWordId}
+        transcript={chapter.transcript}
+        onWordClick={handleWordClick}
+      />
 
       <div className="flex gap-2">
         <button

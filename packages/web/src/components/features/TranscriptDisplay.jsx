@@ -3,7 +3,7 @@ import TranslationPopup from './TranslationPopup.jsx';
 
 const POPUP_AUTO_CLOSE_MS = 3000;
 
-function TranscriptDisplay({ words, activeWordId, transcript }) {
+function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
   const [selectedWordId, setSelectedWordId] = useState(null);
 
   useEffect(() => {
@@ -19,6 +19,11 @@ function TranscriptDisplay({ words, activeWordId, transcript }) {
 
   const selectedWord = words.find((word) => word.id === selectedWordId) ?? null;
 
+  function selectWord(word) {
+    setSelectedWordId(word.id);
+    onWordClick?.(word);
+  }
+
   return (
     <>
       <p className="leading-relaxed text-slate-700">
@@ -27,9 +32,9 @@ function TranscriptDisplay({ words, activeWordId, transcript }) {
             key={word.id}
             role="button"
             tabIndex={0}
-            onClick={() => setSelectedWordId(word.id)}
+            onClick={() => selectWord(word)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') setSelectedWordId(word.id);
+              if (event.key === 'Enter' || event.key === ' ') selectWord(word);
             }}
             className={`inline-block mr-1 rounded px-0.5 cursor-pointer transition-colors hover:bg-slate-200 ${
               word.id === activeWordId ? 'bg-yellow-200 font-semibold' : ''

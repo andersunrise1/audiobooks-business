@@ -69,4 +69,34 @@ describe('aiService.chatReply', () => {
       createMock.mock.restore();
     }
   });
+
+  test('folds context into the system prompt when provided', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'ok' }],
+    }));
+
+    try {
+      await chatReply([{ role: 'user', content: 'oi' }], 'Capitulo atual: "Daily Standup".');
+
+      const [requestArgs] = createMock.mock.calls[0].arguments;
+      assert.match(requestArgs.system, /Daily Standup/);
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('uses the base system prompt when no context is given', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'ok' }],
+    }));
+
+    try {
+      await chatReply([{ role: 'user', content: 'oi' }]);
+
+      const [requestArgs] = createMock.mock.calls[0].arguments;
+      assert.doesNotMatch(requestArgs.system, /Contexto do que o aluno/);
+    } finally {
+      createMock.mock.restore();
+    }
+  });
 });

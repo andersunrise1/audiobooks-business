@@ -1,6 +1,8 @@
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { pool } from '../../src/config/database.js';
+import { buildChatContext } from '../../src/services/aiService.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
 describe('AI explanation endpoint', () => {
@@ -116,5 +118,58 @@ describe('AI chat endpoint', () => {
     assert.equal(res.status, 503);
     const data = await res.json();
     assert.match(data.error, /ANTHROPIC_API_KEY/);
+  });
+});
+
+describe('aiService.buildChatContext', () => {
+  let audiobookId;
+  let chapterId;
+  let wordId;
+
+  before(async () => {
+    audiobookId = randomUUID();
+    chapterId = randomUUID();
+    wordId = randomUUID();
+
+    await pool.query(`INSERT INTO audiobooks (id, title) VALUES ($1, 'Test Audiobook')`, [
+      audiobookId,
+    ]);
+    await pool.query(
+      `INSERT INTO chapters (id, audiobook_id, title, order_index, transcript)
+       VALUES ($1, $2, 'Daily Standup', 1, 'Yesterday I deployed a new version.')`,
+      [chapterId, audiobookId],
+    );
+    await pool.query(
+      `INSERT INTO words (id, word, chapter_id, portuguese_translation, technical_explanation)
+       VALUES ($1, 'deployed', $2, 'implantado', 'Colocar codigo em producao.')`,
+      [wordId, chapterId],
+    );
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM audiobooks WHERE id = $1', [audiobookId]);
+  });
+
+  test('returns an empty string when neither chapterId nor wordId is given', async () => {
+    const context = await buildChatContext();
+    assert.equal(context, '');
+  });
+
+  test('includes the chapter title and transcript when chapterId is given', async () => {
+    const context = await buildChatContext(chapterId);
+    assert.match(context, /Daily Standup/);
+    assert.match(context, /Yesterday I deployed a new version\./);
+  });
+
+  test('also includes the word translation and explanation when wordId is given', async () => {
+    const context = await buildChatContext(chapterId, wordId);
+    assert.match(context, /deployed/);
+    assert.match(context, /implantado/);
+    assert.match(context, /Colocar codigo em producao\./);
+  });
+
+  test('silently ignores an id that does not exist', async () => {
+    const context = await buildChatContext(randomUUID());
+    assert.equal(context, '');
   });
 });

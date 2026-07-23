@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { pool } from '../config/database.js';
 
 export const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'not-configured',
@@ -25,11 +26,47 @@ const CHAT_SYSTEM_PROMPT =
   'Você é um tutor de inglês técnico para profissionais de TI, conversando em um chat dentro do app. ' +
   'Responda em texto simples, sem markdown, de forma clara e direta.';
 
-export async function chatReply(messages) {
+export async function buildChatContext(chapterId, wordId) {
+  const parts = [];
+
+  if (chapterId) {
+    const { rows } = await pool.query('SELECT title, transcript FROM chapters WHERE id = $1', [
+      chapterId,
+    ]);
+    const chapter = rows[0];
+    if (chapter) {
+      parts.push(
+        `Capitulo atual: "${chapter.title}".${chapter.transcript ? ` Transcript: "${chapter.transcript}"` : ''}`,
+      );
+    }
+  }
+
+  if (wordId) {
+    const { rows } = await pool.query(
+      'SELECT word, portuguese_translation, technical_explanation FROM words WHERE id = $1',
+      [wordId],
+    );
+    const word = rows[0];
+    if (word) {
+      parts.push(
+        `Palavra em foco: "${word.word}" (traducao: ${word.portuguese_translation || 'desconhecida'}).` +
+          (word.technical_explanation ? ` ${word.technical_explanation}` : ''),
+      );
+    }
+  }
+
+  return parts.join('\n');
+}
+
+export async function chatReply(messages, context) {
+  const system = context
+    ? `${CHAT_SYSTEM_PROMPT}\n\nContexto do que o aluno esta estudando agora:\n${context}`
+    : CHAT_SYSTEM_PROMPT;
+
   const response = await client.messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 500,
-    system: CHAT_SYSTEM_PROMPT,
+    system,
     messages: messages.map(({ role, content }) => ({ role, content })),
   });
 

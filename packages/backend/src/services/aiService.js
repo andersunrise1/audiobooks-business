@@ -14,7 +14,13 @@ export const client = new Anthropic({
 const EXPLAIN_MODEL = 'claude-haiku-4-5';
 const DEFAULT_MODEL = 'claude-sonnet-5';
 
-async function logUsage(endpoint, model, response, userId) {
+async function createMessage(params) {
+  const start = Date.now();
+  const response = await client.messages.create(params);
+  return { response, responseTimeMs: Date.now() - start };
+}
+
+async function logUsage(endpoint, model, response, userId, responseTimeMs) {
   if (!userId || !response.usage) return;
   await logAiUsage({
     userId,
@@ -22,6 +28,7 @@ async function logUsage(endpoint, model, response, userId) {
     model,
     inputTokens: response.usage.input_tokens ?? 0,
     outputTokens: response.usage.output_tokens ?? 0,
+    responseTimeMs,
   });
 }
 
@@ -47,7 +54,7 @@ const SYSTEM_PROMPT =
   'Vá direto à explicação, sem saudação ou introdução.';
 
 export async function explainTechnicalTerm(word, context, { userId, endpoint = 'explain' } = {}) {
-  const response = await client.messages.create({
+  const { response, responseTimeMs } = await createMessage({
     model: EXPLAIN_MODEL,
     max_tokens: 150,
     system: SYSTEM_PROMPT,
@@ -56,7 +63,7 @@ export async function explainTechnicalTerm(word, context, { userId, endpoint = '
     ],
   });
 
-  await logUsage(endpoint, EXPLAIN_MODEL, response, userId);
+  await logUsage(endpoint, EXPLAIN_MODEL, response, userId, responseTimeMs);
 
   return response.content.find((block) => block.type === 'text')?.text ?? '';
 }
@@ -67,14 +74,14 @@ const REMEDIAL_SYSTEM_PROMPT =
   '{"summary": "resumo em portugues em 2-3 frases", "keywords": ["ate 5 palavras-chave em ingles do capitulo"], "exercise": "um exercicio curto de pratica em ingles relacionado ao capitulo"}.';
 
 export async function getRemedialContent(transcript, { userId } = {}) {
-  const response = await client.messages.create({
+  const { response, responseTimeMs } = await createMessage({
     model: DEFAULT_MODEL,
     max_tokens: 400,
     system: REMEDIAL_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `Transcript do capitulo: "${transcript}"` }],
   });
 
-  await logUsage('remedial', DEFAULT_MODEL, response, userId);
+  await logUsage('remedial', DEFAULT_MODEL, response, userId, responseTimeMs);
 
   const text = response.content.find((block) => block.type === 'text')?.text ?? '';
 
@@ -131,14 +138,14 @@ export async function chatReply(messages, context, { userId } = {}) {
     ? `${CHAT_SYSTEM_PROMPT}\n\nContexto do que o aluno esta estudando agora:\n${context}`
     : CHAT_SYSTEM_PROMPT;
 
-  const response = await client.messages.create({
+  const { response, responseTimeMs } = await createMessage({
     model: DEFAULT_MODEL,
     max_tokens: 500,
     system,
     messages: messages.map(({ role, content }) => ({ role, content })),
   });
 
-  await logUsage('chat', DEFAULT_MODEL, response, userId);
+  await logUsage('chat', DEFAULT_MODEL, response, userId, responseTimeMs);
 
   return response.content.find((block) => block.type === 'text')?.text ?? '';
 }

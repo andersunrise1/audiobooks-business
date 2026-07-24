@@ -158,6 +158,96 @@ describe('AI chat endpoint', () => {
   });
 });
 
+describe('Chat feedback endpoint (Dia 38)', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+  let otherAccessToken;
+  let otherUserId;
+  let messageId;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+
+    const other = await registerTestUser(baseUrl);
+    otherAccessToken = other.accessToken;
+    otherUserId = other.user.id;
+
+    const { rows } = await pool.query(
+      `INSERT INTO chat_messages (user_id, message, response) VALUES ($1, 'oi', 'ola') RETURNING id`,
+      [userId],
+    );
+    messageId = rows[0].id;
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [otherUserId]);
+    await stopTestServer(server);
+  });
+
+  function patchFeedback(token, id, feedback) {
+    return fetch(`${baseUrl}/api/ai/chat/${id}/feedback`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ feedback }),
+    });
+  }
+
+  test('rejects unauthenticated requests', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/chat/${messageId}/feedback`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: 'helpful' }),
+    });
+    assert.equal(res.status, 401);
+  });
+
+  test('rejects an invalid feedback value', async () => {
+    const res = await patchFeedback(accessToken, messageId, 'super helpful');
+    assert.equal(res.status, 400);
+  });
+
+  test('returns 404 when the message belongs to a different user', async () => {
+    const res = await patchFeedback(otherAccessToken, messageId, 'helpful');
+    assert.equal(res.status, 404);
+  });
+
+  test('returns 404 for a message that does not exist', async () => {
+    const res = await patchFeedback(accessToken, '00000000-0000-0000-0000-000000000000', 'helpful');
+    assert.equal(res.status, 404);
+  });
+
+  test('persists the feedback for the message owner', async () => {
+    const res = await patchFeedback(accessToken, messageId, 'helpful');
+    assert.equal(res.status, 200);
+
+    const data = await res.json();
+    assert.deepEqual(data, { id: messageId, feedback: 'helpful' });
+
+    const { rows } = await pool.query('SELECT feedback FROM chat_messages WHERE id = $1', [
+      messageId,
+    ]);
+    assert.equal(rows[0].feedback, 'helpful');
+  });
+
+  test('clearing feedback back to null is allowed', async () => {
+    const res = await patchFeedback(accessToken, messageId, null);
+    assert.equal(res.status, 200);
+
+    const data = await res.json();
+    assert.equal(data.feedback, null);
+  });
+});
+
 describe('aiService.buildChatContext', () => {
   let audiobookId;
   let chapterId;

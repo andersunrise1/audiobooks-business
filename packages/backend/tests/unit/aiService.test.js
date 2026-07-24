@@ -205,7 +205,7 @@ describe('aiService cost tracking (Dia 37)', () => {
       assert.equal(queryMock.mock.calls.length, 1);
       const [sql, params] = queryMock.mock.calls[0].arguments;
       assert.match(sql, /INSERT INTO ai_usage_log/);
-      assert.deepEqual(params, [
+      assert.deepEqual(params.slice(0, 6), [
         'user-1',
         'explain',
         'claude-haiku-4-5',
@@ -213,6 +213,7 @@ describe('aiService cost tracking (Dia 37)', () => {
         17,
         estimateCostUsd('claude-haiku-4-5', 42, 17),
       ]);
+      assert.ok(Number.isInteger(params[6]) && params[6] >= 0);
     } finally {
       createMock.mock.restore();
       queryMock.mock.restore();

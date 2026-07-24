@@ -14,13 +14,28 @@ export function estimateCostUsd(model, inputTokens, outputTokens) {
 
 // Best-effort: a logging failure should never break the AI response the
 // user is actually waiting on, so errors are caught and logged, not thrown.
-export async function logAiUsage({ userId, endpoint, model, inputTokens, outputTokens }) {
+export async function logAiUsage({
+  userId,
+  endpoint,
+  model,
+  inputTokens,
+  outputTokens,
+  responseTimeMs,
+}) {
   try {
     const estimatedCostUsd = estimateCostUsd(model, inputTokens, outputTokens);
     await pool.query(
-      `INSERT INTO ai_usage_log (user_id, endpoint, model, input_tokens, output_tokens, estimated_cost_usd)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, endpoint, model, inputTokens, outputTokens, estimatedCostUsd],
+      `INSERT INTO ai_usage_log (user_id, endpoint, model, input_tokens, output_tokens, estimated_cost_usd, response_time_ms)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        userId,
+        endpoint,
+        model,
+        inputTokens,
+        outputTokens,
+        estimatedCostUsd,
+        responseTimeMs ?? null,
+      ],
     );
   } catch (err) {
     console.error(`Failed to log AI usage for endpoint "${endpoint}":`, err.message);

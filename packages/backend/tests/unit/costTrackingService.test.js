@@ -33,6 +33,7 @@ describe('costTrackingService.logAiUsage', () => {
         model: 'claude-haiku-4-5',
         inputTokens: 100,
         outputTokens: 50,
+        responseTimeMs: 1234,
       });
 
       assert.equal(queryMock.mock.calls.length, 1);
@@ -45,7 +46,27 @@ describe('costTrackingService.logAiUsage', () => {
         100,
         50,
         estimateCostUsd('claude-haiku-4-5', 100, 50),
+        1234,
       ]);
+    } finally {
+      queryMock.mock.restore();
+    }
+  });
+
+  test('stores null response time when not given', async () => {
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    try {
+      await logAiUsage({
+        userId: 'user-1',
+        endpoint: 'explain',
+        model: 'claude-haiku-4-5',
+        inputTokens: 100,
+        outputTokens: 50,
+      });
+
+      const [, params] = queryMock.mock.calls[0].arguments;
+      assert.equal(params[6], null);
     } finally {
       queryMock.mock.restore();
     }

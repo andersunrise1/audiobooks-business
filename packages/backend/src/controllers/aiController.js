@@ -50,9 +50,10 @@ export async function chat(req, res) {
   const reply = await chatReply(messages, context, { userId: req.user.id });
 
   const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
-  await pool.query(
+  const { rows } = await pool.query(
     `INSERT INTO chat_messages (user_id, chapter_id, message, response, message_type)
-     VALUES ($1, $2, $3, $4, $5)`,
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
     [
       req.user.id,
       chapterId || null,
@@ -62,7 +63,29 @@ export async function chat(req, res) {
     ],
   );
 
-  res.json({ reply });
+  res.json({ reply, messageId: rows[0].id });
+}
+
+const FEEDBACK_VALUES = [null, 'helpful', 'not_helpful'];
+
+export async function updateChatFeedback(req, res) {
+  const { messageId } = req.params;
+  const { feedback } = req.body;
+
+  if (!FEEDBACK_VALUES.includes(feedback)) {
+    return res.status(400).json({ error: 'feedback must be "helpful", "not_helpful", or null' });
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE chat_messages SET feedback = $1 WHERE id = $2 AND user_id = $3 RETURNING id, feedback`,
+    [feedback, messageId, req.user.id],
+  );
+
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'chat message not found' });
+  }
+
+  res.json(rows[0]);
 }
 
 export async function remedial(req, res) {

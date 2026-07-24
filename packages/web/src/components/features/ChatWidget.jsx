@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
-function createMessage(role, content) {
-  return { id: crypto.randomUUID(), role, content, feedback: null };
+function createMessage(role, content, messageId = null) {
+  return { id: crypto.randomUUID(), role, content, feedback: null, messageId };
 }
 
 function ChatWidget({ chapterId }) {
@@ -32,7 +32,7 @@ function ChatWidget({ chapterId }) {
     setError('');
 
     try {
-      const { reply } = await apiRequest('/api/ai/chat', {
+      const { reply, messageId } = await apiRequest('/api/ai/chat', {
         method: 'POST',
         token: accessToken,
         body: {
@@ -40,7 +40,7 @@ function ChatWidget({ chapterId }) {
           chapterId,
         },
       });
-      setMessages((prev) => [...prev, createMessage('assistant', reply)]);
+      setMessages((prev) => [...prev, createMessage('assistant', reply, messageId)]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -58,12 +58,25 @@ function ChatWidget({ chapterId }) {
     setTimeout(() => setCopiedId((id) => (String(id).includes(message.id) ? null : id)), 2000);
   }
 
-  function handleFeedback(messageId, value) {
+  async function handleFeedback(message, value) {
+    const nextValue = message.feedback === value ? null : value;
     setMessages((prev) =>
-      prev.map((m) =>
-        m.id === messageId ? { ...m, feedback: m.feedback === value ? null : value } : m,
-      ),
+      prev.map((m) => (m.id === message.id ? { ...m, feedback: nextValue } : m)),
     );
+
+    if (!message.messageId) return;
+
+    try {
+      await apiRequest(`/api/ai/chat/${message.messageId}/feedback`, {
+        method: 'PATCH',
+        token: accessToken,
+        body: { feedback: nextValue },
+      });
+    } catch {
+      // Feedback is a non-critical signal - a failed PATCH just means it
+      // wasn't persisted for analytics; the local UI state already reflects
+      // the user's click, so we don't surface an error for this.
+    }
   }
 
   return (
@@ -107,7 +120,7 @@ function ChatWidget({ chapterId }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleFeedback(message.id, 'helpful')}
+                  onClick={() => handleFeedback(message, 'helpful')}
                   aria-label="Marcar como útil"
                   aria-pressed={message.feedback === 'helpful'}
                   className={`rounded px-1 ${
@@ -118,11 +131,11 @@ function ChatWidget({ chapterId }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleFeedback(message.id, 'not-helpful')}
+                  onClick={() => handleFeedback(message, 'not_helpful')}
                   aria-label="Marcar como não útil"
-                  aria-pressed={message.feedback === 'not-helpful'}
+                  aria-pressed={message.feedback === 'not_helpful'}
                   className={`rounded px-1 ${
-                    message.feedback === 'not-helpful' ? 'bg-red-100' : 'hover:bg-slate-100'
+                    message.feedback === 'not_helpful' ? 'bg-red-100' : 'hover:bg-slate-100'
                   }`}
                 >
                   👎

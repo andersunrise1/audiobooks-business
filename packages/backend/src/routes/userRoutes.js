@@ -11,6 +11,7 @@ import { getUserStats } from '../controllers/statsController.js';
 import { getDifficultyProfile } from '../controllers/difficultyController.js';
 import { getRepeatedDifficultWords } from '../controllers/wordRepetitionController.js';
 import { getStudyPriorityQueue } from '../controllers/schedulingController.js';
+import { getRecommendations } from '../controllers/recommendationController.js';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.get('/stats', getUserStats);
 router.get('/difficulty-profile', getDifficultyProfile);
 router.get('/chapters/:chapterId/repeated-words', getRepeatedDifficultWords);
 router.get('/study-priority', getStudyPriorityQueue);
+router.get('/recommendations', getRecommendations);
 
 export default router;

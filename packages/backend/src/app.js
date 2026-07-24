@@ -12,7 +12,7 @@ import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 export function createApp() {
   const app = express();
 
-  app.use(cors());
+  app.use(cors({ exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'] }));
   app.use(express.json());
 
   app.get('/api/health', (req, res) => {

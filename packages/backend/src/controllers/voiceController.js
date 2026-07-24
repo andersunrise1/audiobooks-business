@@ -1,6 +1,7 @@
 import { parseVoiceCommand } from '../services/voiceCommandService.js';
 import { explainTechnicalTerm } from '../services/aiService.js';
 import { getUserStats } from '../services/statsService.js';
+import { checkRateLimit, rateLimitExceededMessage } from '../services/rateLimitService.js';
 
 export async function handleVoiceCommand(req, res) {
   const { transcript, context } = req.body;
@@ -18,9 +19,16 @@ export async function handleVoiceCommand(req, res) {
         .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
     }
 
+    const limit = Number(process.env.AI_DAILY_RATE_LIMIT) || 50;
+    const { allowed } = await checkRateLimit(req.user.id, limit);
+    if (!allowed) {
+      return res.status(429).json({ error: rateLimitExceededMessage(limit) });
+    }
+
     const explanation = await explainTechnicalTerm(
       parsed.word,
       context || 'a general technical conversation',
+      { userId: req.user.id, endpoint: 'voice_explain' },
     );
     return res.json({ intent: 'explain', word: parsed.word, explanation });
   }

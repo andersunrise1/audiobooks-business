@@ -10,6 +10,7 @@ import {
 import { getUserStats } from '../controllers/statsController.js';
 import { getDifficultyProfile } from '../controllers/difficultyController.js';
 import { getRepeatedDifficultWords } from '../controllers/wordRepetitionController.js';
+import { getStudyPriorityQueue } from '../controllers/schedulingController.js';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.post('/words-learned', saveWordClick);
 router.get('/stats', getUserStats);
 router.get('/difficulty-profile', getDifficultyProfile);
 router.get('/chapters/:chapterId/repeated-words', getRepeatedDifficultWords);
+router.get('/study-priority', getStudyPriorityQueue);
 
 export default router;

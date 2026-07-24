@@ -5,6 +5,7 @@ import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
 import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
 import ChatWidget from '../features/ChatWidget.jsx';
 import ChapterFeedback from '../features/ChapterFeedback.jsx';
+import VoiceCommandBar from '../features/VoiceCommandBar.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
@@ -88,6 +89,10 @@ function PlayerPage() {
     }
   }
 
+  function handleNextChapter() {
+    setChapterIndex((i) => Math.min(i + 1, chapters.length - 1));
+  }
+
   function handleChapterEnded() {
     if (!chapter) return;
     const previous = progressByChapter[chapter.id];
@@ -156,12 +161,14 @@ function PlayerPage() {
         <button
           type="button"
           disabled={chapterIndex === chapters.length - 1}
-          onClick={() => setChapterIndex((i) => i + 1)}
+          onClick={handleNextChapter}
           className="px-3 py-1 rounded bg-slate-100 disabled:opacity-50"
         >
           Próximo
         </button>
       </div>
+
+      <VoiceCommandBar context={chapter.transcript} onNextChapter={handleNextChapter} />
 
       {progressByChapter[chapter.id]?.completed && (
         <ChapterFeedback key={`feedback-${chapter.id}`} chapterId={chapter.id} />

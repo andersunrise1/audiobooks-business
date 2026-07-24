@@ -141,6 +141,32 @@ Body: `{ "quality" }` — 0-5, how well the word was recalled (SM-2 scale; <3 co
 
 200 → array of the caller's non-mastered flashcards, ranked for review: `{ id, wordId, word, portugueseTranslation, technicalExplanation, exampleSentence, learningStatus, easeFactor, intervalDays, reviewCount, lastReviewed, nextReview, clickCount }`. Ordered by `clickCount` (from `word_clicks`) descending first, then by `nextReview` ascending (never-reviewed/most-overdue first) — a word clicked often but not yet due still outranks one clicked once that happens to be due now. `mastered` flashcards are excluded.
 
+### `GET /api/user/recommendations`
+
+200 → rule-based (not AI-generated) suggestions:
+
+```json
+{
+  "nextChapter": {
+    "audiobookId": "...",
+    "audiobookTitle": "...",
+    "chapterId": "...",
+    "chapterTitle": "...",
+    "orderIndex": 0
+  },
+  "recommendedAudiobook": {
+    "audiobookId": "...",
+    "title": "...",
+    "category": "...",
+    "level": "...",
+    "matchesPreference": true
+  },
+  "bestStudyHour": { "hour": 0, "activityCount": 0 }
+}
+```
+
+Any of the three can be `null`. `nextChapter` is the lowest-`order_index` incomplete chapter in the audiobook the caller most recently accessed (`null` if they have no progress anywhere, or have finished every chapter in that audiobook). `recommendedAudiobook` is an audiobook the caller hasn't started, preferring the category/level they engage with most (`null` if they've started everything). `bestStudyHour` is the hour of day (0-23, server timezone — no per-user timezone tracking exists yet) with the most `word_clicks` activity historically (`null` with no click history).
+
 ## Pronunciation (`/api/pronunciation`) — requires auth
 
 ### `POST /api/pronunciation/score`

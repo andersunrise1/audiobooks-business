@@ -1,6 +1,7 @@
-import { after, before, describe, test } from 'node:test';
+import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { pool } from '../../src/config/database.js';
+import { client } from '../../src/services/aiService.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
 describe('POST /api/voice/command', () => {
@@ -80,5 +81,26 @@ describe('POST /api/voice/command', () => {
 
     const data = await res.json();
     assert.match(data.error, /ANTHROPIC_API_KEY/);
+  });
+
+  test('"explain X" falls back to the technical dictionary when the AI call fails (Dia 39)', async () => {
+    const originalKey = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'test-key-for-fallback-tests';
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('simulated Anthropic outage');
+    });
+
+    try {
+      const res = await sendCommand('Explain deployed');
+      assert.equal(res.status, 200);
+
+      const data = await res.json();
+      assert.equal(data.intent, 'explain');
+      assert.equal(data.fallback, true);
+      assert.equal(data.source, 'dictionary');
+    } finally {
+      createMock.mock.restore();
+      process.env.ANTHROPIC_API_KEY = originalKey;
+    }
   });
 });

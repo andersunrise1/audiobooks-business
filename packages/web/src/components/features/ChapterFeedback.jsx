@@ -81,6 +81,29 @@ function ChapterFeedback({ chapterId }) {
               <strong>Exercício:</strong> {remedial.exercise}
             </p>
           )}
+
+          {remedial.fallback && (
+            <div className="flex flex-col gap-1 border border-amber-200 bg-amber-50 rounded-lg p-2 text-xs text-slate-600">
+              <p className="font-semibold">Perguntas frequentes</p>
+              {remedial.faq.map((item) => (
+                <p key={item.question}>
+                  <strong>{item.question}</strong> {item.answer}
+                </p>
+              ))}
+              <p>
+                Documentação:{' '}
+                <a
+                  href={remedial.externalDocsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  {remedial.externalDocsUrl}
+                </a>
+              </p>
+              <p>Suporte: {remedial.supportContact}</p>
+            </div>
+          )}
         </div>
       )}
     </div>

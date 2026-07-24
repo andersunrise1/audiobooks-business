@@ -35,19 +35,6 @@ describe('GET /api/admin/analytics', () => {
       `INSERT INTO chapters (id, audiobook_id, title, order_index) VALUES ($1, $2, 'Daily Standup', 1)`,
       [chapterId, audiobookId],
     );
-
-    await pool.query(
-      `INSERT INTO chat_messages (user_id, chapter_id, message, response, feedback) VALUES
-       ($1, $2, 'oi', 'ola', 'helpful'),
-       ($1, $2, 'e ai', 'tudo bem', 'not_helpful')`,
-      [plainUserId, chapterId],
-    );
-
-    await pool.query(
-      `INSERT INTO ai_usage_log (user_id, endpoint, model, input_tokens, output_tokens, estimated_cost_usd, response_time_ms)
-       VALUES ($1, 'explain', 'claude-haiku-4-5', 100, 50, 0.001, 1200)`,
-      [plainUserId],
-    );
   });
 
   after(async () => {
@@ -70,6 +57,27 @@ describe('GET /api/admin/analytics', () => {
   });
 
   test('returns aggregated analytics for an admin', async () => {
+    // satisfaction and avgResponseTime are global aggregates across every
+    // chat_messages/ai_usage_log row ever created in this DB, not just this
+    // test's fixtures - a shared dev DB can carry real rows from manual
+    // verification sessions. Comparing before/after deltas (rather than
+    // exact absolute counts) keeps the assertions correct regardless.
+    const before = await fetch(`${baseUrl}/api/admin/analytics`, {
+      headers: { Authorization: `Bearer ${adminAccessToken}` },
+    }).then((r) => r.json());
+
+    await pool.query(
+      `INSERT INTO chat_messages (user_id, chapter_id, message, response, feedback) VALUES
+       ($1, $2, 'oi', 'ola', 'helpful'),
+       ($1, $2, 'e ai', 'tudo bem', 'not_helpful')`,
+      [plainUserId, chapterId],
+    );
+    await pool.query(
+      `INSERT INTO ai_usage_log (user_id, endpoint, model, input_tokens, output_tokens, estimated_cost_usd, response_time_ms)
+       VALUES ($1, 'explain', 'claude-haiku-4-5', 100, 50, 0.001, 1200)`,
+      [plainUserId],
+    );
+
     const res = await fetch(`${baseUrl}/api/admin/analytics`, {
       headers: { Authorization: `Bearer ${adminAccessToken}` },
     });
@@ -80,17 +88,12 @@ describe('GET /api/admin/analytics', () => {
     const chapterRow = data.questionsPerChapter.find((row) => row.chapterId === chapterId);
     assert.equal(chapterRow.questionCount, 2);
 
-    assert.equal(data.satisfaction.helpfulCount, 1);
-    assert.equal(data.satisfaction.notHelpfulCount, 1);
-    assert.equal(data.satisfaction.satisfactionRate, 0.5);
+    assert.equal(data.satisfaction.helpfulCount, before.satisfaction.helpfulCount + 1);
+    assert.equal(data.satisfaction.notHelpfulCount, before.satisfaction.notHelpfulCount + 1);
 
-    // avgResponseTime is a global aggregate across every "explain" call ever
-    // logged in this DB, not just this test's row, so only assert shape -
-    // an exact value would be brittle against other tests/manual runs that
-    // also log real explain calls.
     const endpointRow = data.avgResponseTime.find((row) => row.endpoint === 'explain');
-    assert.ok(endpointRow.callCount >= 1);
-    assert.ok(endpointRow.avgResponseTimeMs > 0);
+    const beforeEndpointRow = before.avgResponseTime.find((row) => row.endpoint === 'explain');
+    assert.equal(endpointRow.callCount, (beforeEndpointRow?.callCount ?? 0) + 1);
 
     const userRow = data.costPerUser.find((row) => row.userId === plainUserId);
     assert.equal(userRow.requestCount, 1);

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
-function createMessage(role, content, messageId = null) {
-  return { id: crypto.randomUUID(), role, content, feedback: null, messageId };
+function createMessage(role, content, messageId = null, fallback = null) {
+  return { id: crypto.randomUUID(), role, content, feedback: null, messageId, fallback };
 }
 
 function ChatWidget({ chapterId }) {
@@ -32,7 +32,7 @@ function ChatWidget({ chapterId }) {
     setError('');
 
     try {
-      const { reply, messageId } = await apiRequest('/api/ai/chat', {
+      const data = await apiRequest('/api/ai/chat', {
         method: 'POST',
         token: accessToken,
         body: {
@@ -40,7 +40,10 @@ function ChatWidget({ chapterId }) {
           chapterId,
         },
       });
-      setMessages((prev) => [...prev, createMessage('assistant', reply, messageId)]);
+      setMessages((prev) => [
+        ...prev,
+        createMessage('assistant', data.reply, data.messageId, data.fallback ? data : null),
+      ]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,13 +102,38 @@ function ChatWidget({ chapterId }) {
               className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                 message.role === 'user'
                   ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-900 border border-slate-200'
+                  : message.fallback
+                    ? 'bg-amber-50 text-slate-900 border border-amber-200'
+                    : 'bg-slate-100 text-slate-900 border border-slate-200'
               }`}
             >
               {message.content}
             </div>
 
-            {message.role === 'assistant' && (
+            {message.fallback && (
+              <div className="max-w-[80%] mt-1 text-xs text-slate-500 flex flex-col gap-1 border border-amber-100 bg-amber-50 rounded-lg p-2">
+                <p className="font-semibold">Perguntas frequentes</p>
+                {message.fallback.faq.map((item) => (
+                  <p key={item.question}>
+                    <strong>{item.question}</strong> {item.answer}
+                  </p>
+                ))}
+                <p>
+                  Documentação:{' '}
+                  <a
+                    href={message.fallback.externalDocsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    {message.fallback.externalDocsUrl}
+                  </a>
+                </p>
+                <p>Suporte: {message.fallback.supportContact}</p>
+              </div>
+            )}
+
+            {message.role === 'assistant' && !message.fallback && (
               <div className="flex gap-2 mt-1 text-xs text-slate-400">
                 <button
                   type="button"

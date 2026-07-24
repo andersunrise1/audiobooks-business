@@ -7,6 +7,11 @@ import {
   remedialCacheKey,
 } from '../services/aiService.js';
 import { getCache, setCache } from '../services/cacheService.js';
+import {
+  getExplainFallback,
+  getChatFallback,
+  getRemedialFallback,
+} from '../services/aiFallbackService.js';
 import { pool } from '../config/database.js';
 
 export async function explainWord(req, res) {
@@ -28,9 +33,14 @@ export async function explainWord(req, res) {
       .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
   }
 
-  const explanation = await explainTechnicalTerm(word, context, { userId: req.user.id });
-  await setCache(cacheKey, { explanation });
-  res.json({ word, explanation });
+  try {
+    const explanation = await explainTechnicalTerm(word, context, { userId: req.user.id });
+    await setCache(cacheKey, { explanation });
+    res.json({ word, explanation });
+  } catch (err) {
+    console.error('AI explain call failed, serving fallback:', err.message);
+    res.json(await getExplainFallback(word));
+  }
 }
 
 export async function chat(req, res) {
@@ -47,7 +57,16 @@ export async function chat(req, res) {
   }
 
   const context = await buildChatContext(chapterId, wordId);
-  const reply = await chatReply(messages, context, { userId: req.user.id });
+
+  let reply;
+  try {
+    reply = await chatReply(messages, context, { userId: req.user.id });
+  } catch (err) {
+    console.error('AI chat call failed, serving fallback:', err.message);
+    // Not persisted to chat_messages - a fallback reply isn't a real tutor
+    // turn and would pollute the Dia 38 analytics (questions/satisfaction).
+    return res.json(getChatFallback());
+  }
 
   const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
   const { rows } = await pool.query(
@@ -118,7 +137,12 @@ export async function remedial(req, res) {
       .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
   }
 
-  const content = await getRemedialContent(chapter.transcript, { userId: req.user.id });
-  await setCache(cacheKey, content);
-  res.json(content);
+  try {
+    const content = await getRemedialContent(chapter.transcript, { userId: req.user.id });
+    await setCache(cacheKey, content);
+    res.json(content);
+  } catch (err) {
+    console.error('AI remedial call failed, serving fallback:', err.message);
+    res.json(getRemedialFallback());
+  }
 }

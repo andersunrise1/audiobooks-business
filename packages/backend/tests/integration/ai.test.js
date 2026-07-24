@@ -1,4 +1,4 @@
-import { after, before, describe, test } from 'node:test';
+import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { pool } from '../../src/config/database.js';
@@ -6,6 +6,7 @@ import {
   buildChatContext,
   explainCacheKey,
   remedialCacheKey,
+  client,
 } from '../../src/services/aiService.js';
 import { setCache } from '../../src/services/cacheService.js';
 import { closeRedis } from '../../src/config/redis.js';
@@ -423,5 +424,135 @@ describe('AI remedial endpoint', () => {
     const data = await res.json();
     assert.equal(data.summary, 'Resumo em cache.');
     assert.equal(data.cached, true);
+  });
+});
+
+// A genuine runtime AI failure (Anthropic outage/rate limit/network error)
+// is simulated by mocking client.messages.create to throw, with a temporary
+// ANTHROPIC_API_KEY so the 503 "not configured" guard doesn't short-circuit
+// before the call is even attempted - distinct from that guard, which is a
+// deployment/config signal, not a runtime failure (Dia 39).
+describe('AI fallback content when a real AI call fails (Dia 39)', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+  let audiobookId;
+  let chapterId;
+  let originalKey;
+
+  before(async () => {
+    originalKey = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'test-key-for-fallback-tests';
+
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+
+    audiobookId = randomUUID();
+    chapterId = randomUUID();
+    await pool.query(`INSERT INTO audiobooks (id, title) VALUES ($1, 'Test Audiobook')`, [
+      audiobookId,
+    ]);
+    await pool.query(
+      `INSERT INTO chapters (id, audiobook_id, title, order_index, transcript)
+       VALUES ($1, $2, 'Daily Standup', 1, 'Yesterday I deployed a new version.')`,
+      [chapterId, audiobookId],
+    );
+  });
+
+  after(async () => {
+    process.env.ANTHROPIC_API_KEY = originalKey;
+    await pool.query('DELETE FROM audiobooks WHERE id = $1', [audiobookId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await stopTestServer(server);
+  });
+
+  test('explain falls back to the technical dictionary instead of erroring', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('simulated Anthropic outage');
+    });
+
+    try {
+      const res = await fetch(`${baseUrl}/api/ai/explain`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        // "deployed" is seeded into technical_dictionary by migration 005.
+        body: JSON.stringify({ word: 'deployed', context: 'a unique uncached context xyz' }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.fallback, true);
+      assert.equal(data.source, 'dictionary');
+      assert.match(data.explanation, /deploy/i);
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('chat falls back to FAQ content and does not persist a fake reply', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('simulated Anthropic outage');
+    });
+
+    try {
+      const { rows: before } = await pool.query(
+        'SELECT COUNT(*)::int AS count FROM chat_messages WHERE user_id = $1',
+        [userId],
+      );
+
+      const res = await fetch(`${baseUrl}/api/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'oi' }] }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.fallback, true);
+      assert.equal(typeof data.reply, 'string');
+      assert.equal(data.messageId, undefined);
+
+      const { rows: after } = await pool.query(
+        'SELECT COUNT(*)::int AS count FROM chat_messages WHERE user_id = $1',
+        [userId],
+      );
+      assert.equal(after[0].count, before[0].count);
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('remedial falls back to FAQ content', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('simulated Anthropic outage');
+    });
+
+    try {
+      const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ chapterId }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.fallback, true);
+      assert.equal(typeof data.summary, 'string');
+      assert.deepEqual(data.keywords, []);
+    } finally {
+      createMock.mock.restore();
+    }
   });
 });

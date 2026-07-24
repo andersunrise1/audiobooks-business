@@ -1,9 +1,26 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { pool } from '../config/database.js';
+import { hashKey, deleteCache } from './cacheService.js';
 
 export const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'not-configured',
 });
+
+export function explainCacheKey(word, context) {
+  return `ai:explain:${word.toLowerCase()}:${hashKey(context)}`;
+}
+
+export function remedialCacheKey(chapterId) {
+  return `ai:remedial:${chapterId}`;
+}
+
+export async function invalidateExplainCache(word, context) {
+  await deleteCache(explainCacheKey(word, context));
+}
+
+export async function invalidateRemedialCache(chapterId) {
+  await deleteCache(remedialCacheKey(chapterId));
+}
 
 const SYSTEM_PROMPT =
   'Você é um professor de inglês técnico especializado em software, respondendo dentro de um popup pequeno no app. ' +

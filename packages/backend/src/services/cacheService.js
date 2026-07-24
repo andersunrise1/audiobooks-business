@@ -35,3 +35,23 @@ export async function deleteCache(key) {
     console.error(`Redis DEL failed for "${key}":`, err.message);
   }
 }
+
+// Bulk invalidation by key prefix, e.g. clearing every cached AI response
+// (`ai:*`) after a content update. Not called anywhere yet - there's no
+// chapter/word editing feature to trigger it from until Etapa 4.
+export async function invalidateByPrefix(prefix) {
+  try {
+    await connectRedis();
+    const keys = [];
+    for await (const key of redisClient.scanIterator({ MATCH: `${prefix}*` })) {
+      keys.push(key);
+    }
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+    }
+    return keys.length;
+  } catch (err) {
+    console.error(`Redis SCAN/DEL failed for prefix "${prefix}":`, err.message);
+    return 0;
+  }
+}

@@ -1,6 +1,12 @@
 import { describe, test, mock, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { getCache, setCache, deleteCache, hashKey } from '../../src/services/cacheService.js';
+import {
+  getCache,
+  setCache,
+  deleteCache,
+  hashKey,
+  invalidateByPrefix,
+} from '../../src/services/cacheService.js';
 import { redisClient } from '../../src/config/redis.js';
 
 describe('cacheService.hashKey', () => {
@@ -111,6 +117,44 @@ describe('cacheService when Redis is reachable', () => {
       assert.equal(delMock.mock.calls.length, 1);
       assert.equal(delMock.mock.calls[0].arguments[0], 'some-key');
     } finally {
+      delMock.mock.restore();
+    }
+  });
+
+  test('invalidateByPrefix deletes every key matching the prefix and returns the count', async () => {
+    const scanMock = mock.method(redisClient, 'scanIterator', () =>
+      (async function* () {
+        yield 'ai:explain:deployed:abc';
+        yield 'ai:remedial:chapter-1';
+      })(),
+    );
+    const delMock = mock.method(redisClient, 'del', async () => 2);
+
+    try {
+      const count = await invalidateByPrefix('ai:');
+
+      assert.equal(count, 2);
+      assert.equal(scanMock.mock.calls[0].arguments[0].MATCH, 'ai:*');
+      assert.deepEqual(delMock.mock.calls[0].arguments[0], [
+        'ai:explain:deployed:abc',
+        'ai:remedial:chapter-1',
+      ]);
+    } finally {
+      scanMock.mock.restore();
+      delMock.mock.restore();
+    }
+  });
+
+  test('invalidateByPrefix returns 0 and skips DEL when nothing matches', async () => {
+    const scanMock = mock.method(redisClient, 'scanIterator', () => (async function* () {})());
+    const delMock = mock.method(redisClient, 'del', async () => 0);
+
+    try {
+      const count = await invalidateByPrefix('ai:nothing-here:');
+      assert.equal(count, 0);
+      assert.equal(delMock.mock.calls.length, 0);
+    } finally {
+      scanMock.mock.restore();
       delMock.mock.restore();
     }
   });

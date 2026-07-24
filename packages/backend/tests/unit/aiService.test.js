@@ -4,8 +4,13 @@ import {
   explainTechnicalTerm,
   chatReply,
   getRemedialContent,
+  explainCacheKey,
+  remedialCacheKey,
+  invalidateExplainCache,
+  invalidateRemedialCache,
   client,
 } from '../../src/services/aiService.js';
+import { redisClient } from '../../src/config/redis.js';
 
 describe('aiService.explainTechnicalTerm', () => {
   test('sends the word and context to the model and returns the text response', async () => {
@@ -148,6 +153,56 @@ describe('aiService.getRemedialContent', () => {
       assert.equal(result.exercise, '');
     } finally {
       createMock.mock.restore();
+    }
+  });
+});
+
+describe('aiService cache key builders', () => {
+  test('explainCacheKey is stable for the same word/context and lowercases the word', () => {
+    const a = explainCacheKey('Deployed', 'a CI/CD pipeline');
+    const b = explainCacheKey('deployed', 'a CI/CD pipeline');
+    assert.equal(a, b);
+    assert.match(a, /^ai:explain:deployed:/);
+  });
+
+  test('explainCacheKey differs for different context', () => {
+    const a = explainCacheKey('deployed', 'a CI/CD pipeline');
+    const b = explainCacheKey('deployed', 'a different sentence');
+    assert.notEqual(a, b);
+  });
+
+  test('remedialCacheKey is namespaced by chapterId', () => {
+    assert.equal(remedialCacheKey('abc-123'), 'ai:remedial:abc-123');
+  });
+});
+
+describe('aiService cache invalidation', () => {
+  test('invalidateExplainCache deletes the same key explainWord would cache under', async () => {
+    const connectMock = mock.method(redisClient, 'connect', async () => {});
+    const delMock = mock.method(redisClient, 'del', async () => 1);
+
+    try {
+      await invalidateExplainCache('deployed', 'a CI/CD pipeline');
+      assert.equal(
+        delMock.mock.calls[0].arguments[0],
+        explainCacheKey('deployed', 'a CI/CD pipeline'),
+      );
+    } finally {
+      connectMock.mock.restore();
+      delMock.mock.restore();
+    }
+  });
+
+  test('invalidateRemedialCache deletes the same key the remedial endpoint would cache under', async () => {
+    const connectMock = mock.method(redisClient, 'connect', async () => {});
+    const delMock = mock.method(redisClient, 'del', async () => 1);
+
+    try {
+      await invalidateRemedialCache('chapter-123');
+      assert.equal(delMock.mock.calls[0].arguments[0], remedialCacheKey('chapter-123'));
+    } finally {
+      connectMock.mock.restore();
+      delMock.mock.restore();
     }
   });
 });

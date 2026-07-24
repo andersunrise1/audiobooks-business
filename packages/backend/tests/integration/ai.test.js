@@ -2,7 +2,12 @@ import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { pool } from '../../src/config/database.js';
-import { buildChatContext } from '../../src/services/aiService.js';
+import {
+  buildChatContext,
+  explainCacheKey,
+  remedialCacheKey,
+} from '../../src/services/aiService.js';
+import { setCache } from '../../src/services/cacheService.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
 describe('AI explanation endpoint', () => {
@@ -61,6 +66,29 @@ describe('AI explanation endpoint', () => {
     assert.equal(res.status, 503);
     const data = await res.json();
     assert.match(data.error, /ANTHROPIC_API_KEY/);
+  });
+
+  test('serves a cached explanation without needing ANTHROPIC_API_KEY', async () => {
+    // Proves the cache-first path for real: seed Redis directly with the
+    // exact key explainWord would use, then confirm the endpoint returns it
+    // (200, not 503) even with no AI key configured.
+    await setCache(explainCacheKey('rollback', 'reverting a bad deploy'), {
+      explanation: 'Rollback: voltar para a versao anterior.',
+    });
+
+    const res = await fetch(`${baseUrl}/api/ai/explain`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ word: 'rollback', context: 'reverting a bad deploy' }),
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.explanation, 'Rollback: voltar para a versao anterior.');
+    assert.equal(data.cached, true);
   });
 });
 
@@ -274,5 +302,27 @@ describe('AI remedial endpoint', () => {
     assert.equal(res.status, 503);
     const data = await res.json();
     assert.match(data.error, /ANTHROPIC_API_KEY/);
+  });
+
+  test('serves cached remedial content without needing ANTHROPIC_API_KEY', async () => {
+    await setCache(remedialCacheKey(chapterId), {
+      summary: 'Resumo em cache.',
+      keywords: ['deploy'],
+      exercise: 'Use "deployed" em uma frase.',
+    });
+
+    const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ chapterId }),
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.summary, 'Resumo em cache.');
+    assert.equal(data.cached, true);
   });
 });

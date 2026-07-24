@@ -5,7 +5,13 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/
 const SALT_ROUNDS = 12;
 
 function toPublicUser(user) {
-  return { id: user.id, email: user.email, name: user.name, plan: user.plan };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    plan: user.plan,
+    isAdmin: user.is_admin,
+  };
 }
 
 export async function register(req, res) {
@@ -21,7 +27,7 @@ export async function register(req, res) {
     const { rows } = await pool.query(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, $2, $3)
-       RETURNING id, email, name, plan`,
+       RETURNING id, email, name, plan, is_admin`,
       [email, passwordHash, name || null],
     );
     const user = rows[0];

@@ -23,6 +23,11 @@ function Navbar() {
             <Link to="/flashcards" className="py-2 touch-manipulation">
               Flashcards
             </Link>
+            {user?.isAdmin && (
+              <Link to="/admin/analytics" className="py-2 touch-manipulation">
+                Analytics
+              </Link>
+            )}
             <span className="text-slate-500">{user?.name || user?.email}</span>
             <button
               type="button"

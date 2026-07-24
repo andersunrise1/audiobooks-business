@@ -11,6 +11,7 @@ const PlayerPage = lazy(() => import('./components/pages/PlayerPage.jsx'));
 const LoginPage = lazy(() => import('./components/pages/LoginPage.jsx'));
 const RegisterPage = lazy(() => import('./components/pages/RegisterPage.jsx'));
 const FlashcardReviewPage = lazy(() => import('./components/pages/FlashcardReviewPage.jsx'));
+const AdminAnalyticsPage = lazy(() => import('./components/pages/AdminAnalyticsPage.jsx'));
 
 function App() {
   return (
@@ -45,6 +46,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <FlashcardReviewPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminAnalyticsPage />
                   </ProtectedRoute>
                 }
               />

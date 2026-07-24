@@ -59,9 +59,11 @@ No auth. Looks up a word in the canonical `technical_dictionary` table (case-ins
 
 Responses for `explain` and `remedial` are cached in Redis (24h TTL, best-effort — a Redis outage just skips the cache, it never breaks the request). A cache hit adds `"cached": true` to the response and skips the `ANTHROPIC_API_KEY` check entirely.
 
+Every route on this router is also rate-limited per user (Dia 37): `AI_DAILY_RATE_LIMIT` requests per rolling 24h window (default 50, Redis-backed, fails open — allows the request — if Redis is unreachable). Responses carry `X-RateLimit-Limit`/`X-RateLimit-Remaining` headers; exceeding the limit returns 429 with `{ "error": "Limite diário de N requisições de IA atingido. Tente novamente amanhã." }`. This is checked before the `ANTHROPIC_API_KEY`/cache logic, so it applies even to requests that would otherwise be free (a cache hit still counts).
+
 ### `POST /api/ai/explain`
 
-Body: `{ "word", "context" }`. Asks Claude (`@anthropic-ai/sdk`, model `claude-sonnet-5`) to explain the word in that context, as a technical-English tutor. 200 → `{ "word", "explanation", "cached"? }`. 400 if `word`/`context` is missing. 503 if `ANTHROPIC_API_KEY` isn't configured on the server (unless served from cache).
+Body: `{ "word", "context" }`. Asks Claude (`@anthropic-ai/sdk`, model `claude-haiku-4-5` — Dia 37 tiering, since this is short/high-volume/cacheable) to explain the word in that context, as a technical-English tutor. 200 → `{ "word", "explanation", "cached"? }`. 400 if `word`/`context` is missing. 503 if `ANTHROPIC_API_KEY` isn't configured on the server (unless served from cache).
 
 ### `POST /api/ai/chat`
 
@@ -175,12 +177,12 @@ Body: `{ "transcript", "context"? }` — a Web Speech API transcript (e.g. from 
 
 Response shape depends on the recognized intent:
 
-| Phrases                                      | `intent`       | Response                                                                                                                                                             |
-| -------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "explain X", "what does X mean", "what is X" | `explain`      | `{ intent: "explain", word, explanation }` — calls the same AI explanation flow as `/api/ai/explain` (not cached here). 503 if `ANTHROPIC_API_KEY` isn't configured. |
-| "next chapter", "play next chapter"          | `next_chapter` | `{ intent: "next_chapter" }` — pure signal, the frontend handles the actual navigation.                                                                              |
-| "my progress", "check my progress"           | `progress`     | `{ intent: "progress", stats }` — `stats` has the same shape as `GET /api/user/stats`.                                                                               |
-| anything else                                | `unknown`      | `{ intent: "unknown", transcript }`                                                                                                                                  |
+| Phrases                                      | `intent`       | Response                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "explain X", "what does X mean", "what is X" | `explain`      | `{ intent: "explain", word, explanation }` — calls the same AI explanation flow as `/api/ai/explain` (not cached here). 503 if `ANTHROPIC_API_KEY` isn't configured. 429 if the caller has hit the daily AI rate limit (checked here too, not just on `/api/ai/*`), logged separately as endpoint `voice_explain`. |
+| "next chapter", "play next chapter"          | `next_chapter` | `{ intent: "next_chapter" }` — pure signal, the frontend handles the actual navigation.                                                                                                                                                                                                                            |
+| "my progress", "check my progress"           | `progress`     | `{ intent: "progress", stats }` — `stats` has the same shape as `GET /api/user/stats`.                                                                                                                                                                                                                             |
+| anything else                                | `unknown`      | `{ intent: "unknown", transcript }`                                                                                                                                                                                                                                                                                |
 
 ## Error shape
 

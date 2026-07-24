@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import StatCard from '../features/StatCard.jsx';
 import AudiobookProgressList from '../features/AudiobookProgressList.jsx';
+import RecommendationsFeed from '../features/RecommendationsFeed.jsx';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
@@ -24,6 +25,8 @@ function DashboardPage() {
 
       {loading && <p>Carregando...</p>}
       {error && <p className="text-red-500">{error}</p>}
+
+      <RecommendationsFeed />
 
       {stats && (
         <>

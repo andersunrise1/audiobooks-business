@@ -57,9 +57,19 @@ No auth. Looks up a word in the canonical `technical_dictionary` table (case-ins
 
 ## AI (`/api/ai`) — requires auth
 
+Responses for `explain` and `remedial` are cached in Redis (24h TTL, best-effort — a Redis outage just skips the cache, it never breaks the request). A cache hit adds `"cached": true` to the response and skips the `ANTHROPIC_API_KEY` check entirely.
+
 ### `POST /api/ai/explain`
 
-Body: `{ "word", "context" }`. Asks Claude (`@anthropic-ai/sdk`, model `claude-sonnet-5`) to explain the word in that context, as a technical-English tutor. 200 → `{ "word", "explanation" }`. 400 if `word`/`context` is missing. 503 if `ANTHROPIC_API_KEY` isn't configured on the server.
+Body: `{ "word", "context" }`. Asks Claude (`@anthropic-ai/sdk`, model `claude-sonnet-5`) to explain the word in that context, as a technical-English tutor. 200 → `{ "word", "explanation", "cached"? }`. 400 if `word`/`context` is missing. 503 if `ANTHROPIC_API_KEY` isn't configured on the server (unless served from cache).
+
+### `POST /api/ai/chat`
+
+Body: `{ "messages": [{ "role": "user"|"assistant", "content" }], "chapterId"?, "wordId"? }` — send the full conversation history each turn. When `chapterId` is given, the chapter's title/transcript are folded into the system prompt so the tutor has real context; `wordId` additionally includes that word's translation/explanation. 200 → `{ "reply" }`. Every turn (latest user message + reply) is persisted to `chat_messages` (`message_type` is `'vocabulary'` when `wordId` is present, `null` otherwise). 400 if `messages` is missing/empty. 503 if `ANTHROPIC_API_KEY` isn't configured. Not cached — conversations are unique per history.
+
+### `POST /api/ai/remedial`
+
+Body: `{ "chapterId" }`. For a student who said they didn't understand a chapter: asks Claude for a summary/keywords/exercise based on the chapter's transcript. 200 → `{ "summary", "keywords": [...], "exercise", "cached"? }` — if the model's JSON response fails to parse, `summary` falls back to the raw text and `keywords`/`exercise` are empty rather than erroring. 400 if `chapterId` is missing, 404 if the chapter doesn't exist, 422 if it has no transcript yet, 503 if `ANTHROPIC_API_KEY` isn't configured (unless served from cache) — checked in that order, so a bad request isn't masked by the AI-unavailable case.
 
 ## User (`/api/user`) — all routes require auth
 
@@ -100,6 +110,28 @@ Body: `{ "quality" }` — 0-5, how well the word was recalled (SM-2 scale; <3 co
 ```
 
 `wordsLearned` counts distinct words clicked (from `word_clicks`). `totalStudyMinutes` is an approximation (`chapters.duration_seconds × user_progress.listening_count`, summed) — there's no dedicated listening-session/time tracking yet. `streakDays` is computed by `statsService.computeStreakDays` from distinct activity dates.
+
+### `GET /api/user/difficulty-profile`
+
+200 → a per-user difficulty snapshot:
+
+```json
+{
+  "struggledWords": [{ "wordId": "...", "word": "...", "clickCount": 0 }],
+  "lowCompletionChapters": [
+    {
+      "chapterId": "...",
+      "title": "...",
+      "completedCount": 0,
+      "attemptedCount": 0,
+      "completionRate": 0
+    }
+  ],
+  "frequentQuestionChapters": [{ "chapterId": "...", "title": "...", "questionCount": 0 }]
+}
+```
+
+`struggledWords` only includes words the caller has clicked more than once (from `word_clicks`), ordered by click count. `lowCompletionChapters` is a content-level signal computed across **every** user, not just the caller — chapters with the lowest completion rate first. `frequentQuestionChapters` counts the caller's `chat_messages` per chapter, most-asked first.
 
 ## Error shape
 

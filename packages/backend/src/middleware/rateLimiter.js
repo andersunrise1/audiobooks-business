@@ -1,7 +1,11 @@
-import { checkRateLimit, rateLimitExceededMessage } from '../services/rateLimitService.js';
+import {
+  checkRateLimit,
+  rateLimitExceededMessage,
+  getDailyAiLimit,
+} from '../services/rateLimitService.js';
 
 export async function aiRateLimit(req, res, next) {
-  const limit = Number(process.env.AI_DAILY_RATE_LIMIT) || 50;
+  const limit = getDailyAiLimit();
   const { allowed, count } = await checkRateLimit(req.user.id, limit);
 
   res.set('X-RateLimit-Limit', String(limit));

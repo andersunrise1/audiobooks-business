@@ -7,6 +7,12 @@ export const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'not-configured',
 });
 
+export const AI_NOT_CONFIGURED_ERROR = 'AI service is not configured (missing ANTHROPIC_API_KEY)';
+
+export function isAiConfigured() {
+  return Boolean(process.env.ANTHROPIC_API_KEY);
+}
+
 // explain is short, high-volume and cacheable - the best candidate to try a
 // cheaper/faster model on (Dia 37 cost optimization). chat and remedial stay
 // on the stronger model since they carry more reasoning (conversation

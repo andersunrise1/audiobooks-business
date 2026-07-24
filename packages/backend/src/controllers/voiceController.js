@@ -1,7 +1,15 @@
 import { parseVoiceCommand } from '../services/voiceCommandService.js';
-import { explainTechnicalTerm } from '../services/aiService.js';
+import {
+  explainTechnicalTerm,
+  isAiConfigured,
+  AI_NOT_CONFIGURED_ERROR,
+} from '../services/aiService.js';
 import { getUserStats } from '../services/statsService.js';
-import { checkRateLimit, rateLimitExceededMessage } from '../services/rateLimitService.js';
+import {
+  checkRateLimit,
+  rateLimitExceededMessage,
+  getDailyAiLimit,
+} from '../services/rateLimitService.js';
 import { getExplainFallback } from '../services/aiFallbackService.js';
 
 export async function handleVoiceCommand(req, res) {
@@ -14,13 +22,11 @@ export async function handleVoiceCommand(req, res) {
   const parsed = parseVoiceCommand(transcript);
 
   if (parsed.intent === 'explain') {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res
-        .status(503)
-        .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
+    if (!isAiConfigured()) {
+      return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
     }
 
-    const limit = Number(process.env.AI_DAILY_RATE_LIMIT) || 50;
+    const limit = getDailyAiLimit();
     const { allowed } = await checkRateLimit(req.user.id, limit);
     if (!allowed) {
       return res.status(429).json({ error: rateLimitExceededMessage(limit) });

@@ -1,5 +1,11 @@
 import { redisClient, connectRedis } from '../config/redis.js';
 
+// Read fresh on every call (not cached at module load) so tests can override
+// AI_DAILY_RATE_LIMIT per-run without needing to reload the module.
+export function getDailyAiLimit() {
+  return Number(process.env.AI_DAILY_RATE_LIMIT) || 50;
+}
+
 // Fixed-window counter keyed by userId + window bucket. A Redis outage fails
 // open (allows the request) rather than blocking users on an infra hiccup -
 // same tradeoff as cacheService's best-effort design.

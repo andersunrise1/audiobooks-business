@@ -8,6 +8,8 @@ import {
   remedialCacheKey,
   invalidateExplainCache,
   invalidateRemedialCache,
+  isAiConfigured,
+  AI_NOT_CONFIGURED_ERROR,
   client,
 } from '../../src/services/aiService.js';
 import { redisClient } from '../../src/config/redis.js';
@@ -156,6 +158,30 @@ describe('aiService.getRemedialContent', () => {
     } finally {
       createMock.mock.restore();
     }
+  });
+});
+
+describe('aiService.isAiConfigured (Dia 40)', () => {
+  test('reflects whether ANTHROPIC_API_KEY is set', () => {
+    const original = process.env.ANTHROPIC_API_KEY;
+
+    try {
+      delete process.env.ANTHROPIC_API_KEY;
+      assert.equal(isAiConfigured(), false);
+
+      process.env.ANTHROPIC_API_KEY = 'test-key';
+      assert.equal(isAiConfigured(), true);
+    } finally {
+      if (original === undefined) {
+        delete process.env.ANTHROPIC_API_KEY;
+      } else {
+        process.env.ANTHROPIC_API_KEY = original;
+      }
+    }
+  });
+
+  test('AI_NOT_CONFIGURED_ERROR mentions the missing env var', () => {
+    assert.match(AI_NOT_CONFIGURED_ERROR, /ANTHROPIC_API_KEY/);
   });
 });
 

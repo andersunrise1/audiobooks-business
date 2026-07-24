@@ -1,6 +1,10 @@
 import { describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkRateLimit, rateLimitExceededMessage } from '../../src/services/rateLimitService.js';
+import {
+  checkRateLimit,
+  rateLimitExceededMessage,
+  getDailyAiLimit,
+} from '../../src/services/rateLimitService.js';
 import { redisClient } from '../../src/config/redis.js';
 
 // This must run before any successful-connect test below: connectRedis()
@@ -73,5 +77,37 @@ describe('rateLimitService.checkRateLimit when Redis is reachable', () => {
 describe('rateLimitService.rateLimitExceededMessage', () => {
   test('includes the limit in the message', () => {
     assert.match(rateLimitExceededMessage(50), /50/);
+  });
+});
+
+describe('rateLimitService.getDailyAiLimit (Dia 40)', () => {
+  test('defaults to 50 when AI_DAILY_RATE_LIMIT is unset', () => {
+    const original = process.env.AI_DAILY_RATE_LIMIT;
+
+    try {
+      delete process.env.AI_DAILY_RATE_LIMIT;
+      assert.equal(getDailyAiLimit(), 50);
+    } finally {
+      if (original === undefined) {
+        delete process.env.AI_DAILY_RATE_LIMIT;
+      } else {
+        process.env.AI_DAILY_RATE_LIMIT = original;
+      }
+    }
+  });
+
+  test('reads AI_DAILY_RATE_LIMIT when set', () => {
+    const original = process.env.AI_DAILY_RATE_LIMIT;
+
+    try {
+      process.env.AI_DAILY_RATE_LIMIT = '25';
+      assert.equal(getDailyAiLimit(), 25);
+    } finally {
+      if (original === undefined) {
+        delete process.env.AI_DAILY_RATE_LIMIT;
+      } else {
+        process.env.AI_DAILY_RATE_LIMIT = original;
+      }
+    }
   });
 });

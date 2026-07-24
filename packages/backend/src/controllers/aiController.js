@@ -5,6 +5,8 @@ import {
   getRemedialContent,
   explainCacheKey,
   remedialCacheKey,
+  isAiConfigured,
+  AI_NOT_CONFIGURED_ERROR,
 } from '../services/aiService.js';
 import { getCache, setCache } from '../services/cacheService.js';
 import {
@@ -27,10 +29,8 @@ export async function explainWord(req, res) {
     return res.json({ word, explanation: cached.explanation, cached: true });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res
-      .status(503)
-      .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
+  if (!isAiConfigured()) {
+    return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
   }
 
   try {
@@ -50,10 +50,8 @@ export async function chat(req, res) {
     return res.status(400).json({ error: 'messages array is required' });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res
-      .status(503)
-      .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
+  if (!isAiConfigured()) {
+    return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
   }
 
   const context = await buildChatContext(chapterId, wordId);
@@ -131,10 +129,8 @@ export async function remedial(req, res) {
     return res.status(422).json({ error: 'chapter has no transcript to summarize' });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res
-      .status(503)
-      .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
+  if (!isAiConfigured()) {
+    return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
   }
 
   try {

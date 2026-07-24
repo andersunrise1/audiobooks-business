@@ -6,7 +6,6 @@ import audiobookRoutes from './routes/audiobookRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import dictionaryRoutes from './routes/dictionaryRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
-import pronunciationRoutes from './routes/pronunciationRoutes.js';
 import voiceRoutes from './routes/voiceRoutes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
@@ -25,7 +24,6 @@ export function createApp() {
   app.use('/api/user', userRoutes);
   app.use('/api/dictionary', dictionaryRoutes);
   app.use('/api/ai', aiRoutes);
-  app.use('/api/pronunciation', pronunciationRoutes);
   app.use('/api/voice', voiceRoutes);
 
   app.use(notFoundHandler);

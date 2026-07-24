@@ -1,12 +1,12 @@
 # AI Usage Guidelines
 
-Practical notes for working with the AI features in this backend (`services/aiService.js`, `services/deepgramService.js`). Written after Dia 35's quality/latency testing — see `tests/quality/` for the checks these numbers come from.
+Practical notes for working with the AI features in this backend (`services/aiService.js`). Written after Dia 35's quality/latency testing — see `tests/quality/` for the checks these numbers come from.
 
 ## Model choice
 
 Every text-AI feature (`explain`, `chat`, `remedial`) uses **Claude Sonnet 5** via `@anthropic-ai/sdk`, chosen over the plan's original OpenAI pick (Dia 26 decision). There's no cheap/expensive model tiering like the plan's "GPT-3.5 for simple, GPT-4 for complex" idea (Dia 37) — a single model is used everywhere for now. If cost pressure shows up later, `explain` (short, high-volume, cacheable) is the best candidate to try a cheaper/faster model on first, since it's the least conversationally demanding of the three.
 
-Pronunciation transcription uses **Deepgram's `nova-2` model** (Dia 33). No real `DEEPGRAM_API_KEY` exists yet, so this hasn't been quality/latency-tested against the live API — only the text-AI features have real numbers below.
+Deepgram-based pronunciation transcription (Dia 33) was built and then removed on 2026-07-24 at the user's request (deemed unnecessary) — pronunciation scoring is Web Speech API only again (Dia 18).
 
 ## Measured latency (Dia 35, real API, single-run local measurements — not a statistically rigorous benchmark)
 
@@ -22,7 +22,7 @@ Re-run `npm run test:ai-quality --workspace=packages/backend` to get current num
 
 ## Cost
 
-Anthropic billing is pay-as-you-go per token (input + output), not a flat subscription — see `deepgramService.js`'s sibling situation for Deepgram, same model. There is **no cost tracking or per-user rate limiting implemented yet** (the plan's Dia 37 items) — this is an honest gap, not an oversight. Until that exists, a single user (or a bug causing repeated calls) has no hard ceiling on API spend.
+Anthropic billing is pay-as-you-go per token (input + output), not a flat subscription. There is **no cost tracking or per-user rate limiting implemented yet** (the plan's Dia 37 items) — this is an honest gap, not an oversight. Until that exists, a single user (or a bug causing repeated calls) has no hard ceiling on API spend.
 
 What already reduces cost, from earlier days:
 

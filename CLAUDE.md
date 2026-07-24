@@ -34,7 +34,9 @@ Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO
 
 Not done: nothing consumes this endpoint in the UI yet (no dashboard widget surfaces it) - that's implicitly Dia 32's job (intelligent repetition scheduling using this same difficulty data), not asked for by Dia 31's plan.
 
-Next up per the plan: Dia 32 (Repetição Inteligente — hard words resurface in future chapters, custom difficulty ordering, study-priority suggestions).
+**Dia 32 is done**: `wordRepetitionService.findRepeatedDifficultWords(userId, chapterId)` matches a chapter's words by text (case-insensitive) against every `word_clicks` row the user has on that same text anywhere, surfacing words they've struggled with that resurface in that chapter — `GET /api/user/chapters/:chapterId/repeated-words`. `schedulingService.getStudyPriority(userId)` re-ranks the user's non-mastered flashcards by `word_clicks` count first, then by `next_review` — a deliberate departure from Dia 17's plain SM-2 ordering, since a word clicked 4 times but not due for 10 days still needs more attention than one clicked once and due today — `GET /api/user/study-priority`. Both verified against real Postgres, including a case-insensitive text match test for the repetition finder. Caught a real bug while writing the scheduling test fixtures: an unused bound parameter in a raw `INSERT` (passed in the values array but never referenced by a `$n` placeholder in the query text) made Postgres unable to infer its type — same class of issue as the Dia 17 `make_interval` bug, different cause. Neither endpoint is consumed by the UI yet (no "words to watch for" banner on the player, no dedicated priority-queue view) — that UI work isn't explicitly asked for by Dia 32's plan either.
+
+Next up per the plan: Dia 33 (Pronúncia com IA — improving on Dia 18's Web Speech API scoring with Deepgram or similar).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.

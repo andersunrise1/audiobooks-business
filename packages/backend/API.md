@@ -133,6 +133,14 @@ Body: `{ "quality" }` — 0-5, how well the word was recalled (SM-2 scale; <3 co
 
 `struggledWords` only includes words the caller has clicked more than once (from `word_clicks`), ordered by click count. `lowCompletionChapters` is a content-level signal computed across **every** user, not just the caller — chapters with the lowest completion rate first. `frequentQuestionChapters` counts the caller's `chat_messages` per chapter, most-asked first.
 
+### `GET /api/user/chapters/:chapterId/repeated-words`
+
+200 → array of `{ wordId, word, previousClickCount }` — words in this chapter (matched by text, case-insensitive) that the caller has struggled with (clicked more than once, in this chapter or any other). Empty array if none match or the chapter doesn't exist.
+
+### `GET /api/user/study-priority`
+
+200 → array of the caller's non-mastered flashcards, ranked for review: `{ id, wordId, word, portugueseTranslation, technicalExplanation, exampleSentence, learningStatus, easeFactor, intervalDays, reviewCount, lastReviewed, nextReview, clickCount }`. Ordered by `clickCount` (from `word_clicks`) descending first, then by `nextReview` ascending (never-reviewed/most-overdue first) — a word clicked often but not yet due still outranks one clicked once that happens to be due now. `mastered` flashcards are excluded.
+
 ## Error shape
 
 Non-2xx responses are `{ "error": "message" }`. For unexpected 5xx errors the message is always the generic `"Internal server error"` — the real error is logged server-side but never sent to the client (see `middleware/errorHandler.js`).

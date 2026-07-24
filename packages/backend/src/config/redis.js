@@ -30,3 +30,14 @@ export function connectRedis() {
 
   return connecting;
 }
+
+// A held-open Redis connection keeps the event loop alive, which hangs
+// `node --test` after all tests finish (it waits for the loop to drain
+// instead of exiting). Test files that touch a real Redis must call this
+// once they're done.
+export async function closeRedis() {
+  connecting = null;
+  if (redisClient.isOpen) {
+    await redisClient.quit();
+  }
+}

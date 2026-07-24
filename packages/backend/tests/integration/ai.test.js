@@ -8,7 +8,16 @@ import {
   remedialCacheKey,
 } from '../../src/services/aiService.js';
 import { setCache } from '../../src/services/cacheService.js';
+import { closeRedis } from '../../src/config/redis.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
+
+// This file is the only one that opens a real Redis connection (via
+// setCache/getCache against the real client, not a mock). A held-open
+// connection keeps `node --test` from exiting after tests finish, so close
+// it once, after every describe block in this file has run.
+after(async () => {
+  await closeRedis();
+});
 
 describe('AI explanation endpoint', () => {
   let server;

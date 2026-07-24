@@ -2,7 +2,17 @@ import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { pool } from '../../src/config/database.js';
 import { client } from '../../src/services/aiService.js';
+import { closeRedis } from '../../src/config/redis.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
+
+// The Dia 39 fallback test below reaches checkRateLimit(), which opens a
+// real Redis connection when Redis is reachable (true in CI, not locally).
+// A held-open connection keeps `node --test` from exiting after tests
+// finish, so close it once, after every describe block in this file has
+// run - same fix as the Post-Dia-30 incident documented in CLAUDE.md.
+after(async () => {
+  await closeRedis();
+});
 
 describe('POST /api/voice/command', () => {
   let server;

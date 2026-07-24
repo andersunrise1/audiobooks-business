@@ -4,6 +4,7 @@ import {
   buildChatContext,
   getRemedialContent,
 } from '../services/aiService.js';
+import { getCache, setCache, hashKey } from '../services/cacheService.js';
 import { pool } from '../config/database.js';
 
 export async function explainWord(req, res) {
@@ -13,6 +14,12 @@ export async function explainWord(req, res) {
     return res.status(400).json({ error: 'word and context are required' });
   }
 
+  const cacheKey = `ai:explain:${word.toLowerCase()}:${hashKey(context)}`;
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return res.json({ word, explanation: cached.explanation, cached: true });
+  }
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return res
       .status(503)
@@ -20,6 +27,7 @@ export async function explainWord(req, res) {
   }
 
   const explanation = await explainTechnicalTerm(word, context);
+  await setCache(cacheKey, { explanation });
   res.json({ word, explanation });
 }
 
@@ -62,6 +70,12 @@ export async function remedial(req, res) {
     return res.status(400).json({ error: 'chapterId is required' });
   }
 
+  const cacheKey = `ai:remedial:${chapterId}`;
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return res.json({ ...cached, cached: true });
+  }
+
   const { rows } = await pool.query('SELECT transcript FROM chapters WHERE id = $1', [chapterId]);
   const chapter = rows[0];
 
@@ -80,5 +94,6 @@ export async function remedial(req, res) {
   }
 
   const content = await getRemedialContent(chapter.transcript);
+  await setCache(cacheKey, content);
   res.json(content);
 }

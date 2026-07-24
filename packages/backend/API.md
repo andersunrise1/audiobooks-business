@@ -173,6 +173,21 @@ Any of the three can be `null`. `nextChapter` is the lowest-`order_index` incomp
 
 Multipart form data: `audio` (file, the recording) + `targetSentence` (string). Transcribes the recording via Deepgram (`nova-2` model) and scores it against `targetSentence` using the same word-overlap algorithm as `packages/web`'s Web Speech API path. 200 → `{ transcript, score, matchedWords: [...], unmatchedWords: [...] }`. 400 if `audio` or `targetSentence` is missing. 503 if `DEEPGRAM_API_KEY` isn't configured on the server.
 
+## Voice (`/api/voice`) — requires auth
+
+### `POST /api/voice/command`
+
+Body: `{ "transcript", "context"? }` — a Web Speech API transcript (e.g. from the browser's `SpeechRecognition`), plus optional context (the current chapter's transcript) to improve `explain` results. Parsing is regex-based, not an LLM call — a fixed MVP command set, not general-purpose intent recognition. 400 if `transcript` is missing.
+
+Response shape depends on the recognized intent:
+
+| Phrases                                      | `intent`       | Response                                                                                                                                                             |
+| -------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "explain X", "what does X mean", "what is X" | `explain`      | `{ intent: "explain", word, explanation }` — calls the same AI explanation flow as `/api/ai/explain` (not cached here). 503 if `ANTHROPIC_API_KEY` isn't configured. |
+| "next chapter", "play next chapter"          | `next_chapter` | `{ intent: "next_chapter" }` — pure signal, the frontend handles the actual navigation.                                                                              |
+| "my progress", "check my progress"           | `progress`     | `{ intent: "progress", stats }` — `stats` has the same shape as `GET /api/user/stats`.                                                                               |
+| anything else                                | `unknown`      | `{ intent: "unknown", transcript }`                                                                                                                                  |
+
 ## Error shape
 
 Non-2xx responses are `{ "error": "message" }`. For unexpected 5xx errors the message is always the generic `"Internal server error"` — the real error is logged server-side but never sent to the client (see `middleware/errorHandler.js`).

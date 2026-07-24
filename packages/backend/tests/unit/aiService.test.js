@@ -11,6 +11,8 @@ import {
   client,
 } from '../../src/services/aiService.js';
 import { redisClient } from '../../src/config/redis.js';
+import { pool } from '../../src/config/database.js';
+import { estimateCostUsd } from '../../src/services/costTrackingService.js';
 
 describe('aiService.explainTechnicalTerm', () => {
   test('sends the word and context to the model and returns the text response', async () => {
@@ -153,6 +155,104 @@ describe('aiService.getRemedialContent', () => {
       assert.equal(result.exercise, '');
     } finally {
       createMock.mock.restore();
+    }
+  });
+});
+
+describe('aiService model tiering (Dia 37)', () => {
+  test('explainTechnicalTerm uses the cheaper haiku model', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'ok' }],
+    }));
+
+    try {
+      await explainTechnicalTerm('deployed', 'context');
+      const [requestArgs] = createMock.mock.calls[0].arguments;
+      assert.equal(requestArgs.model, 'claude-haiku-4-5');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('chatReply and getRemedialContent keep the stronger sonnet model', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: '{"summary":"ok","keywords":[],"exercise":""}' }],
+    }));
+
+    try {
+      await chatReply([{ role: 'user', content: 'oi' }]);
+      await getRemedialContent('some transcript');
+
+      assert.equal(createMock.mock.calls[0].arguments[0].model, 'claude-sonnet-5');
+      assert.equal(createMock.mock.calls[1].arguments[0].model, 'claude-sonnet-5');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+});
+
+describe('aiService cost tracking (Dia 37)', () => {
+  test('explainTechnicalTerm logs usage to ai_usage_log when a userId is given', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'Deployed significa colocar em producao.' }],
+      usage: { input_tokens: 42, output_tokens: 17 },
+    }));
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    try {
+      await explainTechnicalTerm('deployed', 'context', { userId: 'user-1' });
+
+      assert.equal(queryMock.mock.calls.length, 1);
+      const [sql, params] = queryMock.mock.calls[0].arguments;
+      assert.match(sql, /INSERT INTO ai_usage_log/);
+      assert.deepEqual(params, [
+        'user-1',
+        'explain',
+        'claude-haiku-4-5',
+        42,
+        17,
+        estimateCostUsd('claude-haiku-4-5', 42, 17),
+      ]);
+    } finally {
+      createMock.mock.restore();
+      queryMock.mock.restore();
+    }
+  });
+
+  test('explainTechnicalTerm accepts an endpoint override for logging (e.g. voice commands)', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 5, output_tokens: 5 },
+    }));
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    try {
+      await explainTechnicalTerm('deployed', 'context', {
+        userId: 'user-1',
+        endpoint: 'voice_explain',
+      });
+
+      const [, params] = queryMock.mock.calls[0].arguments;
+      assert.equal(params[1], 'voice_explain');
+    } finally {
+      createMock.mock.restore();
+      queryMock.mock.restore();
+    }
+  });
+
+  test('does not attempt to log usage when no userId is given', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 5, output_tokens: 5 },
+    }));
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    try {
+      await explainTechnicalTerm('deployed', 'context');
+      assert.equal(queryMock.mock.calls.length, 0);
+    } finally {
+      createMock.mock.restore();
+      queryMock.mock.restore();
     }
   });
 });

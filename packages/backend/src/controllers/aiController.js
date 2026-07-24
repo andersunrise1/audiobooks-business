@@ -28,7 +28,7 @@ export async function explainWord(req, res) {
       .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
   }
 
-  const explanation = await explainTechnicalTerm(word, context);
+  const explanation = await explainTechnicalTerm(word, context, { userId: req.user.id });
   await setCache(cacheKey, { explanation });
   res.json({ word, explanation });
 }
@@ -47,7 +47,7 @@ export async function chat(req, res) {
   }
 
   const context = await buildChatContext(chapterId, wordId);
-  const reply = await chatReply(messages, context);
+  const reply = await chatReply(messages, context, { userId: req.user.id });
 
   const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
   await pool.query(
@@ -95,7 +95,7 @@ export async function remedial(req, res) {
       .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
   }
 
-  const content = await getRemedialContent(chapter.transcript);
+  const content = await getRemedialContent(chapter.transcript, { userId: req.user.id });
   await setCache(cacheKey, content);
   res.json(content);
 }

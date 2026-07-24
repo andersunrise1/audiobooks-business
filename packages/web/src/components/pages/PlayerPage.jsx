@@ -4,6 +4,7 @@ import AudioPlayer from '../features/AudioPlayer.jsx';
 import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
 import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
 import ChatWidget from '../features/ChatWidget.jsx';
+import ChapterFeedback from '../features/ChapterFeedback.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
@@ -161,6 +162,10 @@ function PlayerPage() {
           Próximo
         </button>
       </div>
+
+      {progressByChapter[chapter.id]?.completed && (
+        <ChapterFeedback key={`feedback-${chapter.id}`} chapterId={chapter.id} />
+      )}
 
       <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
     </div>

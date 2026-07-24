@@ -9,6 +9,7 @@ import {
 } from '../controllers/progressController.js';
 import { getUserStats } from '../controllers/statsController.js';
 import { getDifficultyProfile } from '../controllers/difficultyController.js';
+import { getRepeatedDifficultWords } from '../controllers/wordRepetitionController.js';
 
 const router = Router();
 
@@ -21,5 +22,6 @@ router.post('/flashcards/:id/review', reviewFlashcard);
 router.post('/words-learned', saveWordClick);
 router.get('/stats', getUserStats);
 router.get('/difficulty-profile', getDifficultyProfile);
+router.get('/chapters/:chapterId/repeated-words', getRepeatedDifficultWords);
 
 export default router;

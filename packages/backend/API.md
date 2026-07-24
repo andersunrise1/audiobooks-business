@@ -141,6 +141,12 @@ Body: `{ "quality" }` — 0-5, how well the word was recalled (SM-2 scale; <3 co
 
 200 → array of the caller's non-mastered flashcards, ranked for review: `{ id, wordId, word, portugueseTranslation, technicalExplanation, exampleSentence, learningStatus, easeFactor, intervalDays, reviewCount, lastReviewed, nextReview, clickCount }`. Ordered by `clickCount` (from `word_clicks`) descending first, then by `nextReview` ascending (never-reviewed/most-overdue first) — a word clicked often but not yet due still outranks one clicked once that happens to be due now. `mastered` flashcards are excluded.
 
+## Pronunciation (`/api/pronunciation`) — requires auth
+
+### `POST /api/pronunciation/score`
+
+Multipart form data: `audio` (file, the recording) + `targetSentence` (string). Transcribes the recording via Deepgram (`nova-2` model) and scores it against `targetSentence` using the same word-overlap algorithm as `packages/web`'s Web Speech API path. 200 → `{ transcript, score, matchedWords: [...], unmatchedWords: [...] }`. 400 if `audio` or `targetSentence` is missing. 503 if `DEEPGRAM_API_KEY` isn't configured on the server.
+
 ## Error shape
 
 Non-2xx responses are `{ "error": "message" }`. For unexpected 5xx errors the message is always the generic `"Internal server error"` — the real error is logged server-side but never sent to the client (see `middleware/errorHandler.js`).

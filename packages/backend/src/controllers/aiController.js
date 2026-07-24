@@ -1,4 +1,9 @@
-import { explainTechnicalTerm, chatReply, buildChatContext } from '../services/aiService.js';
+import {
+  explainTechnicalTerm,
+  chatReply,
+  buildChatContext,
+  getRemedialContent,
+} from '../services/aiService.js';
 import { pool } from '../config/database.js';
 
 export async function explainWord(req, res) {
@@ -48,4 +53,32 @@ export async function chat(req, res) {
   );
 
   res.json({ reply });
+}
+
+export async function remedial(req, res) {
+  const { chapterId } = req.body;
+
+  if (!chapterId) {
+    return res.status(400).json({ error: 'chapterId is required' });
+  }
+
+  const { rows } = await pool.query('SELECT transcript FROM chapters WHERE id = $1', [chapterId]);
+  const chapter = rows[0];
+
+  if (!chapter) {
+    return res.status(404).json({ error: 'chapter not found' });
+  }
+
+  if (!chapter.transcript) {
+    return res.status(422).json({ error: 'chapter has no transcript to summarize' });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res
+      .status(503)
+      .json({ error: 'AI service is not configured (missing ANTHROPIC_API_KEY)' });
+  }
+
+  const content = await getRemedialContent(chapter.transcript);
+  res.json(content);
 }

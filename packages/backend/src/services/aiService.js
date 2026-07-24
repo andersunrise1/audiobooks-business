@@ -22,6 +22,33 @@ export async function explainTechnicalTerm(word, context) {
   return response.content.find((block) => block.type === 'text')?.text ?? '';
 }
 
+const REMEDIAL_SYSTEM_PROMPT =
+  'Você é um tutor de inglês técnico. O aluno terminou um capítulo e disse que não entendeu. ' +
+  'Responda APENAS com um JSON valido (sem markdown, sem texto fora do JSON), no formato: ' +
+  '{"summary": "resumo em portugues em 2-3 frases", "keywords": ["ate 5 palavras-chave em ingles do capitulo"], "exercise": "um exercicio curto de pratica em ingles relacionado ao capitulo"}.';
+
+export async function getRemedialContent(transcript) {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-5',
+    max_tokens: 400,
+    system: REMEDIAL_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: `Transcript do capitulo: "${transcript}"` }],
+  });
+
+  const text = response.content.find((block) => block.type === 'text')?.text ?? '';
+
+  try {
+    const parsed = JSON.parse(text);
+    return {
+      summary: parsed.summary ?? '',
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+      exercise: parsed.exercise ?? '',
+    };
+  } catch {
+    return { summary: text, keywords: [], exercise: '' };
+  }
+}
+
 const CHAT_SYSTEM_PROMPT =
   'Você é um tutor de inglês técnico para profissionais de TI, conversando em um chat dentro do app. ' +
   'Responda em texto simples, sem markdown, de forma clara e direta.';

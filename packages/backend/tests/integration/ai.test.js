@@ -173,3 +173,106 @@ describe('aiService.buildChatContext', () => {
     assert.equal(context, '');
   });
 });
+
+describe('AI remedial endpoint', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+  let audiobookId;
+  let chapterId;
+  let chapterWithoutTranscriptId;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+
+    audiobookId = randomUUID();
+    chapterId = randomUUID();
+    chapterWithoutTranscriptId = randomUUID();
+
+    await pool.query(`INSERT INTO audiobooks (id, title) VALUES ($1, 'Test Audiobook')`, [
+      audiobookId,
+    ]);
+    await pool.query(
+      `INSERT INTO chapters (id, audiobook_id, title, order_index, transcript)
+       VALUES ($1, $2, 'Daily Standup', 1, 'Yesterday I deployed a new version.')`,
+      [chapterId, audiobookId],
+    );
+    await pool.query(
+      `INSERT INTO chapters (id, audiobook_id, title, order_index)
+       VALUES ($1, $2, 'No Transcript Yet', 2)`,
+      [chapterWithoutTranscriptId, audiobookId],
+    );
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM audiobooks WHERE id = $1', [audiobookId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await stopTestServer(server);
+  });
+
+  test('rejects unauthenticated requests', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chapterId }),
+    });
+    assert.equal(res.status, 401);
+  });
+
+  test('rejects a request with no chapterId', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 400);
+  });
+
+  test('returns 404 for a chapter that does not exist', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ chapterId: randomUUID() }),
+    });
+    assert.equal(res.status, 404);
+  });
+
+  test('returns 422 for a chapter with no transcript', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ chapterId: chapterWithoutTranscriptId }),
+    });
+    assert.equal(res.status, 422);
+  });
+
+  test('returns 503 when ANTHROPIC_API_KEY is not configured', async () => {
+    assert.ok(!process.env.ANTHROPIC_API_KEY);
+
+    const res = await fetch(`${baseUrl}/api/ai/remedial`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ chapterId }),
+    });
+
+    assert.equal(res.status, 503);
+    const data = await res.json();
+    assert.match(data.error, /ANTHROPIC_API_KEY/);
+  });
+});

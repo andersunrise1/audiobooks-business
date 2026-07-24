@@ -1,6 +1,11 @@
 import { describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { explainTechnicalTerm, chatReply, client } from '../../src/services/aiService.js';
+import {
+  explainTechnicalTerm,
+  chatReply,
+  getRemedialContent,
+  client,
+} from '../../src/services/aiService.js';
 
 describe('aiService.explainTechnicalTerm', () => {
   test('sends the word and context to the model and returns the text response', async () => {
@@ -95,6 +100,52 @@ describe('aiService.chatReply', () => {
 
       const [requestArgs] = createMock.mock.calls[0].arguments;
       assert.doesNotMatch(requestArgs.system, /Contexto do que o aluno/);
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+});
+
+describe('aiService.getRemedialContent', () => {
+  test('parses a well-formed JSON response into summary/keywords/exercise', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            summary: 'O capitulo fala sobre deploys diarios.',
+            keywords: ['deploy', 'rollback', 'standup'],
+            exercise: 'Write a sentence using "deployed".',
+          }),
+        },
+      ],
+    }));
+
+    try {
+      const result = await getRemedialContent('Yesterday I deployed a new version.');
+
+      assert.equal(result.summary, 'O capitulo fala sobre deploys diarios.');
+      assert.deepEqual(result.keywords, ['deploy', 'rollback', 'standup']);
+      assert.equal(result.exercise, 'Write a sentence using "deployed".');
+
+      const [requestArgs] = createMock.mock.calls[0].arguments;
+      assert.match(requestArgs.messages[0].content, /Yesterday I deployed a new version\./);
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('falls back to raw text as summary when the response is not valid JSON', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'nao consigo gerar isso agora' }],
+    }));
+
+    try {
+      const result = await getRemedialContent('some transcript');
+
+      assert.equal(result.summary, 'nao consigo gerar isso agora');
+      assert.deepEqual(result.keywords, []);
+      assert.equal(result.exercise, '');
     } finally {
       createMock.mock.restore();
     }

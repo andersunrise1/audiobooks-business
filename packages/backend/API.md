@@ -15,7 +15,7 @@ No auth. Returns `{ "status": "ok" }`.
 ### `POST /api/auth/register`
 
 Body: `{ "email", "password", "name"? }`
-201 → `{ "user": { id, email, name, plan }, "accessToken", "refreshToken" }`
+201 → `{ "user": { id, email, name, plan, isAdmin }, "accessToken", "refreshToken" }`
 409 if the email is already registered.
 
 ### `POST /api/auth/login`
@@ -59,7 +59,7 @@ No auth. Looks up a word in the canonical `technical_dictionary` table (case-ins
 
 Responses for `explain` and `remedial` are cached in Redis (24h TTL, best-effort — a Redis outage just skips the cache, it never breaks the request). A cache hit adds `"cached": true` to the response and skips the `ANTHROPIC_API_KEY` check entirely.
 
-Every route on this router is also rate-limited per user (Dia 37): `AI_DAILY_RATE_LIMIT` requests per rolling 24h window (default 50, Redis-backed, fails open — allows the request — if Redis is unreachable). Responses carry `X-RateLimit-Limit`/`X-RateLimit-Remaining` headers; exceeding the limit returns 429 with `{ "error": "Limite diário de N requisições de IA atingido. Tente novamente amanhã." }`. This is checked before the `ANTHROPIC_API_KEY`/cache logic, so it applies even to requests that would otherwise be free (a cache hit still counts).
+The routes that actually trigger a real AI call (`explain`, `chat`, `remedial`) are rate-limited per user (Dia 37): `AI_DAILY_RATE_LIMIT` requests per rolling 24h window (default 50, Redis-backed, fails open — allows the request — if Redis is unreachable). Responses carry `X-RateLimit-Limit`/`X-RateLimit-Remaining` headers; exceeding the limit returns 429 with `{ "error": "Limite diário de N requisições de IA atingido. Tente novamente amanhã." }`. This is checked before the `ANTHROPIC_API_KEY`/cache logic, so it applies even to requests that would otherwise be free (a cache hit still counts). The feedback route below is not AI-triggering and isn't rate-limited.
 
 ### `POST /api/ai/explain`
 
@@ -67,7 +67,11 @@ Body: `{ "word", "context" }`. Asks Claude (`@anthropic-ai/sdk`, model `claude-h
 
 ### `POST /api/ai/chat`
 
-Body: `{ "messages": [{ "role": "user"|"assistant", "content" }], "chapterId"?, "wordId"? }` — send the full conversation history each turn. When `chapterId` is given, the chapter's title/transcript are folded into the system prompt so the tutor has real context; `wordId` additionally includes that word's translation/explanation. 200 → `{ "reply" }`. Every turn (latest user message + reply) is persisted to `chat_messages` (`message_type` is `'vocabulary'` when `wordId` is present, `null` otherwise). 400 if `messages` is missing/empty. 503 if `ANTHROPIC_API_KEY` isn't configured. Not cached — conversations are unique per history.
+Body: `{ "messages": [{ "role": "user"|"assistant", "content" }], "chapterId"?, "wordId"? }` — send the full conversation history each turn. When `chapterId` is given, the chapter's title/transcript are folded into the system prompt so the tutor has real context; `wordId` additionally includes that word's translation/explanation. 200 → `{ "reply", "messageId" }` (`messageId` added Dia 38, used by the feedback endpoint below). Every turn (latest user message + reply) is persisted to `chat_messages` (`message_type` is `'vocabulary'` when `wordId` is present, `null` otherwise). 400 if `messages` is missing/empty. 503 if `ANTHROPIC_API_KEY` isn't configured. Not cached — conversations are unique per history.
+
+### `PATCH /api/ai/chat/:messageId/feedback`
+
+Body: `{ "feedback" }` — one of `"helpful"`, `"not_helpful"`, or `null` (clears it). 200 → `{ "id", "feedback" }`. 400 if `feedback` isn't one of those three values. 404 if the message doesn't exist or doesn't belong to the caller. Not rate-limited (doesn't call the AI). Powers the 👍/👎 buttons on `ChatWidget` and the satisfaction rate in `GET /api/admin/analytics` below.
 
 ### `POST /api/ai/remedial`
 
@@ -183,6 +187,25 @@ Response shape depends on the recognized intent:
 | "next chapter", "play next chapter"          | `next_chapter` | `{ intent: "next_chapter" }` — pure signal, the frontend handles the actual navigation.                                                                                                                                                                                                                            |
 | "my progress", "check my progress"           | `progress`     | `{ intent: "progress", stats }` — `stats` has the same shape as `GET /api/user/stats`.                                                                                                                                                                                                                             |
 | anything else                                | `unknown`      | `{ intent: "unknown", transcript }`                                                                                                                                                                                                                                                                                |
+
+## Admin (`/api/admin`) — requires auth + `is_admin`
+
+`is_admin` is a boolean column on `users` (migration 008, default `false`). There's no self-service way to become an admin — it's set directly in the database. Non-admins get 403.
+
+### `GET /api/admin/analytics`
+
+200 → AI usage analytics aggregated across every user (Dia 38):
+
+```json
+{
+  "questionsPerChapter": [{ "chapterId": "...", "title": "...", "questionCount": 0 }],
+  "avgResponseTime": [{ "endpoint": "explain", "avgResponseTimeMs": 0, "callCount": 0 }],
+  "satisfaction": { "helpfulCount": 0, "notHelpfulCount": 0, "satisfactionRate": null },
+  "costPerUser": [{ "userId": "...", "email": "...", "totalCostUsd": 0, "requestCount": 0 }]
+}
+```
+
+`questionsPerChapter` counts every `chat_messages` row (all users), most-asked first. `avgResponseTime` is computed from `ai_usage_log.response_time_ms`, only populated for calls made since Dia 38 (older rows have `NULL` and are excluded, not counted as 0). `satisfaction` comes from the 👍/👎 buttons on `ChatWidget` via the feedback endpoint above; `satisfactionRate` is `null` until at least one message has feedback. `costPerUser` sums `ai_usage_log.estimated_cost_usd` per user, most expensive first.
 
 ## Error shape
 

@@ -30,7 +30,11 @@ Implementation has started, following [Projeto_detalhado/PROJETO_AUDIOBOOK_PLANO
 
 **Post-Dia-30 incident**: the first push of the Redis work hung CI's `test` job for over an hour (had to be cancelled manually) — `ai.test.js`'s new cache-hit tests open a real connection to the CI Redis service, which keeps the event loop alive, so `node --test` never exits on its own once tests finish (every other test file only mocks the redis client, so this was invisible locally). First fix attempt (`--test-force-exit`) caused a native crash locally instead (libuv `UV_HANDLE_CLOSING` assertion on Windows from force-killing mid-close) - too blunt. Real fix: `config/redis.js` exports `closeRedis()`, called from a file-level `after()` in `ai.test.js` once all its tests finish. Confirmed fixed: the next CI run completed in the normal ~2min instead of hanging.
 
-Next up per the plan: Dia 31 (Análise de Dificuldades — Semana 7, using the `word_clicks` data already being collected since Dia 14).
+**Dia 31 is done, starting Etapa 3's Semana 7**: `packages/backend/src/services/difficultyService.js` has three query functions built on data already being collected — `getStruggledWords` (words a user clicked more than once, from `word_clicks`), `getLowCompletionChapters` (lowest completion rate **across every user**, a content-level signal rather than a personal one), and `getFrequentQuestionChapters` (chapters a user has asked the AI tutor about most, from `chat_messages` since Dia 28). `GET /api/user/difficulty-profile` (auth required) combines all three into one response. Verified against real Postgres with seeded fixtures for both the "struggling" and "not struggling" cases, plus an end-to-end test through the real HTTP server. Also caught up `API.md`, which had silently drifted out of date since Dia 25/26 (missing `/api/ai/chat`, `/api/ai/remedial`, and the Redis caching behavior entirely) — spot-checked against the current controllers rather than written from memory.
+
+Not done: nothing consumes this endpoint in the UI yet (no dashboard widget surfaces it) - that's implicitly Dia 32's job (intelligent repetition scheduling using this same difficulty data), not asked for by Dia 31's plan.
+
+Next up per the plan: Dia 32 (Repetição Inteligente — hard words resurface in future chapters, custom difficulty ordering, study-priority suggestions).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.

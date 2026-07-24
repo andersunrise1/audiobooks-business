@@ -8,6 +8,7 @@ import {
   reviewFlashcard,
 } from '../controllers/progressController.js';
 import { getUserStats } from '../controllers/statsController.js';
+import { getDifficultyProfile } from '../controllers/difficultyController.js';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.get('/flashcards', getFlashcards);
 router.post('/flashcards/:id/review', reviewFlashcard);
 router.post('/words-learned', saveWordClick);
 router.get('/stats', getUserStats);
+router.get('/difficulty-profile', getDifficultyProfile);
 
 export default router;

@@ -7,6 +7,7 @@ import {
   getLowCompletionChapters,
   getFrequentQuestionChapters,
 } from '../../src/services/difficultyService.js';
+import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
 describe('difficultyService', () => {
   let audiobookId;
@@ -115,5 +116,71 @@ describe('difficultyService', () => {
   test('getFrequentQuestionChapters returns nothing for a user with no chat history', async () => {
     const result = await getFrequentQuestionChapters(userBId);
     assert.deepEqual(result, []);
+  });
+});
+
+describe('GET /api/user/difficulty-profile', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+  let audiobookId;
+  let chapterId;
+  let wordId;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+
+    audiobookId = randomUUID();
+    chapterId = randomUUID();
+    wordId = randomUUID();
+
+    await pool.query(`INSERT INTO audiobooks (id, title) VALUES ($1, 'Profile Test Book')`, [
+      audiobookId,
+    ]);
+    await pool.query(
+      `INSERT INTO chapters (id, audiobook_id, title, order_index) VALUES ($1, $2, 'Chapter', 1)`,
+      [chapterId, audiobookId],
+    );
+    await pool.query(`INSERT INTO words (id, word, chapter_id) VALUES ($1, 'deployed', $2)`, [
+      wordId,
+      chapterId,
+    ]);
+    await pool.query(
+      `INSERT INTO word_clicks (user_id, word_id, chapter_id) VALUES ($1, $2, $3), ($1, $2, $3)`,
+      [userId, wordId, chapterId],
+    );
+    await pool.query(
+      `INSERT INTO chat_messages (user_id, chapter_id, message, response) VALUES ($1, $2, 'q', 'r')`,
+      [userId, chapterId],
+    );
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM audiobooks WHERE id = $1', [audiobookId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await stopTestServer(server);
+  });
+
+  test('rejects unauthenticated requests', async () => {
+    const res = await fetch(`${baseUrl}/api/user/difficulty-profile`);
+    assert.equal(res.status, 401);
+  });
+
+  test('assembles struggled words, low-completion chapters, and frequent question chapters', async () => {
+    const res = await fetch(`${baseUrl}/api/user/difficulty-profile`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    assert.equal(res.status, 200);
+
+    const data = await res.json();
+    assert.deepEqual(data.struggledWords, [{ wordId, word: 'deployed', clickCount: 2 }]);
+    assert.deepEqual(data.frequentQuestionChapters, [
+      { chapterId, title: 'Chapter', questionCount: 1 },
+    ]);
+    assert.ok(Array.isArray(data.lowCompletionChapters));
   });
 });

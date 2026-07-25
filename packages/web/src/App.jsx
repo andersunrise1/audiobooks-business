@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext.jsx';
 import Layout from './components/layout/Layout.jsx';
+import AdminLayout from './components/layout/AdminLayout.jsx';
 import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import HomePage from './components/pages/HomePage.jsx';
 
@@ -12,6 +13,9 @@ const LoginPage = lazy(() => import('./components/pages/LoginPage.jsx'));
 const RegisterPage = lazy(() => import('./components/pages/RegisterPage.jsx'));
 const FlashcardReviewPage = lazy(() => import('./components/pages/FlashcardReviewPage.jsx'));
 const AdminAnalyticsPage = lazy(() => import('./components/pages/AdminAnalyticsPage.jsx'));
+const AdminUploadPage = lazy(() => import('./components/pages/AdminUploadPage.jsx'));
+const AdminUsersPage = lazy(() => import('./components/pages/AdminUsersPage.jsx'));
+const AdminRevenuePage = lazy(() => import('./components/pages/AdminRevenuePage.jsx'));
 
 function App() {
   return (
@@ -50,13 +54,19 @@ function App() {
                 }
               />
               <Route
-                path="/admin/analytics"
+                path="/admin"
                 element={
                   <ProtectedRoute requireAdmin>
-                    <AdminAnalyticsPage />
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<Navigate to="upload" replace />} />
+                <Route path="upload" element={<AdminUploadPage />} />
+                <Route path="analytics" element={<AdminAnalyticsPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="revenue" element={<AdminRevenuePage />} />
+              </Route>
             </Route>
           </Routes>
         </Suspense>

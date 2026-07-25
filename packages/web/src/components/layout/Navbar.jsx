@@ -24,8 +24,8 @@ function Navbar() {
               Flashcards
             </Link>
             {user?.isAdmin && (
-              <Link to="/admin/analytics" className="py-2 touch-manipulation">
-                Analytics
+              <Link to="/admin" className="py-2 touch-manipulation">
+                Admin
               </Link>
             )}
             <span className="text-slate-500">{user?.name || user?.email}</span>

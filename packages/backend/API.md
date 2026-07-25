@@ -192,7 +192,7 @@ Response shape depends on the recognized intent:
 
 ## Admin (`/api/admin`) — requires auth + `is_admin`
 
-`is_admin` is a boolean column on `users` (migration 008, default `false`). There's no self-service way to become an admin — it's set directly in the database. Non-admins get 403.
+`is_admin` is a boolean column on `users` (migration 008, default `false`). The very first admin has to be set directly in the database — after that, an existing admin can promote/demote others via `PATCH /api/admin/users/:id` below. Non-admins get 403.
 
 ### `GET /api/admin/analytics`
 
@@ -212,6 +212,14 @@ Response shape depends on the recognized intent:
 ### `POST /api/admin/audiobooks`
 
 `multipart/form-data` body: `title`, `transcript` (required), `description`/`category`/`level`/`chapterTitle` (optional), `words_metadata` (optional, a JSON array like `[{ "word", "start_seconds"?, "end_seconds"? }]` — timestamps are supplied by the uploader, not auto-generated; Deepgram was removed on Dia 33 at the user's request and isn't reintroduced here), `audio_file` (required, one of `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/x-wav`, `audio/mp4`, `audio/m4a`, `audio/x-m4a`). Creates one new `audiobooks` row plus a single `chapters` row (`order_index: 1`) with the uploaded file's S3 URL, plus a `words` row per `words_metadata` entry. 201 → `{ "audiobookId", "chapterId", "audioUrl" }`. 400 if `title`/`transcript` is missing, the file is missing, the format is unsupported, or `words_metadata` isn't a JSON array. 503 if AWS S3 isn't configured (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_REGION`/`AWS_S3_BUCKET` — none of which are set in this dev environment, so the real upload path is unverified beyond a mocked S3 call in tests). No audio transcoding/normalization — files are stored as uploaded (Dia 43).
+
+### `GET /api/admin/users`
+
+200 → array of every user: `{ id, email, name, plan, isAdmin, createdAt }` (no `passwordHash`), newest first.
+
+### `PATCH /api/admin/users/:id`
+
+Body: `{ "isAdmin" }` (boolean). 200 → the updated user, same shape as above. 400 if `isAdmin` isn't a boolean, or if the caller is trying to remove their own admin access (there's no self-service way back in, since `is_admin` is DB-only — this would permanently lock a lone admin out). 404 if the user doesn't exist.
 
 ## Error shape
 

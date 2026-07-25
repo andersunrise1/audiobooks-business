@@ -221,6 +221,18 @@ Response shape depends on the recognized intent:
 
 Body: `{ "isAdmin" }` (boolean). 200 → the updated user, same shape as above. 400 if `isAdmin` isn't a boolean, or if the caller is trying to remove their own admin access (there's no self-service way back in, since `is_admin` is DB-only — this would permanently lock a lone admin out). 404 if the user doesn't exist.
 
+## Payment (`/api/payment`)
+
+`TechSpeak Vitalício` is a one-time purchase (Dia 46's pricing decision — see `PRICING.md`), not a subscription, so this is a single Stripe Checkout Session in `payment` mode, not `create-subscription`/webhooks-for-renewal as the plan's original draft assumed.
+
+### `POST /api/payment/create-checkout-session` — requires auth
+
+No body. Creates a Stripe Checkout Session for the R$ 57 lifetime purchase, with `metadata.userId` set to the caller's id so the webhook below knows who to grant access to. 200 → `{ "url" }` — the frontend redirects the browser here. 400 if the caller already has `plan = 'pro'`. 503 if `STRIPE_SECRET_KEY` isn't configured (true in this dev environment — no real Stripe account exists yet).
+
+### `POST /api/payment/webhook`
+
+No auth (Stripe calls this directly) — authenticated instead by verifying the `Stripe-Signature` header against `STRIPE_WEBHOOK_SECRET`. Unlike every other route, this one reads the **raw** request body (registered before the global `express.json()` middleware in `app.js`), since Stripe's signature check requires the exact bytes it signed. On `checkout.session.completed`, sets `users.plan = 'pro'` for `event.data.object.metadata.userId`. Every other event type is acknowledged (200) without action. 200 → `{ "received": true }`. 400 on an invalid signature. 503 if `STRIPE_WEBHOOK_SECRET` isn't configured.
+
 ## Error shape
 
 Non-2xx responses are `{ "error": "message" }`. For unexpected 5xx errors the message is always the generic `"Internal server error"` — the real error is logged server-side but never sent to the client (see `middleware/errorHandler.js`).

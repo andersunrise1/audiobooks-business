@@ -36,9 +36,10 @@ pronunciation, word translation — all free or near-free to serve) from
 
 ## TechSpeak Vitalício — R$ 57 (pagamento único)
 
-- **Todos os audiobooks, para sempre** — inclui o catálogo atual (7 hoje,
-  crescendo) e qualquer audiobook adicionado no futuro ao catálogo
-  principal (não confundir com pacotes pagos à parte, abaixo).
+- **Todos os audiobooks, para sempre** — inclui o catálogo atual (25
+  audiobooks, ~7 horas de conteúdo) e qualquer audiobook adicionado no
+  futuro ao catálogo principal (não confundir com pacotes pagos à parte,
+  abaixo).
 - **Flashcards ilimitados**, sem restrição de audiobook de origem.
 - **Tradução ao clicar na palavra, ilimitada** — não usa IA (consulta ao
   `technical_dictionary`), custo zero, sem motivo pra limitar.

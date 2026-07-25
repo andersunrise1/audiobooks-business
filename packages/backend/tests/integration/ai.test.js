@@ -20,6 +20,25 @@ after(async () => {
   await closeRedis();
 });
 
+// Each describe block below registers one (free-plan) test user and makes
+// several real requests to /api/ai/* as that user. Dia 49 made the daily AI
+// limit plan-aware and dropped the free-plan default to 1/day (rateLimit.js
+// dedicated test file covers the limiting behavior itself) - without this
+// override, every test past the first real call in a describe block would
+// 429 instead of exercising the endpoint behavior this file actually tests.
+let originalFreeLimit;
+before(() => {
+  originalFreeLimit = process.env.AI_DAILY_RATE_LIMIT_FREE;
+  process.env.AI_DAILY_RATE_LIMIT_FREE = '1000';
+});
+after(() => {
+  if (originalFreeLimit === undefined) {
+    delete process.env.AI_DAILY_RATE_LIMIT_FREE;
+  } else {
+    process.env.AI_DAILY_RATE_LIMIT_FREE = originalFreeLimit;
+  }
+});
+
 describe('AI explanation endpoint', () => {
   let server;
   let baseUrl;

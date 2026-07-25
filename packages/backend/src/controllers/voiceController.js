@@ -10,6 +10,7 @@ import {
   rateLimitExceededMessage,
   getDailyAiLimit,
 } from '../services/rateLimitService.js';
+import { getUserPlan } from '../services/planService.js';
 import { getExplainFallback } from '../services/aiFallbackService.js';
 
 export async function handleVoiceCommand(req, res) {
@@ -26,7 +27,8 @@ export async function handleVoiceCommand(req, res) {
       return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
     }
 
-    const limit = getDailyAiLimit();
+    const plan = await getUserPlan(req.user.id);
+    const limit = getDailyAiLimit(plan);
     const { allowed } = await checkRateLimit(req.user.id, limit);
     if (!allowed) {
       return res.status(429).json({ error: rateLimitExceededMessage(limit) });

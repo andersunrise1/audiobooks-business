@@ -1,8 +1,12 @@
 import { pool } from '../config/database.js';
+import { getUserPlan, isPaidPlan } from '../services/planService.js';
+
+export const PAYWALL_MESSAGE =
+  'Este audiobook faz parte do TechSpeak Vitalicio. Faca login e adquira o acesso para continuar.';
 
 export async function listAudiobooks(req, res) {
   const { rows } = await pool.query(
-    'SELECT id, title, description, category, duration_minutes, level, created_at FROM audiobooks ORDER BY created_at DESC',
+    'SELECT id, title, description, category, duration_minutes, level, is_free, created_at FROM audiobooks ORDER BY created_at DESC',
   );
   res.json(rows);
 }
@@ -18,6 +22,21 @@ export async function getAudiobook(req, res) {
 }
 
 export async function getAudiobookChapters(req, res) {
+  const { rows: audiobookRows } = await pool.query('SELECT is_free FROM audiobooks WHERE id = $1', [
+    req.params.id,
+  ]);
+
+  if (audiobookRows.length === 0) {
+    return res.status(404).json({ error: 'audiobook not found' });
+  }
+
+  if (!audiobookRows[0].is_free) {
+    const plan = req.user ? await getUserPlan(req.user.id) : 'free';
+    if (!isPaidPlan(plan)) {
+      return res.status(403).json({ error: PAYWALL_MESSAGE });
+    }
+  }
+
   const { rows } = await pool.query(
     `SELECT id, audiobook_id, title, order_index, audio_url, duration_seconds, transcript, created_at
      FROM chapters

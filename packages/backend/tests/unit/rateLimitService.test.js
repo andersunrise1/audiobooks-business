@@ -80,34 +80,40 @@ describe('rateLimitService.rateLimitExceededMessage', () => {
   });
 });
 
-describe('rateLimitService.getDailyAiLimit (Dia 40)', () => {
-  test('defaults to 50 when AI_DAILY_RATE_LIMIT is unset', () => {
-    const original = process.env.AI_DAILY_RATE_LIMIT;
-
+describe('rateLimitService.getDailyAiLimit (Dia 40, plan-aware since Dia 49)', () => {
+  function withEnv(vars, fn) {
+    const originals = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+    Object.assign(process.env, vars);
     try {
-      delete process.env.AI_DAILY_RATE_LIMIT;
-      assert.equal(getDailyAiLimit(), 50);
+      return fn();
     } finally {
-      if (original === undefined) {
-        delete process.env.AI_DAILY_RATE_LIMIT;
-      } else {
-        process.env.AI_DAILY_RATE_LIMIT = original;
+      for (const [k, v] of Object.entries(originals)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
       }
     }
+  }
+
+  test('defaults free plans to 1/day when AI_DAILY_RATE_LIMIT_FREE is unset', () => {
+    withEnv({ AI_DAILY_RATE_LIMIT_FREE: undefined }, () => {
+      delete process.env.AI_DAILY_RATE_LIMIT_FREE;
+      assert.equal(getDailyAiLimit('free'), 1);
+      assert.equal(getDailyAiLimit(undefined), 1);
+    });
   });
 
-  test('reads AI_DAILY_RATE_LIMIT when set', () => {
-    const original = process.env.AI_DAILY_RATE_LIMIT;
+  test('defaults paid plans to 10/day when AI_DAILY_RATE_LIMIT_PRO is unset', () => {
+    withEnv({ AI_DAILY_RATE_LIMIT_PRO: undefined }, () => {
+      delete process.env.AI_DAILY_RATE_LIMIT_PRO;
+      assert.equal(getDailyAiLimit('pro'), 10);
+      assert.equal(getDailyAiLimit('corporate'), 10);
+    });
+  });
 
-    try {
-      process.env.AI_DAILY_RATE_LIMIT = '25';
-      assert.equal(getDailyAiLimit(), 25);
-    } finally {
-      if (original === undefined) {
-        delete process.env.AI_DAILY_RATE_LIMIT;
-      } else {
-        process.env.AI_DAILY_RATE_LIMIT = original;
-      }
-    }
+  test('reads AI_DAILY_RATE_LIMIT_FREE/AI_DAILY_RATE_LIMIT_PRO when set', () => {
+    withEnv({ AI_DAILY_RATE_LIMIT_FREE: '2', AI_DAILY_RATE_LIMIT_PRO: '25' }, () => {
+      assert.equal(getDailyAiLimit('free'), 2);
+      assert.equal(getDailyAiLimit('pro'), 25);
+    });
   });
 });

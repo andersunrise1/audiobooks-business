@@ -1,9 +1,16 @@
 import { redisClient, connectRedis } from '../config/redis.js';
+import { isPaidPlan } from './planService.js';
 
 // Read fresh on every call (not cached at module load) so tests can override
-// AI_DAILY_RATE_LIMIT per-run without needing to reload the module.
-export function getDailyAiLimit() {
-  return Number(process.env.AI_DAILY_RATE_LIMIT) || 50;
+// AI_DAILY_RATE_LIMIT_FREE/AI_DAILY_RATE_LIMIT_PRO per-run without needing to
+// reload the module. Dia 49: plan-aware, and deliberately NOT "unlimited for
+// paid" - a lifetime purchase against an unbounded ongoing AI cost is a real
+// risk (see MONETIZATION.md's "AI cost problem"), so paid plans get a higher
+// cap, not no cap.
+export function getDailyAiLimit(plan) {
+  return isPaidPlan(plan)
+    ? Number(process.env.AI_DAILY_RATE_LIMIT_PRO) || 10
+    : Number(process.env.AI_DAILY_RATE_LIMIT_FREE) || 1;
 }
 
 // Fixed-window counter keyed by userId + window bucket. A Redis outage fails

@@ -38,12 +38,11 @@ summary both read directly), and `duration_seconds` (real audio length once
 recorded — used for progress tracking and the Dashboard's `totalStudyMinutes`
 stat).
 
-## Worked example (the existing seeded chapter)
+## Worked example (Dia 42's "Daily Standup" audiobook)
 
-The current seed audiobook (`11111111-1111-1111-1111-111111111111`, used
-throughout the manual verification steps in `CLAUDE.md`) is chapter 1 of
-exactly this template — it's real, already flowing through every feature in
-the app, and is the reference to match when writing new chapters:
+`11111111-1111-1111-1111-111111111111` (used throughout the manual
+verification steps in `CLAUDE.md`) is the reference implementation of this
+template, migrations `009`-`013`:
 
 ```
 Audiobook: Daily Standup
@@ -53,10 +52,30 @@ Audiobook: Daily Standup
 Chapter 1: Opening
   transcript: "Yesterday I deployed a new version."
   words: deployed (clickable, timestamped, in technical_dictionary)
+
+Chapter 2: Updates
+  transcript: "Today I'm working on the payment integration. I'm adding tests for the new endpoint."
+  words: endpoint
+
+Chapter 3: Blockers
+  transcript: "My only blocker is waiting for the API keys from the client. I can't test the webhook without them."
+  words: blocker, webhook
+
+Chapter 4: Planning
+  transcript: "For this sprint, our priorities are finishing the checkout flow and fixing the reported bugs. Let's also refactor the old authentication module."
+  words: sprint, priorities, refactor
+
+Chapter 5: Closing
+  transcript: "That's all from me. Does anyone have questions, or need help with their blockers?"
 ```
 
-Chapters 2-5 for this same audiobook don't exist yet — writing them (plus the
-first full multi-audiobook series) is Dia 42's job, following this template.
+Chapters 2-5 don't carry real audio timestamps (`audio_url`/`start_seconds`/
+`end_seconds` are `NULL`) — no TTS/audio production pipeline exists yet
+(tracked gap, see `CLAUDE.md`'s architecture section). Click-to-translate,
+`chat`, `remedial`, and `PronunciationRecorder` all work regardless, since
+none of them depend on `audio_url`; only real audio playback and the
+playback-time highlight effect are affected. See `migrations/010`-`013` for
+four more full audiobooks built on this same pattern.
 
 ## Per-word checklist (`words` rows per chapter)
 

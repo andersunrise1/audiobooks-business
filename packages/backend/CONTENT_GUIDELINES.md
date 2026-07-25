@@ -74,9 +74,13 @@ several already-built features, so it has real constraints:
    `duration_seconds` — `remedial` 422s on a missing transcript, and
    `totalStudyMinutes`/recommendations quietly undercount a chapter with no
    duration.
-2. Every clickable term is a real `words` row with `start_seconds`/
-   `end_seconds` — a word without timestamps never highlights during
-   playback (Dia 12's `useWordSync`).
+2. Every clickable term is a real `words` row — `start_seconds`/
+   `end_seconds` are only needed once real audio exists (they drive
+   Dia 12's playback-highlight effect); without them, click-to-translate,
+   `chat`, `remedial`, and `PronunciationRecorder` still work fine (Dia 42).
+   Tagging is intentionally partial — only the technical terms, not every
+   word (Dia 42 fixed `TranscriptDisplay` to keep the full sentence visible
+   regardless of how many words are tagged).
 3. New vocabulary not already in `technical_dictionary` has been added
    there first, not just inlined into one chapter's `words` row.
 4. The audiobook's total runtime and vocabulary count are checked against

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import AudioPlayer from '../features/AudioPlayer.jsx';
 import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
 import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
@@ -29,19 +29,27 @@ function PlayerPage() {
   const [playbackVolume, setPlaybackVolume] = useState(1);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [error, setError] = useState('');
+  const [paywalled, setPaywalled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      apiRequest(`/api/audiobooks/${id}/chapters`),
+      apiRequest(`/api/audiobooks/${id}/chapters`, { token: accessToken }),
       apiRequest('/api/user/progress', { token: accessToken }),
     ])
       .then(([chapterList, progressList]) => {
+        setPaywalled(false);
         setChapters(chapterList);
         setChapterIndex(0);
         setProgressByChapter(Object.fromEntries(progressList.map((p) => [p.chapter_id, p])));
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        if (err.status === 403) {
+          setPaywalled(true);
+        } else {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
   }, [id, accessToken]);
 
@@ -116,6 +124,23 @@ function PlayerPage() {
   }
 
   if (loading) return <p>Carregando...</p>;
+  if (paywalled) {
+    return (
+      <div className="flex flex-col gap-3 max-w-md">
+        <h1 className="text-xl font-bold">Este audiobook é exclusivo do Vitalício</h1>
+        <p className="text-slate-600">
+          Adquira o TechSpeak Vitalício para desbloquear este e todos os outros audiobooks do
+          catálogo, para sempre.
+        </p>
+        <Link
+          to="/pricing"
+          className="bg-slate-900 text-white rounded px-4 py-2 font-semibold text-center touch-manipulation"
+        >
+          Ver planos
+        </Link>
+      </div>
+    );
+  }
   if (error) return <p className="text-red-500">{error}</p>;
   if (!chapter) return <p className="text-slate-500">Este audiobook ainda não tem capítulos.</p>;
 

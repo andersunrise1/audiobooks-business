@@ -16,7 +16,9 @@ export async function apiRequest(path, { method = 'GET', body, token } = {}) {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    throw new Error(data?.error || `Request failed with status ${res.status}`);
+    const err = new Error(data?.error || `Request failed with status ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
 
   return data;

@@ -1,73 +1,73 @@
 # Pricing Strategy
 
-TechSpeak's pricing model (Dia 46), following the plan's 3-tier structure. This
-is a strategy document — **no billing is implemented yet** (that's Dia 47+,
-Stripe integration); see `packages/backend/MONETIZATION.md` for how these
-tiers map onto the actual codebase and what still needs to be built to
-enforce them.
+TechSpeak's pricing model. **Supersedes an earlier subscription-tier draft**
+(Free/Pro monthly/annual) from Dia 46 — on 2026-07-25 the user chose a
+lifetime-access model instead, deliberately departing from the plan's
+original 3-tier SaaS structure. This is a strategy document — **no billing
+is implemented yet** (that's Dia 47+, Stripe integration); see
+`packages/backend/MONETIZATION.md` for how this maps onto the actual
+codebase and what still needs to be built to enforce it.
 
-## Why 3 tiers
+## Why lifetime access instead of a subscription
 
-The product's positioning ([Audiobooks_English_Business.txt](Audiobooks_English_Business.txt))
-is "the English professional developers actually use at work," not a generic
-language app — so the tiers are built around what a working developer needs
-_more of_ as they rely on the product more, not around arbitrary feature
-walls:
+Two deliberate reasons, not just a preference:
 
-- **Free** — enough to genuinely evaluate the product (finish a real
-  audiobook, try the AI tutor, start building flashcards) without being a
-  crippled demo.
-- **Pro** — the individual-developer subscription: unlimited use of
-  everything Free has a cap on, plus the features that only make sense for a
-  committed learner (offline mode, unlimited AI).
-- **Corporate** — the team/company tier: not "Pro but more," but genuinely
-  different needs (who's using it, tracking a team's progress, custom
-  content, procurement-friendly billing).
+- **Market fit.** Brazilian digital products (Hotmart/Kiwify-style
+  "infoprodutos") convert far better as a one-time purchase than a
+  recurring subscription — less commitment anxiety, less subscription
+  fatigue, and it matches how people already buy audiobooks/courses
+  (Audible, Kindle, Udemy: buy once, own it), not a SaaS mental model.
+- **Goal is volume, not margin per user.** The explicit intent is to stay
+  accessible and sell in quantity, not maximize revenue per subscriber.
 
-## Free — R$ 0
+The one real structural risk of "pay once, use forever" is that the AI
+tutor has a genuine ongoing per-use cost (Dia 37's cost tracking:
+~R$0,002-0,02 per call) while lifetime revenue is captured once. The model
+below resolves that by splitting **content** (audiobooks, flashcards,
+pronunciation, word translation — all free or near-free to serve) from
+**AI usage** (capped, regardless of plan).
 
-- **2 audiobooks** — enough to complete a real, full 5-chapter audiobook
-  (Dia 41's template) and start a second, not just a single teaser chapter.
-- **Flashcards básicos** — the existing SM-2 spaced-repetition system
-  (Dia 17) is already unlimited in the code; "básicos" here means capped to
-  words learned from the 2 accessible audiobooks, not a reduced feature set.
-- **1 chat por dia** — one AI tutor conversation per day. Explain/remedial
-  aren't separately mentioned in the plan, but the natural reading is that
-  the daily AI budget is shared across `explain`/`chat`/`remedial`
-  (`AI_DAILY_RATE_LIMIT`, Dia 37) — see `MONETIZATION.md` for why today's
-  rate limiter isn't yet plan-aware.
-- No offline mode, no pronunciation feedback gate specifically, no ads
-  (there's no ad system in this product at all, free or paid).
+## Free — R$ 0 (trial)
 
-## Pro — R$ 49,90/mês (ou R$ 399/ano)
+- **2 audiobooks** — enough to complete one real 5-chapter audiobook
+  (Dia 41's template) and start a second.
+- **Flashcards** for words learned from those 2 audiobooks.
+- **1 chat com o tutor por dia.**
 
-- **Unlimited audiobooks** — access to the full catalog (5 today, Dia 42;
-  growing as more are authored).
-- **Flashcards ilimitados** — same system as Free, no per-audiobook cap.
-- **IA ilimitada** — no daily cap on `explain`/`chat`/`remedial`.
-- **Pronúncia feedback** — the existing `PronunciationRecorder` (Dia 18,
-  Web Speech API–based) is already free for everyone in the code today;
-  under this pricing model it becomes a genuine Pro differentiator.
-- **Offline mode** — the existing Electron desktop audio-caching feature
-  (Dia 20) becomes Pro-exclusive.
-- **Sem anúncios** — moot today (no ad system exists anywhere in the
-  product), but stated for completeness/future-proofing per the plan.
+## TechSpeak Vitalício — R$ 57 (pagamento único)
 
-### Pricing rationale (2026-07-25 decision)
+- **Todos os audiobooks, para sempre** — inclui o catálogo atual (7 hoje,
+  crescendo) e qualquer audiobook adicionado no futuro ao catálogo
+  principal (não confundir com pacotes pagos à parte, abaixo).
+- **Flashcards ilimitados**, sem restrição de audiobook de origem.
+- **Tradução ao clicar na palavra, ilimitada** — não usa IA (consulta ao
+  `technical_dictionary`), custo zero, sem motivo pra limitar.
+- **Prática de pronúncia ilimitada** — usa a Web Speech API do navegador
+  (Dia 18), sem custo de servidor.
+- **Modo offline** (desktop, Dia 20).
+- **Chat com o tutor: 10 mensagens/dia.** Não é "IA ilimitada" — é o
+  limite deliberado que mantém o custo por comprador previsível mesmo
+  numa compra única (ver a conta no `MONETIZATION.md`).
 
-BRL-only by decision — not a multi-currency product. R$ 49,90/mês is
-positioned against Brazilian dev-education subscriptions (Alura, Rocketseat:
-~R$ 40-80/mês), not generic language apps (Duolingo Plus: ~R$ 30/mês) —
-same buyer (Brazilian developers), same "invest in my career" framing,
-which supports a higher price than casual language learning commands.
-R$ 399/ano (≈ R$ 33,25/mês, ~33% off) is the standard annual-discount
-pattern for this category, trading a lower per-month rate for upfront
-cash flow and better retention.
+## Pacotes de novos livros — R$ 19-29 cada (futuro)
 
-This is comparable-based reasoning, not a market study — there's no real
-usage/conversion data yet (Etapa 3's AI review already flagged this same
-"unverified without real users" gap). Treat R$ 49,90 as a launch price to
-validate via actual conversion, not a number carved in stone.
+Depois do catálogo inicial, novos audiobooks temáticos são vendidos
+separadamente como expansões — quem já comprou o Vitalício paga só pelo
+conteúdo novo, não por acesso de novo. É o mecanismo que sustenta receita
+recorrente sem reintroduzir assinatura.
+
+### Pricing rationale (decisão de 2026-07-25)
+
+Só em reais — não é um produto multi-moeda. R$ 57 fica na faixa clássica
+de infoproduto acessível no Brasil (âncoras comuns: R$47/57/67/97) — barato
+o bastante pra reduzir a barreira de compra de um produto sem prova social
+ainda, mas não tão barato a ponto de parecer de baixa qualidade.
+
+Isso é raciocínio por comparáveis, não um estudo de mercado — não há dados
+reais de conversão ainda (a mesma revisão honesta da Etapa 3 já sinalizou
+essa lacuna de "não verificável sem usuários reais"). Trate R$ 57 como
+preço de lançamento a validar por conversão real, não como número
+definitivo.
 
 ## Corporate — Custom
 
@@ -87,6 +87,6 @@ customization scope, matching the plan.
 
 ## What this document does _not_ do
 
-It doesn't implement rate limits, subscription checks, or Stripe — see
-`packages/backend/MONETIZATION.md` for the honest gap list and what Dia 47+
-needs to build to make these tiers real.
+It doesn't implement the AI chat limit, one-time-purchase checks, or
+Stripe — see `packages/backend/MONETIZATION.md` for the honest gap list
+and what Dia 47+ needs to build to make this real.

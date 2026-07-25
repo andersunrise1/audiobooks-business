@@ -63,14 +63,17 @@ describe('PlayerPage', () => {
   test('renders the chapter and its transcript', async () => {
     renderPlayerPage();
     expect(await screen.findByText('Opening')).toBeInTheDocument();
-    expect(await screen.findByText('deployed')).toBeInTheDocument();
+    // Query by role, not text: before the words fetch resolves, "deployed"
+    // briefly renders as plain (non-clickable) text too, since it's just
+    // another token in the transcript until a tagged word matches it.
+    expect(await screen.findByRole('button', { name: 'deployed' })).toBeInTheDocument();
   });
 
   test('clicking a word saves it and shows the translation popup', async () => {
     const user = userEvent.setup();
     renderPlayerPage();
 
-    const wordEl = await screen.findByText('deployed');
+    const wordEl = await screen.findByRole('button', { name: 'deployed' });
     await user.click(wordEl);
 
     expect(await screen.findByText('implantei')).toBeInTheDocument();

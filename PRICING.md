@@ -39,7 +39,7 @@ walls:
 - No offline mode, no pronunciation feedback gate specifically, no ads
   (there's no ad system in this product at all, free or paid).
 
-## Pro — $9.99/mês (or R$ 50/mês)
+## Pro — R$ 49,90/mês (ou R$ 399/ano)
 
 - **Unlimited audiobooks** — access to the full catalog (5 today, Dia 42;
   growing as more are authored).
@@ -53,10 +53,21 @@ walls:
 - **Sem anúncios** — moot today (no ad system exists anywhere in the
   product), but stated for completeness/future-proofing per the plan.
 
-R$ 50/mês is the BRL-market anchor price; $9.99/mês is the USD equivalent
-for an international audience — not a currency conversion of the same
-number, a deliberate separate price point per market, consistent with how
-SaaS pricing is usually localized.
+### Pricing rationale (2026-07-25 decision)
+
+BRL-only by decision — not a multi-currency product. R$ 49,90/mês is
+positioned against Brazilian dev-education subscriptions (Alura, Rocketseat:
+~R$ 40-80/mês), not generic language apps (Duolingo Plus: ~R$ 30/mês) —
+same buyer (Brazilian developers), same "invest in my career" framing,
+which supports a higher price than casual language learning commands.
+R$ 399/ano (≈ R$ 33,25/mês, ~33% off) is the standard annual-discount
+pattern for this category, trading a lower per-month rate for upfront
+cash flow and better retention.
+
+This is comparable-based reasoning, not a market study — there's no real
+usage/conversion data yet (Etapa 3's AI review already flagged this same
+"unverified without real users" gap). Treat R$ 49,90 as a launch price to
+validate via actual conversion, not a number carved in stone.
 
 ## Corporate — Custom
 

@@ -28,6 +28,12 @@ Body: `{ "email", "password" }`
 Body: `{ "refreshToken" }`
 200 → `{ "accessToken" }`. 401 if the refresh token is invalid/expired or the user no longer exists.
 
+### `GET /api/auth/me` — requires auth
+
+200 → `{ "user": { id, email, name, plan, isAdmin } }`, read fresh from the DB (unlike the JWT
+payload, this reflects any changes since login — e.g. `plan` after a successful payment). 404 if
+the user no longer exists.
+
 ## Audiobooks (`/api/audiobooks`)
 
 All routes here are public (no auth required) — read-only catalog data.

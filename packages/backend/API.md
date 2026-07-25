@@ -36,19 +36,23 @@ the user no longer exists.
 
 ## Audiobooks (`/api/audiobooks`)
 
-All routes here are public (no auth required) — read-only catalog data.
+Browsing the catalog is public (no auth required); reading a non-free audiobook's chapter content requires TechSpeak Vitalício (Dia 49 — see "Free-tier paywall" below).
 
 ### `GET /api/audiobooks`
 
-200 → array of `{ id, title, description, category, duration_minutes, level, created_at }`.
+200 → array of `{ id, title, description, category, duration_minutes, level, is_free, created_at }`.
 
 ### `GET /api/audiobooks/:id`
 
-200 → the full audiobook row. 404 if not found.
+200 → the full audiobook row (includes `is_free`). 404 if not found.
 
 ### `GET /api/audiobooks/:id/chapters`
 
-200 → array of `{ id, audiobook_id, title, order_index, audio_url, duration_seconds, transcript, created_at }`, ordered by `order_index`.
+Auth optional — a valid bearer token is only used to check `plan` for non-free audiobooks; anonymous requests are always treated as free-plan. 200 → array of `{ id, audiobook_id, title, order_index, audio_url, duration_seconds, transcript, created_at }`, ordered by `order_index`. 404 if the audiobook doesn't exist. 403 (`{ "error": "Este audiobook faz parte do TechSpeak Vitalicio..." }`) if the audiobook isn't `is_free` and the caller isn't authenticated with `plan` `pro`/`corporate`.
+
+### Free-tier paywall (Dia 49)
+
+Two audiobooks ("Daily Standup", "Remote Work Communication" — one technical, one career-focused) are marked `is_free = true` in the DB and playable by anyone, matching `PRICING.md`'s Free trial. Every other audiobook requires Vitalício. This only gates chapter content (`GET /:id/chapters`); the catalog list/detail endpoints and `GET /chapters/:chapterId/words` are unaffected, since translation lookups don't call the AI and cost nothing to serve regardless of plan.
 
 ### `GET /api/audiobooks/chapters/:chapterId/words`
 
@@ -65,7 +69,7 @@ No auth. Looks up a word in the canonical `technical_dictionary` table (case-ins
 
 Responses for `explain` and `remedial` are cached in Redis (24h TTL, best-effort — a Redis outage just skips the cache, it never breaks the request). A cache hit adds `"cached": true` to the response and skips the `ANTHROPIC_API_KEY` check entirely.
 
-The routes that actually trigger a real AI call (`explain`, `chat`, `remedial`) are rate-limited per user (Dia 37): `AI_DAILY_RATE_LIMIT` requests per rolling 24h window (default 50, Redis-backed, fails open — allows the request — if Redis is unreachable). Responses carry `X-RateLimit-Limit`/`X-RateLimit-Remaining` headers; exceeding the limit returns 429 with `{ "error": "Limite diário de N requisições de IA atingido. Tente novamente amanhã." }`. This is checked before the `ANTHROPIC_API_KEY`/cache logic, so it applies even to requests that would otherwise be free (a cache hit still counts). The feedback route below is not AI-triggering and isn't rate-limited.
+The routes that actually trigger a real AI call (`explain`, `chat`, `remedial`) are rate-limited per user (Dia 37), **plan-aware since Dia 49**: `AI_DAILY_RATE_LIMIT_FREE` requests/day for `plan = 'free'` (default 1) vs. `AI_DAILY_RATE_LIMIT_PRO` for `pro`/`corporate` (default 10) — a rolling 24h window, Redis-backed, fails open (allows the request) if Redis is unreachable. This is deliberately not "unlimited for paying users" — see `MONETIZATION.md`'s "AI cost problem". Responses carry `X-RateLimit-Limit`/`X-RateLimit-Remaining` headers; exceeding the limit returns 429 with `{ "error": "Limite diário de N requisições de IA atingido. Tente novamente amanhã." }`. This is checked before the `ANTHROPIC_API_KEY`/cache logic, so it applies even to requests that would otherwise be free (a cache hit still counts). The feedback route below is not AI-triggering and isn't rate-limited.
 
 If `ANTHROPIC_API_KEY` **is** configured but the real call throws (Anthropic outage, rate limit, network error/timeout), all three routes below return **200** with graceful fallback content instead of an error (Dia 39, `services/aiFallbackService.js`) — distinct from the 503 case, which means the key itself is missing. A fallback response always adds `"fallback": true`, `"faq": [{ "question", "answer" }]`, `"externalDocsUrl"`, and `"supportContact"` on top of its normal shape.
 

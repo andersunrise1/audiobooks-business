@@ -28,6 +28,18 @@ function Navbar() {
                 Admin
               </Link>
             )}
+            {user?.plan === 'pro' ? (
+              <span className="text-green-700 bg-green-50 rounded px-2 py-1 text-xs font-semibold">
+                Vitalício
+              </span>
+            ) : (
+              <Link
+                to="/pricing"
+                className="text-slate-900 bg-amber-100 rounded px-2 py-1 text-xs font-semibold touch-manipulation"
+              >
+                Upgrade
+              </Link>
+            )}
             <span className="text-slate-500">{user?.name || user?.email}</span>
             <button
               type="button"

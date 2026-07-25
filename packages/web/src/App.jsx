@@ -16,6 +16,9 @@ const AdminAnalyticsPage = lazy(() => import('./components/pages/AdminAnalyticsP
 const AdminUploadPage = lazy(() => import('./components/pages/AdminUploadPage.jsx'));
 const AdminUsersPage = lazy(() => import('./components/pages/AdminUsersPage.jsx'));
 const AdminRevenuePage = lazy(() => import('./components/pages/AdminRevenuePage.jsx'));
+const PricingPage = lazy(() => import('./components/pages/PricingPage.jsx'));
+const PaymentSuccessPage = lazy(() => import('./components/pages/PaymentSuccessPage.jsx'));
+const PaymentCancelPage = lazy(() => import('./components/pages/PaymentCancelPage.jsx'));
 
 function App() {
   return (
@@ -28,7 +31,17 @@ function App() {
               <Route path="/audiobooks" element={<AudiobookListPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
+              <Route
+                path="/payment/success"
+                element={
+                  <ProtectedRoute>
+                    <PaymentSuccessPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/audiobooks/:id/player"
                 element={

@@ -47,6 +47,18 @@ export function AuthProvider({ children }) {
     setAuth(null);
   }
 
+  // Re-fetches the current user's profile from the server, e.g. after a
+  // payment so `plan` reflects the webhook's update without requiring a
+  // fresh login - the accessToken's JWT payload is otherwise stale until
+  // it's reissued (same staleness this project already documents for
+  // is_admin).
+  async function refreshUser() {
+    if (!auth?.accessToken) return null;
+    const { user } = await apiRequest('/api/auth/me', { token: auth.accessToken });
+    setAuth((prev) => (prev ? { ...prev, user } : prev));
+    return user;
+  }
+
   const value = {
     user: auth?.user ?? null,
     accessToken: auth?.accessToken ?? null,
@@ -54,6 +66,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

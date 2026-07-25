@@ -66,6 +66,17 @@ export async function login(req, res) {
   });
 }
 
+export async function getCurrentUser(req, res) {
+  const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+  const user = rows[0];
+
+  if (!user) {
+    return res.status(404).json({ error: 'user not found' });
+  }
+
+  res.json({ user: toPublicUser(user) });
+}
+
 export async function refreshToken(req, res) {
   const { refreshToken: token } = req.body;
 

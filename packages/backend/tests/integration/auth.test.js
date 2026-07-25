@@ -56,4 +56,28 @@ describe('Authentication', () => {
 
     assert.equal(res.status, 401);
   });
+
+  describe('GET /api/auth/me', () => {
+    test('rejects unauthenticated requests', async () => {
+      const res = await fetch(`${baseUrl}/api/auth/me`);
+      assert.equal(res.status, 401);
+    });
+
+    test("returns the caller's current profile, reflecting DB changes since login", async () => {
+      const { user, accessToken } = await registerAndTrack();
+      assert.equal(user.plan, 'free');
+
+      await pool.query(`UPDATE users SET plan = 'pro' WHERE id = $1`, [user.id]);
+
+      const res = await fetch(`${baseUrl}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.user.id, user.id);
+      assert.equal(data.user.plan, 'pro');
+      assert.ok(!('passwordHash' in data.user));
+    });
+  });
 });

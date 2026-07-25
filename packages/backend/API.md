@@ -209,6 +209,10 @@ Response shape depends on the recognized intent:
 
 `questionsPerChapter` counts every `chat_messages` row (all users), most-asked first. `avgResponseTime` is computed from `ai_usage_log.response_time_ms`, only populated for calls made since Dia 38 (older rows have `NULL` and are excluded, not counted as 0). `satisfaction` comes from the 👍/👎 buttons on `ChatWidget` via the feedback endpoint above; `satisfactionRate` is `null` until at least one message has feedback. `costPerUser` sums `ai_usage_log.estimated_cost_usd` per user, most expensive first.
 
+### `POST /api/admin/audiobooks`
+
+`multipart/form-data` body: `title`, `transcript` (required), `description`/`category`/`level`/`chapterTitle` (optional), `words_metadata` (optional, a JSON array like `[{ "word", "start_seconds"?, "end_seconds"? }]` — timestamps are supplied by the uploader, not auto-generated; Deepgram was removed on Dia 33 at the user's request and isn't reintroduced here), `audio_file` (required, one of `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/x-wav`, `audio/mp4`, `audio/m4a`, `audio/x-m4a`). Creates one new `audiobooks` row plus a single `chapters` row (`order_index: 1`) with the uploaded file's S3 URL, plus a `words` row per `words_metadata` entry. 201 → `{ "audiobookId", "chapterId", "audioUrl" }`. 400 if `title`/`transcript` is missing, the file is missing, the format is unsupported, or `words_metadata` isn't a JSON array. 503 if AWS S3 isn't configured (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_REGION`/`AWS_S3_BUCKET` — none of which are set in this dev environment, so the real upload path is unverified beyond a mocked S3 call in tests). No audio transcoding/normalization — files are stored as uploaded (Dia 43).
+
 ## Error shape
 
 Non-2xx responses are `{ "error": "message" }`. For unexpected 5xx errors the message is always the generic `"Internal server error"` — the real error is logged server-side but never sent to the client (see `middleware/errorHandler.js`).

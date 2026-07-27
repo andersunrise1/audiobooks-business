@@ -44,7 +44,7 @@ function KeyboardShortcutsHelp() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-sm w-full flex flex-col gap-3"
+            className="bg-white dark:bg-stone-800 rounded-lg p-6 max-w-sm w-full flex flex-col gap-3"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-bold">Atalhos de teclado</h2>
@@ -52,7 +52,7 @@ function KeyboardShortcutsHelp() {
               {SHORTCUTS.map((shortcut) => (
                 <li key={shortcut.keys} className="flex items-center justify-between gap-4">
                   <span className="text-slate-600">{shortcut.description}</span>
-                  <kbd className="bg-slate-100 rounded px-2 py-1 font-mono text-xs">
+                  <kbd className="bg-slate-100 dark:bg-stone-700 rounded px-2 py-1 font-mono text-xs">
                     {shortcut.keys}
                   </kbd>
                 </li>
@@ -61,7 +61,7 @@ function KeyboardShortcutsHelp() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="bg-slate-900 text-white rounded px-4 py-2 font-semibold self-end touch-manipulation"
+              className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 font-semibold self-end touch-manipulation"
             >
               Fechar
             </button>

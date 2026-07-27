@@ -3,13 +3,19 @@ import { useAuth } from '../../store/AuthContext.jsx';
 import SyncStatusIndicator from '../features/SyncStatusIndicator.jsx';
 import NotificationCenter from '../features/NotificationCenter.jsx';
 import KeyboardShortcutsHelp from '../features/KeyboardShortcutsHelp.jsx';
+import ThemeToggle from '../features/ThemeToggle.jsx';
+import RobotLogo from '../features/RobotLogo.jsx';
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (
-    <header className="border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-      <Link to="/" className="font-bold text-lg">
+    <header className="border-b border-slate-200 dark:border-stone-700 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <Link
+        to="/"
+        className="flex items-center gap-1 font-bold text-lg text-blue-600 dark:text-blue-400 neon-text"
+      >
+        <RobotLogo />
         TechSpeak
       </Link>
 
@@ -21,6 +27,7 @@ function Navbar() {
           Ajuda
         </Link>
         <KeyboardShortcutsHelp />
+        <ThemeToggle />
 
         {isAuthenticated ? (
           <>
@@ -36,24 +43,24 @@ function Navbar() {
               </Link>
             )}
             {user?.plan === 'pro' ? (
-              <span className="text-green-700 bg-green-50 rounded px-2 py-1 text-xs font-semibold">
+              <span className="text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-400 rounded px-2 py-1 text-xs font-semibold">
                 Vitalício
               </span>
             ) : (
               <Link
                 to="/pricing"
-                className="text-slate-900 bg-amber-100 rounded px-2 py-1 text-xs font-semibold touch-manipulation"
+                className="text-slate-900 bg-amber-100 dark:bg-amber-300 rounded px-2 py-1 text-xs font-semibold touch-manipulation"
               >
                 Upgrade
               </Link>
             )}
-            <span className="text-slate-500">{user?.name || user?.email}</span>
+            <span className="text-slate-500 dark:text-stone-400">{user?.name || user?.email}</span>
             <SyncStatusIndicator />
             <NotificationCenter />
             <button
               type="button"
               onClick={logout}
-              className="text-slate-500 underline py-2 touch-manipulation"
+              className="text-slate-500 dark:text-stone-400 underline py-2 touch-manipulation"
             >
               Sair
             </button>

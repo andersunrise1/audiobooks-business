@@ -102,7 +102,7 @@ function HelpCenterPage() {
         </p>
 
         {submitted ? (
-          <p className="bg-green-50 text-green-700 rounded px-4 py-3 text-sm">
+          <p className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded px-4 py-3 text-sm">
             Mensagem enviada! Vamos responder o quanto antes.
           </p>
         ) : (
@@ -135,7 +135,7 @@ function HelpCenterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="bg-slate-900 text-white rounded px-4 py-2 font-semibold disabled:opacity-50 touch-manipulation self-start"
+              className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 font-semibold disabled:opacity-50 touch-manipulation self-start"
             >
               {submitting ? 'Enviando...' : 'Enviar'}
             </button>

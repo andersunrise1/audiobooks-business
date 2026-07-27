@@ -83,7 +83,7 @@ function ChatWidget({ chapterId }) {
   }
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4 flex flex-col gap-3">
+    <div className="border border-slate-200 dark:border-stone-700 rounded-lg p-4 flex flex-col gap-3">
       <h2 className="font-semibold">Chat com o tutor</h2>
 
       <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
@@ -101,17 +101,17 @@ function ChatWidget({ chapterId }) {
             <div
               className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                 message.role === 'user'
-                  ? 'bg-slate-900 text-white'
+                  ? 'bg-blue-600 dark:bg-blue-500 neon-glow text-white'
                   : message.fallback
-                    ? 'bg-amber-50 text-slate-900 border border-amber-200'
-                    : 'bg-slate-100 text-slate-900 border border-slate-200'
+                    ? 'bg-amber-50 dark:bg-amber-950 text-slate-900 dark:text-amber-100 border border-amber-200 dark:border-amber-800'
+                    : 'bg-slate-100 dark:bg-stone-700 text-slate-900 dark:text-stone-100 border border-slate-200 dark:border-stone-700'
               }`}
             >
               {message.content}
             </div>
 
             {message.fallback && (
-              <div className="max-w-[80%] mt-1 text-xs text-slate-500 flex flex-col gap-1 border border-amber-100 bg-amber-50 rounded-lg p-2">
+              <div className="max-w-[80%] mt-1 text-xs text-slate-500 dark:text-stone-300 flex flex-col gap-1 border border-amber-100 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 rounded-lg p-2">
                 <p className="font-semibold">Perguntas frequentes</p>
                 {message.fallback.faq.map((item) => (
                   <p key={item.question}>
@@ -152,7 +152,9 @@ function ChatWidget({ chapterId }) {
                   aria-label="Marcar como útil"
                   aria-pressed={message.feedback === 'helpful'}
                   className={`rounded px-1 ${
-                    message.feedback === 'helpful' ? 'bg-green-100' : 'hover:bg-slate-100'
+                    message.feedback === 'helpful'
+                      ? 'bg-green-100 dark:bg-green-900'
+                      : 'hover:bg-slate-100 dark:hover:bg-stone-700'
                   }`}
                 >
                   👍
@@ -163,7 +165,9 @@ function ChatWidget({ chapterId }) {
                   aria-label="Marcar como não útil"
                   aria-pressed={message.feedback === 'not_helpful'}
                   className={`rounded px-1 ${
-                    message.feedback === 'not_helpful' ? 'bg-red-100' : 'hover:bg-slate-100'
+                    message.feedback === 'not_helpful'
+                      ? 'bg-red-100 dark:bg-red-900'
+                      : 'hover:bg-slate-100 dark:hover:bg-stone-700'
                   }`}
                 >
                   👎
@@ -175,7 +179,7 @@ function ChatWidget({ chapterId }) {
 
         {sending && (
           <div className="flex justify-start">
-            <div className="rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-500 border border-slate-200">
+            <div className="rounded-lg px-3 py-2 text-sm bg-slate-100 dark:bg-stone-700 text-slate-500 dark:text-stone-300 border border-slate-200 dark:border-stone-700">
               Tutor está digitando...
             </div>
           </div>
@@ -197,7 +201,7 @@ function ChatWidget({ chapterId }) {
         <button
           type="submit"
           disabled={sending}
-          className="bg-slate-900 text-white rounded px-4 py-2 disabled:opacity-50"
+          className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 disabled:opacity-50"
         >
           Enviar
         </button>

@@ -118,7 +118,10 @@ function AdminContentPage() {
         {books.map((book) => {
           const status = statusFor(book);
           return (
-            <li key={book.id} className="border border-slate-200 rounded p-3 flex flex-col gap-2">
+            <li
+              key={book.id}
+              className="border border-slate-200 dark:border-stone-700 rounded p-3 flex flex-col gap-2"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-semibold">{book.title}</span>
@@ -140,7 +143,7 @@ function AdminContentPage() {
                 <button
                   type="button"
                   onClick={() => publishNow(book.id)}
-                  className="text-sm bg-slate-900 text-white rounded px-3 py-1 touch-manipulation"
+                  className="text-sm bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-3 py-1 touch-manipulation"
                 >
                   Publicar agora
                 </button>
@@ -155,7 +158,7 @@ function AdminContentPage() {
                 <button
                   type="button"
                   onClick={() => schedule(book.id)}
-                  className="text-sm bg-slate-100 rounded px-3 py-1 touch-manipulation"
+                  className="text-sm bg-slate-100 dark:bg-stone-700 rounded px-3 py-1 touch-manipulation"
                 >
                   Agendar
                 </button>
@@ -171,7 +174,7 @@ function AdminContentPage() {
               </div>
 
               {previewId === book.id && (
-                <div className="bg-slate-50 rounded p-3 text-sm flex flex-col gap-2">
+                <div className="bg-slate-50 dark:bg-stone-800 rounded p-3 text-sm flex flex-col gap-2">
                   {!preview ? (
                     <p className="text-slate-500">Carregando preview...</p>
                   ) : (

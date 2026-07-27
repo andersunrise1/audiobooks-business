@@ -67,14 +67,14 @@ function VoiceCommandBar({ context, onNextChapter }) {
   if (!isSupported) return null;
 
   return (
-    <div className="rounded-lg border border-slate-200 p-4 flex flex-col gap-2">
+    <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 flex flex-col gap-2">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={startListening}
           disabled={status === 'listening' || status === 'processing'}
           className={`px-4 py-2 rounded text-white disabled:opacity-50 ${
-            status === 'listening' ? 'bg-red-600' : 'bg-slate-900'
+            status === 'listening' ? 'bg-red-600' : 'bg-blue-600 dark:bg-blue-500 neon-glow'
           }`}
         >
           {status === 'listening'

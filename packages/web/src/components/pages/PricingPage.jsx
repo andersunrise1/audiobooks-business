@@ -63,7 +63,7 @@ function PricingPage() {
         <p className="text-slate-500 mt-1">Pagamento único, acesso para sempre.</p>
       </div>
 
-      <div className="rounded-lg border border-slate-200 p-6 flex flex-col gap-4">
+      <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-6 flex flex-col gap-4">
         {badge && (
           <span className="bg-amber-100 text-slate-900 text-xs font-semibold rounded px-2 py-1 self-start">
             {badge}
@@ -84,7 +84,7 @@ function PricingPage() {
         </ul>
 
         {alreadyOwns ? (
-          <p className="text-center bg-green-50 text-green-700 rounded px-4 py-2 font-semibold">
+          <p className="text-center bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded px-4 py-2 font-semibold">
             Você já tem acesso Vitalício ✓
           </p>
         ) : (
@@ -92,7 +92,7 @@ function PricingPage() {
             type="button"
             onClick={handleBuy}
             disabled={loading}
-            className="bg-slate-900 text-white rounded px-4 py-3 font-semibold disabled:opacity-50 touch-manipulation"
+            className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-3 font-semibold disabled:opacity-50 touch-manipulation"
           >
             {loading ? 'Redirecionando...' : 'Comprar Vitalício'}
           </button>

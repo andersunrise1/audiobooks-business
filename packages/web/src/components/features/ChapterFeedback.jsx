@@ -37,7 +37,7 @@ function ChapterFeedback({ chapterId }) {
   }
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4 flex flex-col gap-3">
+    <div className="border border-slate-200 dark:border-stone-700 rounded-lg p-4 flex flex-col gap-3">
       <p className="font-semibold">Você entendeu este capítulo?</p>
 
       <div className="flex gap-2">
@@ -48,8 +48,8 @@ function ChapterFeedback({ chapterId }) {
             onClick={() => handleSelect(option.value)}
             className={`px-3 py-2 rounded text-sm ${
               selected === option.value
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 hover:bg-slate-200'
+                ? 'bg-blue-600 dark:bg-blue-500 neon-glow text-white'
+                : 'bg-slate-100 dark:bg-stone-700 hover:bg-slate-200 dark:hover:bg-stone-600'
             }`}
           >
             {option.label}
@@ -65,7 +65,7 @@ function ChapterFeedback({ chapterId }) {
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {remedial && (
-        <div className="flex flex-col gap-2 text-sm border-t border-slate-200 pt-3">
+        <div className="flex flex-col gap-2 text-sm border-t border-slate-200 dark:border-stone-700 pt-3">
           {remedial.summary && (
             <p>
               <strong>Resumo:</strong> {remedial.summary}
@@ -83,7 +83,7 @@ function ChapterFeedback({ chapterId }) {
           )}
 
           {remedial.fallback && (
-            <div className="flex flex-col gap-1 border border-amber-200 bg-amber-50 rounded-lg p-2 text-xs text-slate-600">
+            <div className="flex flex-col gap-1 border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 rounded-lg p-2 text-xs text-slate-600 dark:text-amber-100">
               <p className="font-semibold">Perguntas frequentes</p>
               {remedial.faq.map((item) => (
                 <p key={item.question}>

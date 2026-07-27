@@ -54,7 +54,10 @@ function AdminSupportPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {tickets.map((ticket) => (
-            <li key={ticket.id} className="border border-slate-200 rounded p-3 flex flex-col gap-2">
+            <li
+              key={ticket.id}
+              className="border border-slate-200 dark:border-stone-700 rounded p-3 flex flex-col gap-2"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-semibold">{ticket.subject}</span>
@@ -74,7 +77,7 @@ function AdminSupportPage() {
               <p className="text-sm text-slate-600">{ticket.message}</p>
 
               {ticket.adminResponse && (
-                <p className="text-sm bg-slate-50 rounded p-2">
+                <p className="text-sm bg-slate-50 dark:bg-stone-800 rounded p-2">
                   <span className="font-semibold">Resposta: </span>
                   {ticket.adminResponse}
                 </p>
@@ -94,7 +97,7 @@ function AdminSupportPage() {
                   <button
                     type="button"
                     onClick={() => resolveTicket(ticket.id)}
-                    className="text-sm bg-slate-900 text-white rounded px-3 py-1 self-start touch-manipulation"
+                    className="text-sm bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-3 py-1 self-start touch-manipulation"
                   >
                     Marcar como resolvido
                   </button>

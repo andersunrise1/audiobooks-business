@@ -77,7 +77,7 @@ function AudioPlayer({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 p-4 flex flex-col gap-3">
+    <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 flex flex-col gap-3">
       <audio
         ref={audioRef}
         src={src}
@@ -96,7 +96,7 @@ function AudioPlayer({
         <button
           type="button"
           onClick={togglePlay}
-          className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-slate-900 text-white touch-manipulation"
+          className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-blue-600 dark:bg-blue-500 neon-glow text-white touch-manipulation"
           aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
         >
           {isPlaying ? '⏸' : '▶'}
@@ -141,7 +141,9 @@ function AudioPlayer({
               type="button"
               onClick={() => handleSpeedChange(option)}
               className={`px-2.5 py-2 rounded touch-manipulation ${
-                speed === option ? 'bg-slate-900 text-white' : 'bg-slate-100'
+                speed === option
+                  ? 'bg-blue-600 dark:bg-blue-500 neon-glow text-white'
+                  : 'bg-slate-100 dark:bg-stone-700'
               }`}
             >
               {option}x

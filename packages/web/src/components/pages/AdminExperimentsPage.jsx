@@ -44,8 +44,8 @@ function AdminExperimentsPage() {
       {experiments.map((experiment) => (
         <section key={experiment.name}>
           <h2 className="text-lg font-semibold mb-2">{experiment.name}</h2>
-          <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-            <thead className="bg-slate-50 text-left">
+          <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">
+            <thead className="bg-slate-50 dark:bg-stone-800 text-left">
               <tr>
                 <th className="p-2">Variante</th>
                 <th className="p-2">Exposições</th>
@@ -55,7 +55,7 @@ function AdminExperimentsPage() {
             </thead>
             <tbody>
               {(results[experiment.name] ?? []).map((row) => (
-                <tr key={row.variant} className="border-t border-slate-100">
+                <tr key={row.variant} className="border-t border-slate-100 dark:border-stone-700">
                   <td className="p-2">{row.variant}</td>
                   <td className="p-2">{row.exposures}</td>
                   <td className="p-2">{row.conversions}</td>

@@ -45,8 +45,8 @@ function AdminUsersPage() {
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-          <thead className="bg-slate-50 text-left">
+        <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">
+          <thead className="bg-slate-50 dark:bg-stone-800 text-left">
             <tr>
               <th className="p-2">Email</th>
               <th className="p-2">Nome</th>
@@ -58,7 +58,7 @@ function AdminUsersPage() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-slate-100">
+              <tr key={u.id} className="border-t border-slate-100 dark:border-stone-700">
                 <td className="p-2">{u.email}</td>
                 <td className="p-2">{u.name || '—'}</td>
                 <td className="p-2">{u.plan}</td>

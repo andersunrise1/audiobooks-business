@@ -71,7 +71,7 @@ function PronunciationRecorder({ targetSentence }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 p-4 flex flex-col gap-3">
+    <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 flex flex-col gap-3">
       <p className="text-sm text-slate-500">Pratique a pronúncia desta frase:</p>
       <p className="italic">
         “
@@ -94,7 +94,7 @@ function PronunciationRecorder({ targetSentence }) {
           type="button"
           onClick={status === 'recording' ? stopRecording : startRecording}
           className={`px-4 py-2 rounded text-white ${
-            status === 'recording' ? 'bg-red-600' : 'bg-slate-900'
+            status === 'recording' ? 'bg-red-600' : 'bg-blue-600 dark:bg-blue-500 neon-glow'
           }`}
         >
           {status === 'recording' ? 'Parar' : 'Gravar a frase'}

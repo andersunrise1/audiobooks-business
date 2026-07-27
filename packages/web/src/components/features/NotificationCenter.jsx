@@ -51,7 +51,7 @@ function NotificationCenter() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-10 text-sm">
+        <div className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-white dark:bg-stone-800 border border-slate-200 dark:border-stone-700 rounded-lg shadow-lg z-10 text-sm">
           {notifications.length === 0 ? (
             <p className="p-3 text-slate-400">Nenhuma notificação ainda.</p>
           ) : (
@@ -60,8 +60,8 @@ function NotificationCenter() {
                 key={n.id}
                 type="button"
                 onClick={() => handleMarkRead(n.id)}
-                className={`w-full text-left p-3 border-b border-slate-100 last:border-0 touch-manipulation ${
-                  n.read ? 'text-slate-400' : 'bg-slate-50'
+                className={`w-full text-left p-3 border-b border-slate-100 dark:border-stone-700 last:border-0 touch-manipulation ${
+                  n.read ? 'text-slate-400' : 'bg-slate-50 dark:bg-stone-700'
                 }`}
               >
                 <p className="font-semibold">{n.title}</p>

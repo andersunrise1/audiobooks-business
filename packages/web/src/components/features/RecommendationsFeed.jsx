@@ -28,7 +28,7 @@ function RecommendationsFeed() {
         {nextChapter && (
           <Link
             to={`/audiobooks/${nextChapter.audiobookId}/player`}
-            className="rounded-lg border border-slate-200 p-4 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 hover:bg-slate-50 dark:hover:bg-stone-800"
           >
             <p className="text-xs text-slate-400">Continue de onde parou</p>
             <p className="font-semibold">{nextChapter.audiobookTitle}</p>
@@ -39,7 +39,7 @@ function RecommendationsFeed() {
         {recommendedAudiobook && (
           <Link
             to={`/audiobooks/${recommendedAudiobook.audiobookId}/player`}
-            className="rounded-lg border border-slate-200 p-4 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 hover:bg-slate-50 dark:hover:bg-stone-800"
           >
             <p className="text-xs text-slate-400">Experimente também</p>
             <p className="font-semibold">{recommendedAudiobook.title}</p>
@@ -54,7 +54,7 @@ function RecommendationsFeed() {
         )}
 
         {bestStudyHour && (
-          <div className="rounded-lg border border-slate-200 p-4">
+          <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-4">
             <p className="text-xs text-slate-400">Melhor horário para estudar</p>
             <p className="font-semibold">{String(bestStudyHour.hour).padStart(2, '0')}h</p>
           </div>

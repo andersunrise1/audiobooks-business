@@ -59,8 +59,8 @@ function AdminMetricsPage() {
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Taxa de conclusão por audiobook</h2>
-        <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-          <thead className="bg-slate-50 text-left">
+        <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">
+          <thead className="bg-slate-50 dark:bg-stone-800 text-left">
             <tr>
               <th className="p-2">Audiobook</th>
               <th className="p-2">Iniciaram</th>
@@ -70,7 +70,7 @@ function AdminMetricsPage() {
           </thead>
           <tbody>
             {completionRates.map((row) => (
-              <tr key={row.audiobookId} className="border-t border-slate-100">
+              <tr key={row.audiobookId} className="border-t border-slate-100 dark:border-stone-700">
                 <td className="p-2">{row.title}</td>
                 <td className="p-2">{row.usersStarted}</td>
                 <td className="p-2">{row.usersCompleted}</td>

@@ -173,7 +173,7 @@ function PlayerPage() {
         <Link
           to="/pricing"
           onClick={handleSeePlansClick}
-          className="bg-slate-900 text-white rounded px-4 py-2 font-semibold text-center touch-manipulation"
+          className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 font-semibold text-center touch-manipulation"
         >
           Ver planos
         </Link>
@@ -218,7 +218,7 @@ function PlayerPage() {
           type="button"
           disabled={chapterIndex === 0}
           onClick={() => setChapterIndex((i) => i - 1)}
-          className="px-3 py-1 rounded bg-slate-100 disabled:opacity-50"
+          className="px-3 py-1 rounded bg-slate-100 dark:bg-stone-700 disabled:opacity-50"
         >
           Anterior
         </button>
@@ -226,7 +226,7 @@ function PlayerPage() {
           type="button"
           disabled={chapterIndex === chapters.length - 1}
           onClick={handleNextChapter}
-          className="px-3 py-1 rounded bg-slate-100 disabled:opacity-50"
+          className="px-3 py-1 rounded bg-slate-100 dark:bg-stone-700 disabled:opacity-50"
         >
           Próximo
         </button>
@@ -243,7 +243,7 @@ function PlayerPage() {
           <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
         </>
       ) : (
-        <p className="text-sm text-slate-500 border border-slate-200 rounded-lg p-4">
+        <p className="text-sm text-slate-500 border border-slate-200 dark:border-stone-700 rounded-lg p-4">
           Crie uma conta gratuita para salvar seu progresso e conversar com o tutor de IA.{' '}
           <Link to="/register" state={{ from: `/audiobooks/${id}/player` }} className="underline">
             Criar conta

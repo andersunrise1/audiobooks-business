@@ -47,8 +47,8 @@ function AdminAnalyticsPage() {
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Perguntas por capítulo</h2>
-        <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-          <thead className="bg-slate-50 text-left">
+        <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">
+          <thead className="bg-slate-50 dark:bg-stone-800 text-left">
             <tr>
               <th className="p-2">Capítulo</th>
               <th className="p-2">Perguntas</th>
@@ -56,7 +56,7 @@ function AdminAnalyticsPage() {
           </thead>
           <tbody>
             {data.questionsPerChapter.map((row) => (
-              <tr key={row.chapterId} className="border-t border-slate-100">
+              <tr key={row.chapterId} className="border-t border-slate-100 dark:border-stone-700">
                 <td className="p-2">{row.title}</td>
                 <td className="p-2">{row.questionCount}</td>
               </tr>
@@ -74,8 +74,8 @@ function AdminAnalyticsPage() {
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Tempo de resposta médio</h2>
-        <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-          <thead className="bg-slate-50 text-left">
+        <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">
+          <thead className="bg-slate-50 dark:bg-stone-800 text-left">
             <tr>
               <th className="p-2">Endpoint</th>
               <th className="p-2">Tempo médio</th>
@@ -84,7 +84,7 @@ function AdminAnalyticsPage() {
           </thead>
           <tbody>
             {data.avgResponseTime.map((row) => (
-              <tr key={row.endpoint} className="border-t border-slate-100">
+              <tr key={row.endpoint} className="border-t border-slate-100 dark:border-stone-700">
                 <td className="p-2">{row.endpoint}</td>
                 <td className="p-2">{row.avgResponseTimeMs} ms</td>
                 <td className="p-2">{row.callCount}</td>
@@ -103,8 +103,8 @@ function AdminAnalyticsPage() {
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Custo por usuário</h2>
-        <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-          <thead className="bg-slate-50 text-left">
+        <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">
+          <thead className="bg-slate-50 dark:bg-stone-800 text-left">
             <tr>
               <th className="p-2">Usuário</th>
               <th className="p-2">Custo estimado</th>
@@ -113,7 +113,7 @@ function AdminAnalyticsPage() {
           </thead>
           <tbody>
             {data.costPerUser.map((row) => (
-              <tr key={row.userId} className="border-t border-slate-100">
+              <tr key={row.userId} className="border-t border-slate-100 dark:border-stone-700">
                 <td className="p-2">{row.email}</td>
                 <td className="p-2">{formatUsd(row.totalCostUsd)}</td>
                 <td className="p-2">{row.requestCount}</td>

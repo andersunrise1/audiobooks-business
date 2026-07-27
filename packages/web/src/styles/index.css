@@ -1,5 +1,20 @@
 @import 'tailwindcss';
 
+/* Dia 66-67: Tailwind v4's dark: variant defaults to prefers-color-scheme
+   only, with no way to override it manually - this makes it also apply
+   whenever an ancestor (or the element itself) carries a .dark class, so
+   ThemeContext.jsx can force light/dark regardless of OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Base canvas for the whole app - individual components then only need
+   dark: variants for things that don't inherit (explicit backgrounds,
+   borders, accent colors on cards/buttons/badges), not for every text
+   color. Warm/soft gray (stone) per the user's Dia 66-67 palette choice,
+   not Tailwind's cooler default slate/zinc dark tones. */
+body {
+  @apply bg-white text-slate-900 dark:bg-stone-900 dark:text-stone-100;
+}
+
 @keyframes popup-in {
   from {
     opacity: 0;
@@ -13,4 +28,26 @@
 
 .animate-popup-in {
   animation: popup-in 180ms ease-out;
+}
+
+/* Neon-glow accent for primary blue actions (buttons, active states, the
+   user's own chat bubble) - the user asked for a "light neon, tech" feel
+   for these specifically. Glow only in dark mode: on a white light-mode
+   background a glow just looks like a blur/shadow, not neon - it only
+   reads as "neon" against the dark canvas, which is also why the user's
+   reference image was itself a dark UI. */
+.neon-glow {
+  transition: box-shadow 200ms ease-out;
+}
+
+.dark .neon-glow {
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.55);
+}
+
+.dark .neon-glow:hover {
+  box-shadow: 0 0 22px rgba(96, 165, 250, 0.85);
+}
+
+.dark .neon-text {
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
 }

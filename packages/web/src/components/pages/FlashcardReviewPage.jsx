@@ -85,7 +85,7 @@ function FlashcardReviewPage() {
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 p-6 flex flex-col gap-3 min-h-40 justify-center items-center text-center">
+      <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-6 flex flex-col gap-3 min-h-40 justify-center items-center text-center">
         <span className="text-xl font-bold">{card.word}</span>
 
         {revealed ? (
@@ -102,7 +102,7 @@ function FlashcardReviewPage() {
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="px-4 py-3 rounded bg-slate-900 text-white touch-manipulation"
+            className="px-4 py-3 rounded bg-blue-600 dark:bg-blue-500 neon-glow text-white touch-manipulation"
           >
             Mostrar resposta
           </button>

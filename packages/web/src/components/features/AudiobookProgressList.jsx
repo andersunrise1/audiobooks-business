@@ -11,7 +11,7 @@ function AudiobookProgressList({ audiobooks }) {
         <li key={book.audiobookId}>
           <Link
             to={`/audiobooks/${book.audiobookId}/player`}
-            className="flex items-center justify-between rounded-lg border border-slate-200 p-3 hover:bg-slate-50"
+            className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-stone-700 p-3 hover:bg-slate-50 dark:hover:bg-stone-800"
           >
             <span>{book.title}</span>
             <span className="text-sm text-slate-500">

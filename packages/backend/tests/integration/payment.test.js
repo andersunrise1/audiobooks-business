@@ -1,5 +1,6 @@
 import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { pool } from '../../src/config/database.js';
 import { stripeClient } from '../../src/config/stripe.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
@@ -76,6 +77,39 @@ describe('POST /api/payment/create-checkout-session', () => {
 
         const [args] = createMock.mock.calls[0].arguments;
         assert.equal(args.metadata.userId, userId);
+      });
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('charges the pricing_price variant price for the given subjectId (Dia 55-56)', async () => {
+    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
+      url: 'https://checkout.stripe.com/test-session',
+    }));
+
+    try {
+      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+        const subjectId = randomUUID();
+        const assignment = await fetch(
+          `${baseUrl}/api/experiments/pricing_price/assignment?subjectId=${subjectId}`,
+        ).then((r) => r.json());
+
+        const res = await fetch(`${baseUrl}/api/payment/create-checkout-session`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subjectId }),
+        });
+        assert.equal(res.status, 200);
+
+        const [args] = createMock.mock.calls[0].arguments;
+        assert.equal(args.line_items[0].price_data.unit_amount, assignment.config.priceBrlCents);
+        assert.equal(args.metadata.experimentName, 'pricing_price');
+        assert.equal(args.metadata.experimentSubjectId, subjectId);
+        assert.equal(args.metadata.experimentVariant, assignment.variant);
       });
     } finally {
       createMock.mock.restore();
@@ -164,6 +198,46 @@ describe('POST /api/payment/webhook', () => {
       assert.equal(rows[0].plan, 'pro');
     } finally {
       constructMock.mock.restore();
+    }
+  });
+
+  test('logs an experiment conversion when the session carries experiment metadata (Dia 55-56)', async () => {
+    const registered = await registerTestUser(baseUrl);
+    const experimentUserId = registered.user.id;
+    const subjectId = randomUUID();
+
+    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_experiment',
+          metadata: {
+            userId: experimentUserId,
+            experimentName: 'pricing_price',
+            experimentSubjectId: subjectId,
+            experimentVariant: 'discount',
+          },
+        },
+      },
+    }));
+
+    try {
+      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
+        const res = await postWebhook({});
+        assert.equal(res.status, 200);
+      });
+
+      const { rows } = await pool.query(
+        `SELECT variant, metadata FROM experiment_events
+         WHERE subject_id = $1 AND experiment_name = 'pricing_price' AND event_type = 'conversion'`,
+        [subjectId],
+      );
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].variant, 'discount');
+      assert.equal(rows[0].metadata.sessionId, 'cs_test_experiment');
+    } finally {
+      constructMock.mock.restore();
+      await pool.query('DELETE FROM users WHERE id = $1', [experimentUserId]);
     }
   });
 

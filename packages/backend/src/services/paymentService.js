@@ -14,7 +14,15 @@ export function isWebhookConfigured() {
   return Boolean(process.env.STRIPE_WEBHOOK_SECRET);
 }
 
-export async function createLifetimeCheckoutSession(user) {
+// priceBrlCents/experiment let Dia 55-56's pricing A/B test charge the
+// variant price actually shown to the buyer; experiment.subjectId/variant
+// are stashed in the session metadata so the webhook can attribute the
+// eventual conversion back to the same experiment subject that was exposed
+// to it (see experimentService.js).
+export async function createLifetimeCheckoutSession(
+  user,
+  { priceBrlCents = LIFETIME_PRICE_BRL_CENTS, experiment } = {},
+) {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   return stripeClient.checkout.sessions.create({
@@ -25,12 +33,21 @@ export async function createLifetimeCheckoutSession(user) {
         price_data: {
           currency: 'brl',
           product_data: { name: LIFETIME_PRODUCT_NAME },
-          unit_amount: LIFETIME_PRICE_BRL_CENTS,
+          unit_amount: priceBrlCents,
         },
         quantity: 1,
       },
     ],
-    metadata: { userId: user.id },
+    metadata: {
+      userId: user.id,
+      ...(experiment
+        ? {
+            experimentName: experiment.name,
+            experimentSubjectId: experiment.subjectId,
+            experimentVariant: experiment.variant,
+          }
+        : {}),
+    },
     success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${frontendUrl}/payment/cancel`,
   });

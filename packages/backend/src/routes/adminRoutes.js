@@ -12,6 +12,7 @@ import {
   unpublishAudiobook,
 } from '../controllers/adminAudiobookController.js';
 import { getUsers, updateUserAdminStatus } from '../controllers/adminUserController.js';
+import { listExperiments, getResults } from '../controllers/adminExperimentController.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -32,5 +33,7 @@ router.post('/audiobooks/:id/publish', publishAudiobook);
 router.post('/audiobooks/:id/unpublish', unpublishAudiobook);
 router.get('/users', getUsers);
 router.patch('/users/:id', updateUserAdminStatus);
+router.get('/experiments', listExperiments);
+router.get('/experiments/:name/results', getResults);
 
 export default router;

@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 
 const TABS = [
   { to: '/admin/upload', label: 'Upload Audiobooks' },
+  { to: '/admin/content', label: 'Conteúdo' },
   { to: '/admin/analytics', label: 'Analytics' },
   { to: '/admin/users', label: 'Usuários' },
   { to: '/admin/revenue', label: 'Revenue' },

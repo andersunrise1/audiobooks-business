@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
@@ -10,6 +11,7 @@ const INITIAL_FORM = {
   chapterTitle: 'Chapter 1',
   transcript: '',
   wordsMetadata: '[]',
+  publishedAt: '',
 };
 
 function AdminUploadPage() {
@@ -44,6 +46,9 @@ function AdminUploadPage() {
     body.set('chapterTitle', form.chapterTitle);
     body.set('transcript', form.transcript);
     body.set('words_metadata', form.wordsMetadata);
+    if (form.publishedAt) {
+      body.set('publishedAt', new Date(form.publishedAt).toISOString());
+    }
     body.set('audio_file', file);
 
     try {
@@ -121,6 +126,15 @@ function AdminUploadPage() {
           className="border border-slate-300 rounded px-3 py-2 font-mono text-xs"
           rows={3}
         />
+        <label className="flex flex-col gap-1 text-sm text-slate-600">
+          Data de lançamento (opcional — em branco cria como rascunho)
+          <input
+            type="datetime-local"
+            value={form.publishedAt}
+            onChange={(e) => updateField('publishedAt', e.target.value)}
+            className="border border-slate-300 rounded px-3 py-2"
+          />
+        </label>
         <input
           required
           type="file"
@@ -139,7 +153,15 @@ function AdminUploadPage() {
       {error && <p className="text-red-500 text-sm">{error}</p>}
       {result && (
         <p className="text-green-600 text-sm">
-          Audiobook criado! ID: {result.audiobookId} · capítulo: {result.chapterId}
+          Audiobook criado! ID: {result.audiobookId} · capítulo: {result.chapterId} ·{' '}
+          {result.publishedAt
+            ? `agendado/publicado para ${new Date(result.publishedAt).toLocaleString('pt-BR')}`
+            : 'salvo como rascunho'}
+          . Use a aba{' '}
+          <Link to="/admin/content" className="underline">
+            Conteúdo
+          </Link>{' '}
+          para pré-visualizar ou publicar.
         </p>
       )}
     </div>

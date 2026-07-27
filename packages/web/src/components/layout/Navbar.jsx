@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 import SyncStatusIndicator from '../features/SyncStatusIndicator.jsx';
+import NotificationCenter from '../features/NotificationCenter.jsx';
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -46,6 +47,7 @@ function Navbar() {
             )}
             <span className="text-slate-500">{user?.name || user?.email}</span>
             <SyncStatusIndicator />
+            <NotificationCenter />
             <button
               type="button"
               onClick={logout}

@@ -48,3 +48,14 @@ export function syncNow() {
 export function onSyncStatusChange(callback) {
   return bridge?.sync.onStatusChange(callback) ?? (() => {});
 }
+
+// Dia 63-64: notification center - every native OS toast sync.js decided to
+// fire (new audiobook, flashcards due, streak broken) is also persisted so
+// it's still visible in-app if the toast was missed.
+export function getDesktopNotifications() {
+  return Promise.resolve(bridge?.notifications.getAll()).then((rows) => rows ?? []);
+}
+
+export function markDesktopNotificationRead(id) {
+  return bridge?.notifications.markRead(id);
+}

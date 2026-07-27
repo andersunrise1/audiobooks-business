@@ -283,17 +283,37 @@ Sets `audiobooks.published_at` back to `NULL` (reverts to draft, hides it from t
 
 Body: `{ "isAdmin" }` (boolean). 200 → the updated user, same shape as above. 400 if `isAdmin` isn't a boolean, or if the caller is trying to remove their own admin access (there's no self-service way back in, since `is_admin` is DB-only — this would permanently lock a lone admin out). 404 if the user doesn't exist.
 
+### `GET /api/admin/experiments`
+
+200 → array of configured experiments: `[{ "name", "variants": ["control", ...] }]`. See "Experiments" below.
+
+### `GET /api/admin/experiments/:name/results`
+
+200 → `{ "experiment", "results": [{ "variant", "exposures", "conversions", "conversionRate" }] }`, one row per variant. `conversionRate` is `null` until that variant has at least one exposure. 404 if the experiment name isn't configured.
+
+## Experiments (`/api/experiments`) — A/B testing (Dia 55-56)
+
+Public, no auth — an anonymous pricing-page visitor needs a variant before ever logging in. `services/experimentService.js` defines two experiments in code (not DB-driven): `pricing_price` (`control` = R$57 vs `discount` = R$47 — the plan's original "$9.99 vs $12.99" item adapted to TechSpeak's actual one-time-purchase pricing, testing the exact R$47/57/67 anchors `PRICING.md` itself names as alternatives worth validating) and `paywall_message` (two copy variants for the Dia 49 paywall panel: `control`, the original message, vs `benefit`, a catalog/AI-tutor-focused pitch). Variant assignment is a deterministic hash of `experimentName:subjectId` — the same subject always gets the same variant, no DB read needed to compute it.
+
+### `GET /api/experiments/:name/assignment?subjectId=`
+
+200 → `{ "experiment", "variant", "config" }` — `config` is the variant's actual value (e.g. `{ priceBrlCents, badge }` for `pricing_price`). Also logs an exposure event (deduped per `subjectId` + experiment — repeat page views don't inflate the denominator of the conversion rate). 400 if `subjectId` is missing. 404 if the experiment name isn't configured.
+
+### `POST /api/experiments/:name/conversion`
+
+Body: `{ "subjectId", "variant", "metadata"? }`. Logs a conversion event for later results aggregation — used for UI-driven goals like the paywall's "Ver planos" click. 201 → `{ "recorded": true }`. 400 if `subjectId`/`variant` is missing. 404 if the experiment/variant isn't configured. The `pricing_price` experiment's real conversion (an actual purchase) isn't logged this way — see the payment webhook below, which attributes it server-side from the Stripe session metadata instead of trusting a client-reported event for something as consequential as a completed sale.
+
 ## Payment (`/api/payment`)
 
 `TechSpeak Vitalício` is a one-time purchase (Dia 46's pricing decision — see `PRICING.md`), not a subscription, so this is a single Stripe Checkout Session in `payment` mode, not `create-subscription`/webhooks-for-renewal as the plan's original draft assumed. See `PAYMENT_TROUBLESHOOTING.md` for how to test this against a real Stripe test-mode account once one exists, and common failure modes.
 
 ### `POST /api/payment/create-checkout-session` — requires auth
 
-No body. Creates a Stripe Checkout Session for the R$ 57 lifetime purchase, with `metadata.userId` set to the caller's id so the webhook below knows who to grant access to. 200 → `{ "url" }` — the frontend redirects the browser here. 400 if the caller already has `plan = 'pro'`. 503 if `STRIPE_SECRET_KEY` isn't configured (true in this dev environment — no real Stripe account exists yet).
+Body: `{ "subjectId"? }` (optional — the `pricing_price` experiment's subject id, normally the frontend's persisted anonymous visitor id so the price charged matches whatever was shown pre-login; falls back to the caller's user id if omitted). Creates a Stripe Checkout Session for the assigned variant's price (`metadata.userId` set to the caller's id so the webhook below knows who to grant access to; `metadata.experimentName`/`experimentSubjectId`/`experimentVariant` set so the webhook can attribute the eventual conversion). 200 → `{ "url" }` — the frontend redirects the browser here. 400 if the caller already has `plan = 'pro'`. 503 if `STRIPE_SECRET_KEY` isn't configured (true in this dev environment — no real Stripe account exists yet).
 
 ### `POST /api/payment/webhook`
 
-No auth (Stripe calls this directly) — authenticated instead by verifying the `Stripe-Signature` header against `STRIPE_WEBHOOK_SECRET`. Unlike every other route, this one reads the **raw** request body (registered before the global `express.json()` middleware in `app.js`), since Stripe's signature check requires the exact bytes it signed. On `checkout.session.completed`, sets `users.plan = 'pro'` for `event.data.object.metadata.userId`. Every other event type is acknowledged (200) without action. 200 → `{ "received": true }`. 400 on an invalid signature. 503 if `STRIPE_WEBHOOK_SECRET` isn't configured.
+No auth (Stripe calls this directly) — authenticated instead by verifying the `Stripe-Signature` header against `STRIPE_WEBHOOK_SECRET`. Unlike every other route, this one reads the **raw** request body (registered before the global `express.json()` middleware in `app.js`), since Stripe's signature check requires the exact bytes it signed. On `checkout.session.completed`, sets `users.plan = 'pro'` for `event.data.object.metadata.userId`, and — if the session carries `experimentName`/`experimentSubjectId`/`experimentVariant` metadata — logs an experiment conversion event, attributing the real purchase to whichever pricing variant led to it. Every other event type is acknowledged (200) without action. 200 → `{ "received": true }`. 400 on an invalid signature. 503 if `STRIPE_WEBHOOK_SECRET` isn't configured.
 
 ## Error shape
 

@@ -4,22 +4,15 @@ import SyncStatusIndicator from '../features/SyncStatusIndicator.jsx';
 import NotificationCenter from '../features/NotificationCenter.jsx';
 import KeyboardShortcutsHelp from '../features/KeyboardShortcutsHelp.jsx';
 import ThemeToggle from '../features/ThemeToggle.jsx';
-import RobotLogo from '../features/RobotLogo.jsx';
+import TechSpeakWordmark from '../features/TechSpeakWordmark.jsx';
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <header className="border-b border-slate-200 dark:border-stone-700 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-      <Link
-        to="/"
-        className="flex items-center gap-1 font-bold text-lg text-blue-600 dark:text-blue-400 neon-text"
-      >
-        <RobotLogo />
-        <span>
-          {'TechSpe'}
-          <span className="text-white [-webkit-text-stroke:0.6px_rgba(0,0,0,0.6)]">{'ak'}</span>
-        </span>
+      <Link to="/">
+        <TechSpeakWordmark className="text-lg" />
       </Link>
 
       <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">

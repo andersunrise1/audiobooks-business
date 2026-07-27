@@ -8,6 +8,15 @@ export async function getProgress(req, res) {
   res.json(rows);
 }
 
+// Dia 61-62: conflict resolution for offline sync. A queued update from a
+// device that was offline can carry a stale wordsLearned/listeningCount
+// (computed before the offline period) or arrive after a different device
+// already pushed a higher value - a plain overwrite would silently regress
+// these counters. GREATEST/OR merges them monotonically instead: an update
+// can only move a counter forward or leave it unchanged, never backward.
+// This is the single source of truth for the merge, so every caller (web,
+// desktop's queued sync push, a second browser tab) gets the same
+// conflict-free behavior with no client-side merge logic needed.
 export async function upsertProgress(req, res) {
   const { chapterId } = req.params;
   const { wordsLearned, listeningCount, completed } = req.body;
@@ -16,9 +25,9 @@ export async function upsertProgress(req, res) {
     `INSERT INTO user_progress (user_id, chapter_id, words_learned, listening_count, completed, last_accessed)
      VALUES ($1, $2, COALESCE($3, 0), COALESCE($4, 0), COALESCE($5, false), now())
      ON CONFLICT (user_id, chapter_id) DO UPDATE SET
-       words_learned = COALESCE($3, user_progress.words_learned),
-       listening_count = COALESCE($4, user_progress.listening_count),
-       completed = COALESCE($5, user_progress.completed),
+       words_learned = GREATEST(COALESCE($3, 0), user_progress.words_learned),
+       listening_count = GREATEST(COALESCE($4, 0), user_progress.listening_count),
+       completed = user_progress.completed OR COALESCE($5, false),
        last_accessed = now()
      RETURNING *`,
     [req.user.id, chapterId, wordsLearned, listeningCount, completed],

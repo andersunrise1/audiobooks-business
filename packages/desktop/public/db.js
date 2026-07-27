@@ -47,6 +47,25 @@ function init(userDataPath) {
       file_path TEXT NOT NULL,
       cached_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0
+    );
+
+    -- Small generic key/value store for notification dedup state (which
+    -- audiobook ids we've already notified about, the last-seen streak, when
+    -- we last nudged about due flashcards) - not worth a dedicated table per
+    -- key, and this state is inherently local-only (never synced to the
+    -- backend).
+    CREATE TABLE IF NOT EXISTS kv_state (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
   `);
 
   return db;
@@ -165,6 +184,34 @@ function recordCachedAudio(chapterId, filePath) {
   ).run(chapterId, filePath, new Date().toISOString());
 }
 
+function recordNotification(type, title, body) {
+  db.prepare('INSERT INTO notifications (type, title, body, created_at) VALUES (?, ?, ?, ?)').run(
+    type,
+    title,
+    body,
+    new Date().toISOString(),
+  );
+}
+
+function getNotifications() {
+  return db.prepare('SELECT * FROM notifications ORDER BY created_at DESC').all();
+}
+
+function markNotificationRead(id) {
+  db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(id);
+}
+
+function getState(key) {
+  const row = db.prepare('SELECT value FROM kv_state WHERE key = ?').get(key);
+  return row?.value ?? null;
+}
+
+function setState(key, value) {
+  db.prepare(
+    'INSERT INTO kv_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+  ).run(key, value);
+}
+
 function close() {
   db?.close();
 }
@@ -183,5 +230,10 @@ module.exports = {
   clearQueuedReview,
   getCachedAudioPath,
   recordCachedAudio,
+  recordNotification,
+  getNotifications,
+  markNotificationRead,
+  getState,
+  setState,
   close,
 };

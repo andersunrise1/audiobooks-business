@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const db = require('./db');
@@ -45,6 +45,17 @@ function createWindow() {
 async function triggerSync() {
   const status = await syncNow(session);
   mainWindow?.webContents.send('sync:status', status);
+
+  // sync.js computes *which* notifications should fire and persists them
+  // (packages/desktop's notification center) but stays Electron-free/
+  // testable via plain Node - showing the actual native OS toast happens
+  // only here, the one place that's allowed to depend on Electron's API.
+  if (Notification.isSupported()) {
+    for (const event of status.notifications ?? []) {
+      new Notification({ title: event.title, body: event.body }).show();
+    }
+  }
+
   return status;
 }
 
@@ -76,6 +87,9 @@ ipcMain.handle('cache:queueReview', (_event, flashcardId, quality) => {
 });
 
 ipcMain.handle('sync:now', () => triggerSync());
+
+ipcMain.handle('notifications:getAll', () => db.getNotifications());
+ipcMain.handle('notifications:markRead', (_event, id) => db.markNotificationRead(id));
 
 ipcMain.handle('cache:getCachedAudioPath', (_event, chapterId) => {
   const filePath = audioCache.getCachedAudioPath(chapterId);

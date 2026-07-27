@@ -28,4 +28,9 @@ contextBridge.exposeInMainWorld('techspeak', {
       return () => ipcRenderer.removeListener('sync:status', handler);
     },
   },
+
+  notifications: {
+    getAll: () => ipcRenderer.invoke('notifications:getAll'),
+    markRead: (id) => ipcRenderer.invoke('notifications:markRead', id),
+  },
 });

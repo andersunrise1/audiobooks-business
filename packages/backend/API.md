@@ -36,7 +36,7 @@ the user no longer exists.
 
 ## Audiobooks (`/api/audiobooks`)
 
-Browsing the catalog is public (no auth required); reading a non-free audiobook's chapter content requires TechSpeak Vitalício (Dia 49 — see "Free-tier paywall" below).
+Browsing the catalog is public (no auth required); reading a non-free audiobook's chapter content requires TechSpeak Vitalício (Dia 49 — see "Free-tier paywall" below). Every endpoint here only ever returns **published** audiobooks (Dia 51-52: `published_at IS NOT NULL AND published_at <= now()`) — a draft or scheduled-for-the-future audiobook 404s here exactly as if it didn't exist; `GET /api/admin/audiobooks/:id` is the only way to see/preview one before it's live.
 
 ### `GET /api/audiobooks`
 
@@ -221,7 +221,25 @@ Response shape depends on the recognized intent:
 
 ### `POST /api/admin/audiobooks`
 
-`multipart/form-data` body: `title`, `transcript` (required), `description`/`category`/`level`/`chapterTitle` (optional), `words_metadata` (optional, a JSON array like `[{ "word", "start_seconds"?, "end_seconds"? }]` — timestamps are supplied by the uploader, not auto-generated; Deepgram was removed on Dia 33 at the user's request and isn't reintroduced here), `audio_file` (required, one of `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/x-wav`, `audio/mp4`, `audio/m4a`, `audio/x-m4a`). Creates one new `audiobooks` row plus a single `chapters` row (`order_index: 1`) with the uploaded file's S3 URL, plus a `words` row per `words_metadata` entry. 201 → `{ "audiobookId", "chapterId", "audioUrl" }`. 400 if `title`/`transcript` is missing, the file is missing, the format is unsupported, or `words_metadata` isn't a JSON array. 503 if AWS S3 isn't configured (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_REGION`/`AWS_S3_BUCKET` — none of which are set in this dev environment, so the real upload path is unverified beyond a mocked S3 call in tests). No audio transcoding/normalization — files are stored as uploaded (Dia 43).
+`multipart/form-data` body: `title`, `transcript` (required), `description`/`category`/`level`/`chapterTitle`/`publishedAt` (optional), `words_metadata` (optional, a JSON array like `[{ "word", "start_seconds"?, "end_seconds"? }]` — timestamps are supplied by the uploader, not auto-generated; Deepgram was removed on Dia 33 at the user's request and isn't reintroduced here), `audio_file` (required, one of `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/x-wav`, `audio/mp4`, `audio/m4a`, `audio/x-m4a`). Creates one new `audiobooks` row plus a single `chapters` row (`order_index: 1`) with the uploaded file's S3 URL, plus a `words` row per `words_metadata` entry. 201 → `{ "audiobookId", "chapterId", "audioUrl", "publishedAt" }`. 400 if `title`/`transcript` is missing, the file is missing, the format is unsupported, `words_metadata` isn't a JSON array, or `publishedAt` isn't a valid date. 503 if AWS S3 isn't configured (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_REGION`/`AWS_S3_BUCKET` — none of which are set in this dev environment, so the real upload path is unverified beyond a mocked S3 call in tests). No audio transcoding/normalization — files are stored as uploaded (Dia 43).
+
+**Dia 51-52 CMS behavior change**: unlike the Dia 43 version of this endpoint, omitting `publishedAt` now creates the audiobook as a **draft** (`published_at = NULL`, invisible to the public catalog) rather than going live immediately — a deliberate change so a partially-prepared upload can be reviewed before anyone else can see it. Pass `publishedAt` (an ISO date string) to publish immediately (a past/present date) or schedule a future launch.
+
+### `GET /api/admin/audiobooks`
+
+200 → array of every audiobook regardless of publish state — `{ id, title, description, category, level, is_free, published_at, created_at }` — for the CMS's content list. `published_at: null` is a draft; a future date is scheduled; a past/present date is live.
+
+### `GET /api/admin/audiobooks/:id`
+
+200 → the full audiobook row plus `chapters: [{ id, title, order_index, audio_url, duration_seconds, transcript }]`, regardless of publish state or the free-tier paywall (Dia 49) — this is the CMS preview endpoint, not the public one. 404 if not found.
+
+### `POST /api/admin/audiobooks/:id/publish`
+
+Body: `{ "publishedAt"? }` (optional ISO date string). Sets `audiobooks.published_at` — omitting the body publishes immediately (`now()`); passing a future date schedules it instead. 200 → `{ "id", "title", "published_at" }`. 400 if `publishedAt` is present but invalid. 404 if the audiobook doesn't exist.
+
+### `POST /api/admin/audiobooks/:id/unpublish`
+
+Sets `audiobooks.published_at` back to `NULL` (reverts to draft, hides it from the public catalog immediately regardless of a prior schedule). 200 → `{ "id", "title", "published_at" }`. 404 if the audiobook doesn't exist.
 
 ### `GET /api/admin/users`
 

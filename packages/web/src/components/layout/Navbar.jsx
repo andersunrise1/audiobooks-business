@@ -14,6 +14,9 @@ function Navbar() {
         <Link to="/audiobooks" className="py-2 touch-manipulation">
           Audiobooks
         </Link>
+        <Link to="/help" className="py-2 touch-manipulation">
+          Ajuda
+        </Link>
 
         {isAuthenticated ? (
           <>

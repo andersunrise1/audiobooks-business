@@ -22,6 +22,8 @@ const AdminRevenuePage = lazy(() => import('./components/pages/AdminRevenuePage.
 const PricingPage = lazy(() => import('./components/pages/PricingPage.jsx'));
 const PaymentSuccessPage = lazy(() => import('./components/pages/PaymentSuccessPage.jsx'));
 const PaymentCancelPage = lazy(() => import('./components/pages/PaymentCancelPage.jsx'));
+const HelpCenterPage = lazy(() => import('./components/pages/HelpCenterPage.jsx'));
+const AdminSupportPage = lazy(() => import('./components/pages/AdminSupportPage.jsx'));
 
 function App() {
   return (
@@ -36,6 +38,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+              <Route path="/help" element={<HelpCenterPage />} />
 
               <Route
                 path="/payment/success"
@@ -83,6 +86,7 @@ function App() {
                 <Route path="analytics" element={<AdminAnalyticsPage />} />
                 <Route path="metrics" element={<AdminMetricsPage />} />
                 <Route path="experiments" element={<AdminExperimentsPage />} />
+                <Route path="support" element={<AdminSupportPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="revenue" element={<AdminRevenuePage />} />
               </Route>

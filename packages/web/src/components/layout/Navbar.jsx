@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 import SyncStatusIndicator from '../features/SyncStatusIndicator.jsx';
 import NotificationCenter from '../features/NotificationCenter.jsx';
+import KeyboardShortcutsHelp from '../features/KeyboardShortcutsHelp.jsx';
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -19,6 +20,7 @@ function Navbar() {
         <Link to="/help" className="py-2 touch-manipulation">
           Ajuda
         </Link>
+        <KeyboardShortcutsHelp />
 
         {isAuthenticated ? (
           <>

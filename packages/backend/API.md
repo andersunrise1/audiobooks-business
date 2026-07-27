@@ -291,6 +291,20 @@ Body: `{ "isAdmin" }` (boolean). 200 → the updated user, same shape as above. 
 
 200 → `{ "experiment", "results": [{ "variant", "exposures", "conversions", "conversionRate" }] }`, one row per variant. `conversionRate` is `null` until that variant has at least one exposure. 404 if the experiment name isn't configured.
 
+### `GET /api/admin/support/tickets`
+
+200 → array of every support ticket, newest first: `{ "id", "userId", "email", "subject", "message", "status", "adminResponse", "createdAt", "updatedAt" }`. `userId` is `null` for tickets filed by anonymous visitors.
+
+### `PATCH /api/admin/support/tickets/:id`
+
+Body: `{ "status"?, "adminResponse"? }` — `status` must be `"open"` or `"resolved"` if present; either field can be omitted to leave it unchanged. 200 → the updated ticket, same shape as above. 400 if `status` is present but not one of the two valid values. 404 if the ticket doesn't exist. **No outbound email is sent** — there's no email-sending service integrated in this project yet (same class of gap as Anthropic/AWS/Stripe before their respective days), so `adminResponse` is stored for reference only; actually notifying the requester is manual for now.
+
+## Support (`/api/support`) — Dia 57-58
+
+### `POST /api/support/tickets`
+
+Auth optional (`optionalAuth` — an anonymous visitor can file a ticket, e.g. a pre-purchase question on the pricing page). Body: `{ "subject", "message", "email"? }` — `email` is required only for anonymous requests; an authenticated caller's own account email is used automatically and any `email` in the body is ignored. 201 → `{ "id", "status", "createdAt" }`. 400 if `subject`/`message` is missing, or if the caller is anonymous and `email` is missing/not a valid email shape.
+
 ## Experiments (`/api/experiments`) — A/B testing (Dia 55-56)
 
 Public, no auth — an anonymous pricing-page visitor needs a variant before ever logging in. `services/experimentService.js` defines two experiments in code (not DB-driven): `pricing_price` (`control` = R$57 vs `discount` = R$47 — the plan's original "$9.99 vs $12.99" item adapted to TechSpeak's actual one-time-purchase pricing, testing the exact R$47/57/67 anchors `PRICING.md` itself names as alternatives worth validating) and `paywall_message` (two copy variants for the Dia 49 paywall panel: `control`, the original message, vs `benefit`, a catalog/AI-tutor-focused pitch). Variant assignment is a deterministic hash of `experimentName:subjectId` — the same subject always gets the same variant, no DB read needed to compute it.

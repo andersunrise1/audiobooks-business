@@ -219,6 +219,40 @@ Response shape depends on the recognized intent:
 
 `questionsPerChapter` counts every `chat_messages` row (all users), most-asked first. `avgResponseTime` is computed from `ai_usage_log.response_time_ms`, only populated for calls made since Dia 38 (older rows have `NULL` and are excluded, not counted as 0). `satisfaction` comes from the 👍/👎 buttons on `ChatWidget` via the feedback endpoint above; `satisfactionRate` is `null` until at least one message has feedback. `costPerUser` sums `ai_usage_log.estimated_cost_usd` per user, most expensive first.
 
+### `GET /api/admin/content-analytics`
+
+200 → business/content metrics (Dia 53-54, distinct from the AI-cost analytics above):
+
+```json
+{
+  "completionRates": [
+    {
+      "audiobookId": "...",
+      "title": "...",
+      "usersStarted": 0,
+      "usersCompleted": 0,
+      "completionRate": null
+    }
+  ],
+  "retention": {
+    "previousPeriodActiveUsers": 0,
+    "recentPeriodActiveUsers": 0,
+    "retainedUsers": 0,
+    "retentionRate": null,
+    "churnRate": null
+  },
+  "lifetimeValue": {
+    "totalUsers": 0,
+    "payingUsers": 0,
+    "conversionRate": null,
+    "totalRevenueBrlCents": 0,
+    "averageLtvBrlCents": 0
+  }
+}
+```
+
+`completionRates` counts distinct users with any `user_progress` row for one of an audiobook's chapters (`usersStarted`) vs. distinct users with `completed = true` for **every** one of that audiobook's chapters (`usersCompleted`); `completionRate` is `null` until someone has started it. `retention` adapts "churn" for TechSpeak's one-time-purchase model (there's no subscription to cancel) into activity churn: distinct `word_clicks` users in the last 30 days vs. the 30-60-days-ago window, and how many of the earlier group are still active now; both rate fields are `null` until there's a prior-period baseline to compare against. `lifetimeValue` is intentionally simple under a lifetime-purchase model — `totalRevenueBrlCents` is just `payingUsers × 5700` (no recurring-revenue formula, since there's no recurring revenue), `averageLtvBrlCents` divides that across every user (paying or not).
+
 ### `POST /api/admin/audiobooks`
 
 `multipart/form-data` body: `title`, `transcript` (required), `description`/`category`/`level`/`chapterTitle`/`publishedAt` (optional), `words_metadata` (optional, a JSON array like `[{ "word", "start_seconds"?, "end_seconds"? }]` — timestamps are supplied by the uploader, not auto-generated; Deepgram was removed on Dia 33 at the user's request and isn't reintroduced here), `audio_file` (required, one of `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/x-wav`, `audio/mp4`, `audio/m4a`, `audio/x-m4a`). Creates one new `audiobooks` row plus a single `chapters` row (`order_index: 1`) with the uploaded file's S3 URL, plus a `words` row per `words_metadata` entry. 201 → `{ "audiobookId", "chapterId", "audioUrl", "publishedAt" }`. 400 if `title`/`transcript` is missing, the file is missing, the format is unsupported, `words_metadata` isn't a JSON array, or `publishedAt` isn't a valid date. 503 if AWS S3 isn't configured (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_REGION`/`AWS_S3_BUCKET` — none of which are set in this dev environment, so the real upload path is unverified beyond a mocked S3 call in tests). No audio transcoding/normalization — files are stored as uploaded (Dia 43).

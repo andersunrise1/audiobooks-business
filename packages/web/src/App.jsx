@@ -48,14 +48,12 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/audiobooks/:id/player"
-                element={
-                  <ProtectedRoute>
-                    <PlayerPage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Not wrapped in ProtectedRoute: the backend already lets
+                  anonymous visitors play the free-tier audiobooks (Dia 49's
+                  optionalAuth); PlayerPage itself handles both the paywall
+                  (non-free audiobook) and the logged-out state (no progress
+                  tracking/chat/voice commands) - see Dia 59-60. */}
+              <Route path="/audiobooks/:id/player" element={<PlayerPage />} />
               <Route
                 path="/dashboard"
                 element={

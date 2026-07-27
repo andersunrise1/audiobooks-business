@@ -19,7 +19,7 @@ import {
 
 function PlayerPage() {
   const { id } = useParams();
-  const { accessToken } = useAuth();
+  const { accessToken, isAuthenticated } = useAuth();
 
   const [chapters, setChapters] = useState([]);
   const [chapterIndex, setChapterIndex] = useState(0);
@@ -36,16 +36,16 @@ function PlayerPage() {
   // copy while the assignment call is in flight or if it fails.
   const [paywallVariant, setPaywallVariant] = useState(null);
 
+  // Free audiobooks are playable by anonymous visitors (Dia 49's backend
+  // already supports this via optionalAuth) - this route no longer requires
+  // login, so the chapters fetch and the progress fetch are independent:
+  // an anonymous visitor has no progress to load, and that's not an error.
   useEffect(() => {
-    Promise.all([
-      apiRequest(`/api/audiobooks/${id}/chapters`, { token: accessToken }),
-      apiRequest('/api/user/progress', { token: accessToken }),
-    ])
-      .then(([chapterList, progressList]) => {
+    apiRequest(`/api/audiobooks/${id}/chapters`, { token: accessToken })
+      .then((chapterList) => {
         setPaywalled(false);
         setChapters(chapterList);
         setChapterIndex(0);
-        setProgressByChapter(Object.fromEntries(progressList.map((p) => [p.chapter_id, p])));
       })
       .catch((err) => {
         if (err.status === 403) {
@@ -56,6 +56,15 @@ function PlayerPage() {
       })
       .finally(() => setLoading(false));
   }, [id, accessToken]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    apiRequest('/api/user/progress', { token: accessToken })
+      .then((progressList) => {
+        setProgressByChapter(Object.fromEntries(progressList.map((p) => [p.chapter_id, p])));
+      })
+      .catch((err) => console.error('failed to load progress', err));
+  }, [isAuthenticated, accessToken]);
 
   useEffect(() => {
     if (!paywalled) return;
@@ -95,6 +104,7 @@ function PlayerPage() {
   }, [chapter?.id, chapter?.audio_url]);
 
   async function saveProgress(chapterId, updates) {
+    if (!isAuthenticated) return;
     try {
       const updated = await apiRequest(`/api/user/progress/${chapterId}`, {
         method: 'POST',
@@ -122,6 +132,7 @@ function PlayerPage() {
   }
 
   async function handleWordClick(word) {
+    if (!isAuthenticated) return;
     try {
       const updated = await apiRequest('/api/user/words-learned', {
         method: 'POST',
@@ -212,13 +223,24 @@ function PlayerPage() {
         </button>
       </div>
 
-      <VoiceCommandBar context={chapter.transcript} onNextChapter={handleNextChapter} />
+      {isAuthenticated ? (
+        <>
+          <VoiceCommandBar context={chapter.transcript} onNextChapter={handleNextChapter} />
 
-      {progressByChapter[chapter.id]?.completed && (
-        <ChapterFeedback key={`feedback-${chapter.id}`} chapterId={chapter.id} />
+          {progressByChapter[chapter.id]?.completed && (
+            <ChapterFeedback key={`feedback-${chapter.id}`} chapterId={chapter.id} />
+          )}
+
+          <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
+        </>
+      ) : (
+        <p className="text-sm text-slate-500 border border-slate-200 rounded-lg p-4">
+          Crie uma conta gratuita para salvar seu progresso e conversar com o tutor de IA.{' '}
+          <Link to="/register" state={{ from: `/audiobooks/${id}/player` }} className="underline">
+            Criar conta
+          </Link>
+        </p>
       )}
-
-      <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
     </div>
   );
 }

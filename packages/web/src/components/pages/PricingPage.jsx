@@ -34,7 +34,7 @@ function PricingPage() {
 
   async function handleBuy() {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate('/login', { state: { from: '/pricing' } });
       return;
     }
 

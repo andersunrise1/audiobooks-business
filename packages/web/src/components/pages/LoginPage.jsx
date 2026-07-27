@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 
 function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -16,7 +17,7 @@ function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate(location.state?.from ?? '/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 
 function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +18,7 @@ function RegisterPage() {
     setSubmitting(true);
     try {
       await register(email, password, name);
-      navigate('/dashboard');
+      navigate(location.state?.from ?? '/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

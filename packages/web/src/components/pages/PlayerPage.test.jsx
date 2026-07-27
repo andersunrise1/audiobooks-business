@@ -83,3 +83,28 @@ describe('PlayerPage', () => {
     );
   });
 });
+
+describe('PlayerPage without an account (Dia 59-60)', () => {
+  test('plays a free audiobook and shows an account CTA instead of chat/voice/progress', async () => {
+    const user = userEvent.setup();
+    localStorage.removeItem('techspeak_auth');
+    // apiRequest is a shared module-level mock across every test in this
+    // file - scope the "not called" assertion below to calls made from this
+    // point on, not the whole test file's accumulated call history.
+    const callsBefore = apiRequest.mock.calls.length;
+    renderPlayerPage();
+
+    expect(await screen.findByText('Opening')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Criar conta' })).toBeInTheDocument();
+    expect(screen.queryByText('Chat com o tutor')).not.toBeInTheDocument();
+
+    const wordEl = await screen.findByRole('button', { name: 'deployed' });
+    await user.click(wordEl);
+
+    // Translation popup still shows for an anonymous visitor (client-side,
+    // independent of the account-only words-learned save below).
+    expect(await screen.findByText('implantei')).toBeInTheDocument();
+    const callsDuringTest = apiRequest.mock.calls.slice(callsBefore);
+    expect(callsDuringTest.some(([path]) => path === '/api/user/words-learned')).toBe(false);
+  });
+});

@@ -4,6 +4,7 @@ const TABS = [
   { to: '/admin/upload', label: 'Upload Audiobooks' },
   { to: '/admin/content', label: 'Conteúdo' },
   { to: '/admin/analytics', label: 'Analytics' },
+  { to: '/admin/metrics', label: 'Métricas' },
   { to: '/admin/users', label: 'Usuários' },
   { to: '/admin/revenue', label: 'Revenue' },
 ];

@@ -13,6 +13,7 @@ import {
 } from '../controllers/adminAudiobookController.js';
 import { getUsers, updateUserAdminStatus } from '../controllers/adminUserController.js';
 import { listExperiments, getResults } from '../controllers/adminExperimentController.js';
+import { getTickets, patchTicket } from '../controllers/adminSupportController.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -35,5 +36,7 @@ router.get('/users', getUsers);
 router.patch('/users/:id', updateUserAdminStatus);
 router.get('/experiments', listExperiments);
 router.get('/experiments/:name/results', getResults);
+router.get('/support/tickets', getTickets);
+router.patch('/support/tickets/:id', patchTicket);
 
 export default router;

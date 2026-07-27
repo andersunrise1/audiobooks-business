@@ -99,6 +99,8 @@ Body: `{ "chapterId" }`. For a student who said they didn't understand a chapter
 
 Body: `{ "wordsLearned"?, "listeningCount"?, "completed"? }` — any subset; omitted fields keep their current value (upsert). 200 → the updated row.
 
+**Conflict resolution (Dia 61-62)**: `wordsLearned`/`listeningCount` are merged with `GREATEST` (the higher of the submitted value and the current stored value wins) and `completed` is merged with `OR` (once true, stays true) — never a blind overwrite. This makes the endpoint safe to call with stale data, e.g. a desktop client replaying a queued offline update after a different session already pushed a higher value; the stale push can only leave the counters unchanged, never regress them.
+
 ### `POST /api/user/words-learned`
 
 Body: `{ "chapterId", "wordId" }`. Records the click in `word_clicks` (analytics), increments `user_progress.words_learned` for that chapter, and ensures a `flashcards` row exists for the word (created once, `ON CONFLICT DO NOTHING` — later clicks don't reset its SRS progress). 201 → the updated `user_progress` row. 400 if either id is missing.

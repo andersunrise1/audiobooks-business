@@ -16,6 +16,7 @@ const AdminAnalyticsPage = lazy(() => import('./components/pages/AdminAnalyticsP
 const AdminUploadPage = lazy(() => import('./components/pages/AdminUploadPage.jsx'));
 const AdminContentPage = lazy(() => import('./components/pages/AdminContentPage.jsx'));
 const AdminMetricsPage = lazy(() => import('./components/pages/AdminMetricsPage.jsx'));
+const AdminExperimentsPage = lazy(() => import('./components/pages/AdminExperimentsPage.jsx'));
 const AdminUsersPage = lazy(() => import('./components/pages/AdminUsersPage.jsx'));
 const AdminRevenuePage = lazy(() => import('./components/pages/AdminRevenuePage.jsx'));
 const PricingPage = lazy(() => import('./components/pages/PricingPage.jsx'));
@@ -81,6 +82,7 @@ function App() {
                 <Route path="content" element={<AdminContentPage />} />
                 <Route path="analytics" element={<AdminAnalyticsPage />} />
                 <Route path="metrics" element={<AdminMetricsPage />} />
+                <Route path="experiments" element={<AdminExperimentsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="revenue" element={<AdminRevenuePage />} />
               </Route>

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import { getExperimentAssignment, getVisitorId } from '../../services/experiments.js';
 
 const FEATURES = [
   'Todos os audiobooks, para sempre (25 hoje, crescendo)',
@@ -17,6 +18,19 @@ function PricingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Dia 55-56: pricing A/B test (control R$57 vs discount R$47) - falls back
+  // to the control price/copy while the assignment call is in flight or if
+  // it fails, so the page never blocks on this.
+  const [priceVariant, setPriceVariant] = useState(null);
+
+  useEffect(() => {
+    getExperimentAssignment('pricing_price')
+      .then(setPriceVariant)
+      .catch(() => setPriceVariant(null));
+  }, []);
+
+  const priceBrlCents = priceVariant?.config?.priceBrlCents ?? 5700;
+  const badge = priceVariant?.config?.badge;
 
   async function handleBuy() {
     if (!isAuthenticated) {
@@ -31,6 +45,7 @@ function PricingPage() {
       const { url } = await apiRequest('/api/payment/create-checkout-session', {
         method: 'POST',
         token: accessToken,
+        body: { subjectId: getVisitorId() },
       });
       window.location.href = url;
     } catch (err) {
@@ -49,8 +64,14 @@ function PricingPage() {
       </div>
 
       <div className="rounded-lg border border-slate-200 p-6 flex flex-col gap-4">
+        {badge && (
+          <span className="bg-amber-100 text-slate-900 text-xs font-semibold rounded px-2 py-1 self-start">
+            {badge}
+          </span>
+        )}
         <p className="text-4xl font-bold">
-          R$ 57 <span className="text-base font-normal text-slate-500">pagamento único</span>
+          R$ {(priceBrlCents / 100).toFixed(0)}{' '}
+          <span className="text-base font-normal text-slate-500">pagamento único</span>
         </p>
 
         <ul className="flex flex-col gap-2 text-sm text-slate-700">

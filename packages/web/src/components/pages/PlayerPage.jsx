@@ -9,6 +9,7 @@ import VoiceCommandBar from '../features/VoiceCommandBar.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import { getExperimentAssignment, recordExperimentConversion } from '../../services/experiments.js';
 import {
   queueDesktopProgress,
   getCachedAudioPath,
@@ -31,6 +32,9 @@ function PlayerPage() {
   const [error, setError] = useState('');
   const [paywalled, setPaywalled] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Dia 55-56: paywall message A/B test - falls back to the Dia 49 original
+  // copy while the assignment call is in flight or if it fails.
+  const [paywallVariant, setPaywallVariant] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -52,6 +56,13 @@ function PlayerPage() {
       })
       .finally(() => setLoading(false));
   }, [id, accessToken]);
+
+  useEffect(() => {
+    if (!paywalled) return;
+    getExperimentAssignment('paywall_message')
+      .then(setPaywallVariant)
+      .catch(() => setPaywallVariant(null));
+  }, [paywalled]);
 
   const chapter = chapters[chapterIndex];
   const activeWordId = useWordSync(words, currentTime);
@@ -125,15 +136,23 @@ function PlayerPage() {
 
   if (loading) return <p>Carregando...</p>;
   if (paywalled) {
+    const message =
+      paywallVariant?.config?.message ??
+      'Este audiobook faz parte do TechSpeak Vitalício. Faça login e adquira o acesso para continuar.';
+
+    function handleSeePlansClick() {
+      if (paywallVariant) {
+        recordExperimentConversion('paywall_message', paywallVariant.variant, { audiobookId: id });
+      }
+    }
+
     return (
       <div className="flex flex-col gap-3 max-w-md">
         <h1 className="text-xl font-bold">Este audiobook é exclusivo do Vitalício</h1>
-        <p className="text-slate-600">
-          Adquira o TechSpeak Vitalício para desbloquear este e todos os outros audiobooks do
-          catálogo, para sempre.
-        </p>
+        <p className="text-slate-600">{message}</p>
         <Link
           to="/pricing"
+          onClick={handleSeePlansClick}
           className="bg-slate-900 text-white rounded px-4 py-2 font-semibold text-center touch-manipulation"
         >
           Ver planos

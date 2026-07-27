@@ -34,6 +34,23 @@ async function pushQueuedUpdates(apiUrl, token) {
   return pushed;
 }
 
+async function pushQueuedReviews(apiUrl, token) {
+  const queued = db.getQueuedReviews();
+  let pushed = 0;
+
+  for (const entry of queued) {
+    await apiRequest(apiUrl, `/api/user/flashcards/${entry.flashcard_id}/review`, {
+      method: 'POST',
+      token,
+      body: { quality: entry.quality },
+    });
+    db.clearQueuedReview(entry.id);
+    pushed += 1;
+  }
+
+  return pushed;
+}
+
 async function pullLatest(apiUrl, token) {
   const [progress, flashcards] = await Promise.all([
     apiRequest(apiUrl, '/api/user/progress', { token }),
@@ -50,9 +67,14 @@ async function syncNow({ apiUrl, token }) {
   }
 
   try {
-    const pushed = await pushQueuedUpdates(apiUrl, token);
+    const pushedProgress = await pushQueuedUpdates(apiUrl, token);
+    const pushedReviews = await pushQueuedReviews(apiUrl, token);
     await pullLatest(apiUrl, token);
-    return { ok: true, pushed, syncedAt: new Date().toISOString() };
+    return {
+      ok: true,
+      pushed: pushedProgress + pushedReviews,
+      syncedAt: new Date().toISOString(),
+    };
   } catch (error) {
     return { ok: false, error: error.message };
   }

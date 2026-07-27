@@ -35,6 +35,13 @@ function init(userDataPath) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS review_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      flashcard_id TEXT NOT NULL,
+      quality INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS audio_cache (
       chapter_id TEXT PRIMARY KEY,
       file_path TEXT NOT NULL,
@@ -122,6 +129,29 @@ function clearQueuedUpdate(id) {
   db.prepare('DELETE FROM sync_queue WHERE id = ?').run(id);
 }
 
+// Reviews are queued as the raw (flashcardId, quality) rating rather than a
+// pre-computed SM-2 result: applySm2 needs the card's *current* server-side
+// ease_factor/interval/review_count, which may have advanced since this
+// device last synced - replaying the raw rating through the real review
+// endpoint once back online lets the server (the single source of truth,
+// same principle as Dia 61-62's progress conflict-resolution fix) compute
+// the correct next state instead of the queued write clobbering it.
+function queueReview(flashcardId, quality) {
+  db.prepare('INSERT INTO review_queue (flashcard_id, quality, created_at) VALUES (?, ?, ?)').run(
+    flashcardId,
+    quality,
+    new Date().toISOString(),
+  );
+}
+
+function getQueuedReviews() {
+  return db.prepare('SELECT * FROM review_queue ORDER BY id ASC').all();
+}
+
+function clearQueuedReview(id) {
+  db.prepare('DELETE FROM review_queue WHERE id = ?').run(id);
+}
+
 function getCachedAudioPath(chapterId) {
   const row = db.prepare('SELECT file_path FROM audio_cache WHERE chapter_id = ?').get(chapterId);
   return row?.file_path ?? null;
@@ -148,6 +178,9 @@ module.exports = {
   queueProgressUpdate,
   getQueuedUpdates,
   clearQueuedUpdate,
+  queueReview,
+  getQueuedReviews,
+  clearQueuedReview,
   getCachedAudioPath,
   recordCachedAudio,
   close,

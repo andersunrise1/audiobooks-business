@@ -70,6 +70,11 @@ ipcMain.handle('cache:queueProgress', (_event, chapterId, payload) => {
   triggerSync();
 });
 
+ipcMain.handle('cache:queueReview', (_event, flashcardId, quality) => {
+  db.queueReview(flashcardId, quality);
+  triggerSync();
+});
+
 ipcMain.handle('sync:now', () => triggerSync());
 
 ipcMain.handle('cache:getCachedAudioPath', (_event, chapterId) => {

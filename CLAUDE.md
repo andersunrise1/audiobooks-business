@@ -108,7 +108,13 @@ Verified for real end-to-end in-browser: anonymous view showed the "Vitalício" 
 
 Not done: the AI rate limit is still one shared bucket across `explain`/`chat`/`remedial` combined rather than chat-specific (matches the existing Dia 37 scope, not a new gap); no UI surfaces "N mensagens restantes hoje" from the `X-RateLimit-Remaining` header in `ChatWidget` (would need `apiRequest` to expose response headers, not just the parsed body — a reasonable future nicety, not asked for by Dia 49's plan).
 
-Next up per the plan: Dia 50 (Teste de Pagamento Sandbox).
+**Dia 50 is done, closing Etapa 4's Semana 9-10 payment work**: the plan's checklist assumes a subscription (with a cancellation step); adapted for this project's one-time-purchase model — see `packages/backend/PAYMENT_TROUBLESHOOTING.md`'s opening section for the explicit checklist mapping. Three new tests in `payment.test.js`: webhook idempotency (Stripe redelivering the same `checkout.session.completed` event twice doesn't double-charge-equivalent or error — `grantLifetimeAccess` is a plain `UPDATE`, safe to run twice), a missing-`metadata.userId` event doesn't crash the webhook handler (confirms the existing defensive `if (userId)` branch, added back on Dia 47, actually degrades gracefully rather than just looking like it does), and a new "Payment sandbox flow" test chaining `create-checkout-session` → webhook completion → `GET /api/auth/me` in one test to prove the full purchase flow works end to end through our own code — only the Stripe SDK calls themselves are mocked, the only boundary not controllable without real keys.
+
+`PAYMENT_TROUBLESHOOTING.md` (new) is the actual deliverable for whenever real Stripe test-mode keys exist: getting test keys, using the Stripe CLI (`stripe listen --forward-to`) to receive webhooks on localhost, the standard `4242 4242 4242 4242` test card, and a common-failure-modes list grounded in this codebase's real gotchas (the `express.raw()`-before-`express.json()` ordering requirement from Dia 47, checking the CLI's own signing secret vs. a dashboard endpoint's, restarting the backend after editing `.env` since env vars are read once at startup). Verified for real: all 11 payment tests pass locally (200 total backend tests now, same known baseline of 8 local-only failures — no regressions).
+
+Not done: a genuine Stripe test-mode checkout has still never been exercised — this dev environment has no Stripe account (confirmed with the user on 2026-07-25, same accepted gap as Dia 47/48) — so `PAYMENT_TROUBLESHOOTING.md`'s "once you have real keys" section is unverified prep, not a completed checklist item.
+
+Next up per the plan: Dia 51-52 (CMS para Conteúdo).
 
 Other docs:
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.

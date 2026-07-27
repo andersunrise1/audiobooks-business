@@ -233,7 +233,7 @@ Body: `{ "isAdmin" }` (boolean). 200 → the updated user, same shape as above. 
 
 ## Payment (`/api/payment`)
 
-`TechSpeak Vitalício` is a one-time purchase (Dia 46's pricing decision — see `PRICING.md`), not a subscription, so this is a single Stripe Checkout Session in `payment` mode, not `create-subscription`/webhooks-for-renewal as the plan's original draft assumed.
+`TechSpeak Vitalício` is a one-time purchase (Dia 46's pricing decision — see `PRICING.md`), not a subscription, so this is a single Stripe Checkout Session in `payment` mode, not `create-subscription`/webhooks-for-renewal as the plan's original draft assumed. See `PAYMENT_TROUBLESHOOTING.md` for how to test this against a real Stripe test-mode account once one exists, and common failure modes.
 
 ### `POST /api/payment/create-checkout-session` — requires auth
 

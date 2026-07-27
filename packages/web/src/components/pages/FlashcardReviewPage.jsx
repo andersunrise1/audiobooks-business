@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import {
+  getCachedFlashcards,
+  isDesktop,
+  queueDesktopReview,
+} from '../../services/desktopBridge.js';
 
 function FlashcardReviewPage() {
   const { accessToken } = useAuth();
@@ -9,11 +14,27 @@ function FlashcardReviewPage() {
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     apiRequest('/api/user/flashcards', { token: accessToken })
-      .then(setCards)
-      .catch((err) => setError(err.message))
+      .then((data) => {
+        setOffline(false);
+        setCards(data);
+      })
+      .catch((err) => {
+        if (!isDesktop) {
+          setError(err.message);
+          return;
+        }
+        // Offline on desktop: fall back to whatever was cached locally as
+        // of the last successful sync (packages/desktop/public/db.js),
+        // instead of a raw network error.
+        getCachedFlashcards().then((cached) => {
+          setOffline(true);
+          setCards(cached);
+        });
+      })
       .finally(() => setLoading(false));
   }, [accessToken]);
 
@@ -29,7 +50,8 @@ function FlashcardReviewPage() {
         body: { quality },
       });
     } catch (err) {
-      console.error('failed to save flashcard review', err);
+      console.error('failed to save flashcard review, queueing for desktop sync', err);
+      queueDesktopReview(card.id, quality);
     }
 
     setRevealed(false);
@@ -55,6 +77,12 @@ function FlashcardReviewPage() {
         <p className="text-slate-500 text-sm">
           {index + 1} de {cards.length}
         </p>
+        {offline && (
+          <p className="text-amber-600 text-xs mt-1">
+            Offline — mostrando os flashcards da última sincronização. Suas respostas serão salvas
+            quando a conexão voltar.
+          </p>
+        )}
       </div>
 
       <div className="rounded-lg border border-slate-200 p-6 flex flex-col gap-3 min-h-40 justify-center items-center text-center">

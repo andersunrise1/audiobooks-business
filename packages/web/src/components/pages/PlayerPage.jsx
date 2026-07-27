@@ -14,6 +14,7 @@ import {
   queueDesktopProgress,
   getCachedAudioPath,
   cacheChapterAudio,
+  getCachedProgress,
   isDesktop,
 } from '../../services/desktopBridge.js';
 
@@ -63,7 +64,15 @@ function PlayerPage() {
       .then((progressList) => {
         setProgressByChapter(Object.fromEntries(progressList.map((p) => [p.chapter_id, p])));
       })
-      .catch((err) => console.error('failed to load progress', err));
+      .catch((err) => {
+        console.error('failed to load progress', err);
+        if (!isDesktop) return;
+        // Offline on desktop: fall back to the last-synced local cache
+        // instead of leaving progress (e.g. "concluído" markers) blank.
+        getCachedProgress().then((cached) => {
+          setProgressByChapter(Object.fromEntries(cached.map((p) => [p.chapter_id, p])));
+        });
+      });
   }, [isAuthenticated, accessToken]);
 
   useEffect(() => {

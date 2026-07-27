@@ -4,15 +4,27 @@ import { getUserPlan, isPaidPlan } from '../services/planService.js';
 export const PAYWALL_MESSAGE =
   'Este audiobook faz parte do TechSpeak Vitalicio. Faca login e adquira o acesso para continuar.';
 
+// Dia 51-52: a draft (published_at IS NULL) or scheduled-for-the-future
+// audiobook doesn't exist yet from the public catalog's point of view - the
+// CMS's admin-only endpoints (adminAudiobookController.js) are the only way
+// to see/preview those.
+const PUBLISHED_FILTER = 'published_at IS NOT NULL AND published_at <= now()';
+
 export async function listAudiobooks(req, res) {
   const { rows } = await pool.query(
-    'SELECT id, title, description, category, duration_minutes, level, is_free, created_at FROM audiobooks ORDER BY created_at DESC',
+    `SELECT id, title, description, category, duration_minutes, level, is_free, created_at
+     FROM audiobooks
+     WHERE ${PUBLISHED_FILTER}
+     ORDER BY created_at DESC`,
   );
   res.json(rows);
 }
 
 export async function getAudiobook(req, res) {
-  const { rows } = await pool.query('SELECT * FROM audiobooks WHERE id = $1', [req.params.id]);
+  const { rows } = await pool.query(
+    `SELECT * FROM audiobooks WHERE id = $1 AND ${PUBLISHED_FILTER}`,
+    [req.params.id],
+  );
 
   if (rows.length === 0) {
     return res.status(404).json({ error: 'audiobook not found' });
@@ -22,9 +34,10 @@ export async function getAudiobook(req, res) {
 }
 
 export async function getAudiobookChapters(req, res) {
-  const { rows: audiobookRows } = await pool.query('SELECT is_free FROM audiobooks WHERE id = $1', [
-    req.params.id,
-  ]);
+  const { rows: audiobookRows } = await pool.query(
+    `SELECT is_free FROM audiobooks WHERE id = $1 AND ${PUBLISHED_FILTER}`,
+    [req.params.id],
+  );
 
   if (audiobookRows.length === 0) {
     return res.status(404).json({ error: 'audiobook not found' });

@@ -189,4 +189,120 @@ describe('POST /api/payment/webhook', () => {
       await pool.query('DELETE FROM users WHERE id = $1', [otherUserId]);
     }
   });
+
+  test('is idempotent when Stripe redelivers the same event (Dia 50)', async () => {
+    const registered = await registerTestUser(baseUrl);
+    const redeliveredUserId = registered.user.id;
+
+    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_test_redelivered', metadata: { userId: redeliveredUserId } } },
+    }));
+
+    try {
+      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
+        const first = await postWebhook({});
+        const second = await postWebhook({});
+        assert.equal(first.status, 200);
+        assert.equal(second.status, 200);
+      });
+
+      const { rows } = await pool.query('SELECT plan FROM users WHERE id = $1', [
+        redeliveredUserId,
+      ]);
+      assert.equal(rows[0].plan, 'pro');
+    } finally {
+      constructMock.mock.restore();
+      await pool.query('DELETE FROM users WHERE id = $1', [redeliveredUserId]);
+    }
+  });
+
+  test('does not crash on a checkout.session.completed event missing metadata.userId (Dia 50)', async () => {
+    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_test_no_metadata', metadata: {} } },
+    }));
+
+    try {
+      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
+        const res = await postWebhook({});
+        assert.equal(res.status, 200);
+        const data = await res.json();
+        assert.equal(data.received, true);
+      });
+    } finally {
+      constructMock.mock.restore();
+    }
+  });
+});
+
+describe('Payment sandbox flow (Dia 50)', () => {
+  let server;
+  let baseUrl;
+  let userId;
+  let accessToken;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    userId = registered.user.id;
+    accessToken = registered.accessToken;
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await stopTestServer(server);
+  });
+
+  // Chains the full purchase flow end to end through our own code - only the
+  // actual network calls to Stripe are mocked, which is the only real
+  // boundary we can control without a live test-mode account (see
+  // PAYMENT_TROUBLESHOOTING.md for what still needs a real sandbox run).
+  test('create-checkout-session -> webhook -> GET /api/auth/me reflects the purchase', async () => {
+    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
+      url: 'https://checkout.stripe.com/test-sandbox-session',
+    }));
+    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_test_sandbox', metadata: { userId } } },
+    }));
+
+    try {
+      await withEnv(
+        { STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_test' },
+        async () => {
+          const before = await fetch(`${baseUrl}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          assert.equal((await before.json()).user.plan, 'free');
+
+          const checkoutRes = await fetch(`${baseUrl}/api/payment/create-checkout-session`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          assert.equal(checkoutRes.status, 200);
+          const { url } = await checkoutRes.json();
+          assert.equal(url, 'https://checkout.stripe.com/test-sandbox-session');
+
+          const webhookRes = await fetch(`${baseUrl}/api/payment/webhook`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'stripe-signature': 'test-signature',
+            },
+            body: JSON.stringify({}),
+          });
+          assert.equal(webhookRes.status, 200);
+
+          const after = await fetch(`${baseUrl}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          assert.equal((await after.json()).user.plan, 'pro');
+        },
+      );
+    } finally {
+      createMock.mock.restore();
+      constructMock.mock.restore();
+    }
+  });
 });

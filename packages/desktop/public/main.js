@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Menu } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const db = require('./db');
@@ -12,6 +12,32 @@ const SYNC_INTERVAL_MS = 60_000;
 let mainWindow = null;
 let syncTimer = null;
 let session = { apiUrl: null, token: null };
+
+// Dia 65: Electron's default application menu binds Cmd/Ctrl+R to Reload
+// (and Cmd/Ctrl+P has no default binding, but View>Reload's accelerator
+// would otherwise fire before - or instead of - our own in-app Cmd/Ctrl+R
+// "flashcard review" shortcut (useKeyboardShortcuts.js). In production
+// there's no reason for an end user to see a native menu bar at all (the
+// app is its own UI chrome); in dev, keep a minimal one with reload/devtools
+// moved to accelerators that don't collide with our own shortcuts.
+function setAppMenu() {
+  if (!isDev) {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      {
+        label: 'Developer',
+        submenu: [
+          { label: 'Reload', accelerator: 'CmdOrCtrl+Shift+R', role: 'reload' },
+          { label: 'Toggle DevTools', accelerator: 'CmdOrCtrl+Shift+I', role: 'toggleDevTools' },
+        ],
+      },
+    ]),
+  );
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -116,6 +142,7 @@ if (!gotSingleInstanceLock) {
   app.whenReady().then(() => {
     db.init(app.getPath('userData'));
     audioCache.init(app.getPath('userData'));
+    setAppMenu();
     createWindow();
     startAutoSync();
   });

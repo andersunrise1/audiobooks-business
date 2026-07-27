@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const SPEED_OPTIONS = [0.7, 0.8, 1.0, 1.2, 1.5];
 
@@ -33,6 +33,15 @@ function AudioPlayer({
       audio.pause();
     }
   }
+
+  // Dia 65: Cmd/Ctrl+P (desktop-only, useKeyboardShortcuts.js) dispatches
+  // this instead of calling a prop directly, so the shortcut works without
+  // needing to know anything about AudioPlayer's internals - it's a no-op
+  // whenever no player is mounted (e.g. not on PlayerPage).
+  useEffect(() => {
+    window.addEventListener('techspeak:toggle-playback', togglePlay);
+    return () => window.removeEventListener('techspeak:toggle-playback', togglePlay);
+  }, []);
 
   function handleSeek(event) {
     const time = Number(event.target.value);

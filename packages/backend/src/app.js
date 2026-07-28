@@ -12,6 +12,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import experimentRoutes from './routes/experimentRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
+import betaRoutes from './routes/betaRoutes.js';
 import { handleStripeWebhook } from './controllers/paymentController.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { enforceHttps } from './middleware/security.js';
@@ -62,6 +63,7 @@ export function createApp() {
   app.use('/api/payment', paymentRoutes);
   app.use('/api/experiments', experimentRoutes);
   app.use('/api/support', supportRoutes);
+  app.use('/api/beta', betaRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

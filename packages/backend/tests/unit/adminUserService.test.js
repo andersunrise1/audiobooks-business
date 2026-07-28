@@ -13,6 +13,7 @@ describe('adminUserService.listUsers', () => {
           name: 'Ana',
           plan: 'free',
           is_admin: true,
+          is_beta_tester: false,
           created_at: '2026-01-01T00:00:00.000Z',
         },
       ],
@@ -27,6 +28,7 @@ describe('adminUserService.listUsers', () => {
           name: 'Ana',
           plan: 'free',
           isAdmin: true,
+          isBetaTester: false,
           createdAt: '2026-01-01T00:00:00.000Z',
         },
       ]);

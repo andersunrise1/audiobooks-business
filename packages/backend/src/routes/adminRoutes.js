@@ -14,6 +14,7 @@ import {
 import { getUsers, updateUserAdminStatus } from '../controllers/adminUserController.js';
 import { listExperiments, getResults } from '../controllers/adminExperimentController.js';
 import { getTickets, patchTicket } from '../controllers/adminSupportController.js';
+import { updateBetaTesterStatus, getFeedback } from '../controllers/adminBetaController.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -38,5 +39,7 @@ router.get('/experiments', listExperiments);
 router.get('/experiments/:name/results', getResults);
 router.get('/support/tickets', getTickets);
 router.patch('/support/tickets/:id', patchTicket);
+router.patch('/users/:id/beta-tester', updateBetaTesterStatus);
+router.get('/beta-feedback', getFeedback);
 
 export default router;

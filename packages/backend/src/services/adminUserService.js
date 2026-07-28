@@ -2,7 +2,7 @@ import { pool } from '../config/database.js';
 
 export async function listUsers() {
   const { rows } = await pool.query(
-    `SELECT id, email, name, plan, is_admin, created_at FROM users ORDER BY created_at DESC`,
+    `SELECT id, email, name, plan, is_admin, is_beta_tester, created_at FROM users ORDER BY created_at DESC`,
   );
 
   return rows.map((row) => ({
@@ -11,6 +11,7 @@ export async function listUsers() {
     name: row.name,
     plan: row.plan,
     isAdmin: row.is_admin,
+    isBetaTester: row.is_beta_tester,
     createdAt: row.created_at,
   }));
 }

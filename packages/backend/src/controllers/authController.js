@@ -11,6 +11,8 @@ function toPublicUser(user) {
     name: user.name,
     plan: user.plan,
     isAdmin: user.is_admin,
+    themePrimaryColor: user.theme_primary_color,
+    themeFontSize: user.theme_font_size,
   };
 }
 
@@ -27,7 +29,7 @@ export async function register(req, res) {
     const { rows } = await pool.query(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, $2, $3)
-       RETURNING id, email, name, plan, is_admin`,
+       RETURNING id, email, name, plan, is_admin, theme_primary_color, theme_font_size`,
       [email, passwordHash, name || null],
     );
     const user = rows[0];

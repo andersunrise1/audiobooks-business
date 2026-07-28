@@ -15,9 +15,7 @@ function Sidebar() {
             <NavLink
               to={link.to}
               className={({ isActive }) =>
-                isActive
-                  ? 'font-semibold text-blue-600 dark:text-blue-400'
-                  : 'text-slate-500 dark:text-stone-400'
+                isActive ? 'font-semibold text-primary' : 'text-slate-500 dark:text-stone-400'
               }
             >
               {link.label}

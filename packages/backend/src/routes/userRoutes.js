@@ -12,11 +12,13 @@ import { getDifficultyProfile } from '../controllers/difficultyController.js';
 import { getRepeatedDifficultWords } from '../controllers/wordRepetitionController.js';
 import { getStudyPriorityQueue } from '../controllers/schedulingController.js';
 import { getRecommendations } from '../controllers/recommendationController.js';
+import { updateTheme } from '../controllers/themeController.js';
 
 const router = Router();
 
 router.use(requireAuth);
 
+router.patch('/theme', updateTheme);
 router.get('/progress', getProgress);
 router.post('/progress/:chapterId', upsertProgress);
 router.get('/flashcards', getFlashcards);

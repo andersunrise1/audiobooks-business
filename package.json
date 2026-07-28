@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/backend",
     "packages/web",
-    "packages/desktop"
+    "packages/desktop",
+    "packages/mobile"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=packages/backend",

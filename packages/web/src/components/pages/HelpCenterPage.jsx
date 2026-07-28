@@ -135,7 +135,7 @@ function HelpCenterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 font-semibold disabled:opacity-50 touch-manipulation self-start"
+              className="bg-primary neon-glow text-white rounded px-4 py-2 font-semibold disabled:opacity-50 touch-manipulation self-start"
             >
               {submitting ? 'Enviando...' : 'Enviar'}
             </button>

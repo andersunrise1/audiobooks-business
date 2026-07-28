@@ -28,8 +28,8 @@ const AdminSupportPage = lazy(() => import('./components/pages/AdminSupportPage.
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <BrowserRouter>
           <Suspense fallback={<p className="p-6 text-slate-500">Carregando...</p>}>
             <Routes>
@@ -94,8 +94,8 @@ function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

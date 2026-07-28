@@ -7,7 +7,7 @@ import RobotLogo from './RobotLogo.jsx';
 function TechSpeakWordmark({ className = '', iconClassName = 'w-7 h-7' }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 neon-text ${className}`}
+      className={`inline-flex items-center gap-1 font-bold text-primary neon-text ${className}`}
     >
       <RobotLogo className={iconClassName} />
       <span>

@@ -48,7 +48,7 @@ function ChapterFeedback({ chapterId }) {
             onClick={() => handleSelect(option.value)}
             className={`px-3 py-2 rounded text-sm ${
               selected === option.value
-                ? 'bg-blue-600 dark:bg-blue-500 neon-glow text-white'
+                ? 'bg-primary neon-glow text-white'
                 : 'bg-slate-100 dark:bg-stone-700 hover:bg-slate-200 dark:hover:bg-stone-600'
             }`}
           >

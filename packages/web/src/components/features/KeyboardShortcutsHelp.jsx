@@ -61,7 +61,7 @@ function KeyboardShortcutsHelp() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 font-semibold self-end touch-manipulation"
+              className="bg-primary neon-glow text-white rounded px-4 py-2 font-semibold self-end touch-manipulation"
             >
               Fechar
             </button>

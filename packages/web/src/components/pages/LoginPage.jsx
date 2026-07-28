@@ -52,7 +52,7 @@ function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-3 py-2 disabled:opacity-50"
+          className="bg-primary neon-glow text-white rounded px-3 py-2 disabled:opacity-50"
         >
           {submitting ? 'Entrando...' : 'Entrar'}
         </button>

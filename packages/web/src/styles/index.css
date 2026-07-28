@@ -6,6 +6,62 @@
    ThemeContext.jsx can force light/dark regardless of OS preference. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Dia 68-69: customizable primary color. ThemeContext.jsx sets
+   data-primary on <html> from the user's choice (persisted to
+   localStorage, and to users.theme_primary_color for a logged-in user so
+   it follows them to another device). Default (no attribute) is the
+   Dia 66-67 blue. .text-primary/.bg-primary/.border-primary and the
+   neon-glow/neon-text shadows below all read these variables instead of
+   a literal blue-*, so every primary-colored element in the app (and the
+   red-robot-adjacent wordmark) repaints from one place. */
+:root {
+  --color-primary: #2563eb; /* blue-600 */
+  --color-primary-dark: #3b82f6; /* blue-500 */
+  --color-primary-glow: 59, 130, 246;
+}
+
+:root[data-primary='purple'] {
+  --color-primary: #9333ea; /* purple-600 */
+  --color-primary-dark: #a855f7; /* purple-500 */
+  --color-primary-glow: 168, 85, 247;
+}
+
+:root[data-primary='green'] {
+  --color-primary: #16a34a; /* green-600 */
+  --color-primary-dark: #22c55e; /* green-500 */
+  --color-primary-glow: 34, 197, 94;
+}
+
+:root[data-primary='red'] {
+  --color-primary: #dc2626; /* red-600 */
+  --color-primary-dark: #ef4444; /* red-500 */
+  --color-primary-glow: 239, 68, 68;
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.dark .text-primary {
+  color: var(--color-primary-dark);
+}
+
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.dark .bg-primary {
+  background-color: var(--color-primary-dark);
+}
+
+.border-primary {
+  border-color: var(--color-primary);
+}
+
+.dark .border-primary {
+  border-color: var(--color-primary-dark);
+}
+
 /* Base canvas for the whole app - individual components then only need
    dark: variants for things that don't inherit (explicit backgrounds,
    borders, accent colors on cards/buttons/badges), not for every text
@@ -41,13 +97,13 @@ body {
 }
 
 .dark .neon-glow {
-  box-shadow: 0 0 14px rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 14px rgba(var(--color-primary-glow), 0.55);
 }
 
 .dark .neon-glow:hover {
-  box-shadow: 0 0 22px rgba(96, 165, 250, 0.85);
+  box-shadow: 0 0 22px rgba(var(--color-primary-glow), 0.85);
 }
 
 .dark .neon-text {
-  text-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
+  text-shadow: 0 0 10px rgba(var(--color-primary-glow), 0.7);
 }

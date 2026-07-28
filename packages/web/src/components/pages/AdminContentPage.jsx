@@ -143,7 +143,7 @@ function AdminContentPage() {
                 <button
                   type="button"
                   onClick={() => publishNow(book.id)}
-                  className="text-sm bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-3 py-1 touch-manipulation"
+                  className="text-sm bg-primary neon-glow text-white rounded px-3 py-1 touch-manipulation"
                 >
                   Publicar agora
                 </button>

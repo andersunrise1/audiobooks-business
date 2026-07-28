@@ -102,7 +102,7 @@ function FlashcardReviewPage() {
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="px-4 py-3 rounded bg-blue-600 dark:bg-blue-500 neon-glow text-white touch-manipulation"
+            className="px-4 py-3 rounded bg-primary neon-glow text-white touch-manipulation"
           >
             Mostrar resposta
           </button>

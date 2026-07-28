@@ -74,7 +74,7 @@ function VoiceCommandBar({ context, onNextChapter }) {
           onClick={startListening}
           disabled={status === 'listening' || status === 'processing'}
           className={`px-4 py-2 rounded text-white disabled:opacity-50 ${
-            status === 'listening' ? 'bg-red-600' : 'bg-blue-600 dark:bg-blue-500 neon-glow'
+            status === 'listening' ? 'bg-red-600' : 'bg-primary neon-glow'
           }`}
         >
           {status === 'listening'

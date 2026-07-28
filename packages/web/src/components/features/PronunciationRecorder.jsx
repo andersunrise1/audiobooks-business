@@ -94,7 +94,7 @@ function PronunciationRecorder({ targetSentence }) {
           type="button"
           onClick={status === 'recording' ? stopRecording : startRecording}
           className={`px-4 py-2 rounded text-white ${
-            status === 'recording' ? 'bg-red-600' : 'bg-blue-600 dark:bg-blue-500 neon-glow'
+            status === 'recording' ? 'bg-red-600' : 'bg-primary neon-glow'
           }`}
         >
           {status === 'recording' ? 'Parar' : 'Gravar a frase'}

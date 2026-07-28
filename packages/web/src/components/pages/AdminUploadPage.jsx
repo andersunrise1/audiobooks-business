@@ -144,7 +144,7 @@ function AdminUploadPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 disabled:opacity-50 touch-manipulation"
+          className="bg-primary neon-glow text-white rounded px-4 py-2 disabled:opacity-50 touch-manipulation"
         >
           {submitting ? 'Enviando...' : 'Enviar'}
         </button>

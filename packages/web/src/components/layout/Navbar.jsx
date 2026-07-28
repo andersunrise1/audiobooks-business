@@ -4,6 +4,7 @@ import SyncStatusIndicator from '../features/SyncStatusIndicator.jsx';
 import NotificationCenter from '../features/NotificationCenter.jsx';
 import KeyboardShortcutsHelp from '../features/KeyboardShortcutsHelp.jsx';
 import ThemeToggle from '../features/ThemeToggle.jsx';
+import ThemeSettings from '../features/ThemeSettings.jsx';
 import TechSpeakWordmark from '../features/TechSpeakWordmark.jsx';
 
 function Navbar() {
@@ -24,6 +25,7 @@ function Navbar() {
         </Link>
         <KeyboardShortcutsHelp />
         <ThemeToggle />
+        <ThemeSettings />
 
         {isAuthenticated ? (
           <>

@@ -97,7 +97,7 @@ function AdminSupportPage() {
                   <button
                     type="button"
                     onClick={() => resolveTicket(ticket.id)}
-                    className="text-sm bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-3 py-1 self-start touch-manipulation"
+                    className="text-sm bg-primary neon-glow text-white rounded px-3 py-1 self-start touch-manipulation"
                   >
                     Marcar como resolvido
                   </button>

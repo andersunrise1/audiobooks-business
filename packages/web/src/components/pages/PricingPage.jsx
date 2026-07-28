@@ -92,7 +92,7 @@ function PricingPage() {
             type="button"
             onClick={handleBuy}
             disabled={loading}
-            className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-3 font-semibold disabled:opacity-50 touch-manipulation"
+            className="bg-primary neon-glow text-white rounded px-4 py-3 font-semibold disabled:opacity-50 touch-manipulation"
           >
             {loading ? 'Redirecionando...' : 'Comprar Vitalício'}
           </button>

@@ -101,7 +101,7 @@ function ChatWidget({ chapterId }) {
             <div
               className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                 message.role === 'user'
-                  ? 'bg-blue-600 dark:bg-blue-500 neon-glow text-white'
+                  ? 'bg-primary neon-glow text-white'
                   : message.fallback
                     ? 'bg-amber-50 dark:bg-amber-950 text-slate-900 dark:text-amber-100 border border-amber-200 dark:border-amber-800'
                     : 'bg-slate-100 dark:bg-stone-700 text-slate-900 dark:text-stone-100 border border-slate-200 dark:border-stone-700'
@@ -201,7 +201,7 @@ function ChatWidget({ chapterId }) {
         <button
           type="submit"
           disabled={sending}
-          className="bg-blue-600 dark:bg-blue-500 neon-glow text-white rounded px-4 py-2 disabled:opacity-50"
+          className="bg-primary neon-glow text-white rounded px-4 py-2 disabled:opacity-50"
         >
           Enviar
         </button>

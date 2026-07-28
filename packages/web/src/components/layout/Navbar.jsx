@@ -35,10 +35,18 @@ function Navbar() {
             <Link to="/flashcards" className="py-2 touch-manipulation">
               Flashcards
             </Link>
+            <Link to="/feedback" className="py-2 touch-manipulation">
+              Feedback
+            </Link>
             {user?.isAdmin && (
               <Link to="/admin" className="py-2 touch-manipulation">
                 Admin
               </Link>
+            )}
+            {user?.isBetaTester && (
+              <span className="text-purple-700 bg-purple-50 dark:bg-purple-950 dark:text-purple-400 rounded px-2 py-1 text-xs font-semibold">
+                Beta Tester
+              </span>
             )}
             {user?.plan === 'pro' ? (
               <span className="text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-400 rounded px-2 py-1 text-xs font-semibold">

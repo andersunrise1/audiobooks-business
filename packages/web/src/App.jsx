@@ -25,6 +25,8 @@ const PaymentSuccessPage = lazy(() => import('./components/pages/PaymentSuccessP
 const PaymentCancelPage = lazy(() => import('./components/pages/PaymentCancelPage.jsx'));
 const HelpCenterPage = lazy(() => import('./components/pages/HelpCenterPage.jsx'));
 const AdminSupportPage = lazy(() => import('./components/pages/AdminSupportPage.jsx'));
+const FeedbackPage = lazy(() => import('./components/pages/FeedbackPage.jsx'));
+const AdminBetaFeedbackPage = lazy(() => import('./components/pages/AdminBetaFeedbackPage.jsx'));
 
 function App() {
   return (
@@ -75,6 +77,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/feedback"
+                  element={
+                    <ProtectedRoute>
+                      <FeedbackPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin"
                   element={
                     <ProtectedRoute requireAdmin>
@@ -89,6 +99,7 @@ function App() {
                   <Route path="metrics" element={<AdminMetricsPage />} />
                   <Route path="experiments" element={<AdminExperimentsPage />} />
                   <Route path="support" element={<AdminSupportPage />} />
+                  <Route path="beta-feedback" element={<AdminBetaFeedbackPage />} />
                   <Route path="users" element={<AdminUsersPage />} />
                   <Route path="revenue" element={<AdminRevenuePage />} />
                 </Route>

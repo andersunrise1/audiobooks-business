@@ -37,6 +37,23 @@ function AdminUsersPage() {
     }
   }
 
+  async function toggleBetaTester(targetUser) {
+    setError('');
+    setPendingId(targetUser.id);
+    try {
+      await apiRequest(`/api/admin/users/${targetUser.id}/beta-tester`, {
+        method: 'PATCH',
+        token: accessToken,
+        body: { isBetaTester: !targetUser.isBetaTester },
+      });
+      setUsers(await fetchUsers(accessToken));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   if (loading) return <p>Carregando...</p>;
 
   return (
@@ -52,7 +69,9 @@ function AdminUsersPage() {
               <th className="p-2">Nome</th>
               <th className="p-2">Plano</th>
               <th className="p-2">Admin</th>
+              <th className="p-2">Beta</th>
               <th className="p-2">Criado em</th>
+              <th className="p-2"></th>
               <th className="p-2"></th>
             </tr>
           </thead>
@@ -63,6 +82,7 @@ function AdminUsersPage() {
                 <td className="p-2">{u.name || '—'}</td>
                 <td className="p-2">{u.plan}</td>
                 <td className="p-2">{u.isAdmin ? 'Sim' : 'Não'}</td>
+                <td className="p-2">{u.isBetaTester ? 'Sim' : 'Não'}</td>
                 <td className="p-2">{new Date(u.createdAt).toLocaleDateString('pt-BR')}</td>
                 <td className="p-2">
                   <button
@@ -72,6 +92,16 @@ function AdminUsersPage() {
                     className="text-xs underline disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
                   >
                     {u.isAdmin ? 'Remover admin' : 'Tornar admin'}
+                  </button>
+                </td>
+                <td className="p-2">
+                  <button
+                    type="button"
+                    disabled={pendingId === u.id}
+                    onClick={() => toggleBetaTester(u)}
+                    className="text-xs underline disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
+                  >
+                    {u.isBetaTester ? 'Remover beta' : 'Tornar beta (Pro grátis)'}
                   </button>
                 </td>
               </tr>

@@ -7,6 +7,7 @@ const TABS = [
   { to: '/admin/metrics', label: 'Métricas' },
   { to: '/admin/experiments', label: 'Experimentos' },
   { to: '/admin/support', label: 'Suporte' },
+  { to: '/admin/beta-feedback', label: 'Feedback Beta' },
   { to: '/admin/users', label: 'Usuários' },
   { to: '/admin/revenue', label: 'Revenue' },
 ];

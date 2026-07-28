@@ -58,6 +58,14 @@ function createWindow() {
     mainWindow.show();
   });
 
+  // Dia 78-79: on macOS the app stays alive after the window closes
+  // (window-all-closed doesn't quit there) - without this, mainWindow kept
+  // pointing at a destroyed BrowserWindow, and the 60s auto-sync's
+  // triggerSync() would call .webContents.send on it and throw.
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
   const win = mainWindow;
 
   if (isDev) {
@@ -70,7 +78,9 @@ function createWindow() {
 
 async function triggerSync() {
   const status = await syncNow(session);
-  mainWindow?.webContents.send('sync:status', status);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('sync:status', status);
+  }
 
   // sync.js computes *which* notifications should fire and persists them
   // (packages/desktop's notification center) but stays Electron-free/

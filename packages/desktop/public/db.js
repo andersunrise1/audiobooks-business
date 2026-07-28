@@ -75,20 +75,33 @@ function getCachedProgress() {
   return db.prepare('SELECT * FROM progress_cache').all();
 }
 
+// Dia 78-79: DELETE-then-reinsert with no transaction meant a failure partway
+// through the insert loop (or the process being killed mid-loop) left the
+// local cache empty instead of either the old or the new data - the exact
+// case this cache exists to survive (an offline user reopening the app).
+// Wrapped in BEGIN/COMMIT/ROLLBACK so a failure restores the prior rows
+// instead of losing them.
 function replaceCachedProgress(rows) {
-  db.exec('DELETE FROM progress_cache');
-  const insert = db.prepare(`
-    INSERT INTO progress_cache (chapter_id, words_learned, listening_count, completed, last_accessed)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-  for (const row of rows) {
-    insert.run(
-      row.chapter_id,
-      row.words_learned ?? 0,
-      row.listening_count ?? 0,
-      row.completed ? 1 : 0,
-      row.last_accessed ?? null,
-    );
+  db.exec('BEGIN');
+  try {
+    db.exec('DELETE FROM progress_cache');
+    const insert = db.prepare(`
+      INSERT INTO progress_cache (chapter_id, words_learned, listening_count, completed, last_accessed)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    for (const row of rows) {
+      insert.run(
+        row.chapter_id,
+        row.words_learned ?? 0,
+        row.listening_count ?? 0,
+        row.completed ? 1 : 0,
+        row.last_accessed ?? null,
+      );
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
   }
 }
 
@@ -97,22 +110,29 @@ function getCachedFlashcards() {
 }
 
 function replaceCachedFlashcards(rows) {
-  db.exec('DELETE FROM flashcards_cache');
-  const insert = db.prepare(`
-    INSERT INTO flashcards_cache (id, word, portuguese_translation, technical_explanation, example_sentence, learning_status, review_count, next_review)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  for (const row of rows) {
-    insert.run(
-      row.id,
-      row.word ?? null,
-      row.portuguese_translation ?? null,
-      row.technical_explanation ?? null,
-      row.example_sentence ?? null,
-      row.learning_status ?? 'new',
-      row.review_count ?? 0,
-      row.next_review ?? null,
-    );
+  db.exec('BEGIN');
+  try {
+    db.exec('DELETE FROM flashcards_cache');
+    const insert = db.prepare(`
+      INSERT INTO flashcards_cache (id, word, portuguese_translation, technical_explanation, example_sentence, learning_status, review_count, next_review)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const row of rows) {
+      insert.run(
+        row.id,
+        row.word ?? null,
+        row.portuguese_translation ?? null,
+        row.technical_explanation ?? null,
+        row.example_sentence ?? null,
+        row.learning_status ?? 'new',
+        row.review_count ?? 0,
+        row.next_review ?? null,
+      );
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
   }
 }
 

@@ -36,6 +36,12 @@ export async function upsertProgress(req, res) {
   res.json(rows[0]);
 }
 
+// Dia 78-79: word_clicks/flashcards/user_progress are 3 separate writes
+// describing a single logical event ("the user clicked this word") - if any
+// later write failed, an earlier one had already committed on its own,
+// leaving e.g. a word_clicks row with no matching progress update. Wrapped
+// in a transaction (same pattern as adminAudiobookController.js) so the
+// whole click is atomic: all 3 rows land, or none do.
 export async function saveWordClick(req, res) {
   const { chapterId, wordId } = req.body;
 
@@ -43,30 +49,40 @@ export async function saveWordClick(req, res) {
     return res.status(400).json({ error: 'chapterId and wordId are required' });
   }
 
-  await pool.query('INSERT INTO word_clicks (user_id, word_id, chapter_id) VALUES ($1, $2, $3)', [
-    req.user.id,
-    wordId,
-    chapterId,
-  ]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  await pool.query(
-    `INSERT INTO flashcards (user_id, word_id)
-     VALUES ($1, $2)
-     ON CONFLICT (user_id, word_id) DO NOTHING`,
-    [req.user.id, wordId],
-  );
+    await client.query(
+      'INSERT INTO word_clicks (user_id, word_id, chapter_id) VALUES ($1, $2, $3)',
+      [req.user.id, wordId, chapterId],
+    );
 
-  const { rows } = await pool.query(
-    `INSERT INTO user_progress (user_id, chapter_id, words_learned, last_accessed)
-     VALUES ($1, $2, 1, now())
-     ON CONFLICT (user_id, chapter_id) DO UPDATE SET
-       words_learned = user_progress.words_learned + 1,
-       last_accessed = now()
-     RETURNING *`,
-    [req.user.id, chapterId],
-  );
+    await client.query(
+      `INSERT INTO flashcards (user_id, word_id)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id, word_id) DO NOTHING`,
+      [req.user.id, wordId],
+    );
 
-  res.status(201).json(rows[0]);
+    const { rows } = await client.query(
+      `INSERT INTO user_progress (user_id, chapter_id, words_learned, last_accessed)
+       VALUES ($1, $2, 1, now())
+       ON CONFLICT (user_id, chapter_id) DO UPDATE SET
+         words_learned = user_progress.words_learned + 1,
+         last_accessed = now()
+       RETURNING *`,
+      [req.user.id, chapterId],
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getFlashcards(req, res) {

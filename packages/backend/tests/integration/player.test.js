@@ -74,4 +74,29 @@ describe('Audio Player', () => {
     ]);
     assert.equal(flashcards.length, 1);
   });
+
+  // Dia 78-79: saveWordClick writes to word_clicks/flashcards/user_progress
+  // in one transaction. A non-existent wordId fails the very first insert
+  // (FK violation) - this proves the whole request rolls back cleanly
+  // (500, connection released, nothing left behind) rather than a bug where
+  // an earlier write silently commits before a later one fails.
+  test('a failed write rolls back instead of leaving partial rows', async () => {
+    const bogusWordId = randomUUID();
+
+    const res = await fetch(`${baseUrl}/api/user/words-learned`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${user.accessToken}`,
+      },
+      body: JSON.stringify({ chapterId, wordId: bogusWordId }),
+    });
+
+    assert.equal(res.status, 500);
+
+    const { rows: clicks } = await pool.query('SELECT * FROM word_clicks WHERE word_id = $1', [
+      bogusWordId,
+    ]);
+    assert.equal(clicks.length, 0);
+  });
 });

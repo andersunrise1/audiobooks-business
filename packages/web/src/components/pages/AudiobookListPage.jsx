@@ -32,6 +32,7 @@ function AudiobookListPage() {
   const filteredAudiobooks = audiobooks.filter((book) =>
     book.title.toLowerCase().includes(search.toLowerCase()),
   );
+  const hasLockedBooks = !isPro && audiobooks.some((book) => !book.is_free);
 
   return (
     <div>
@@ -45,6 +46,15 @@ function AudiobookListPage() {
         onChange={(e) => setSearch(e.target.value)}
         className="border border-slate-300 rounded px-3 py-2 mb-4 w-full max-w-sm"
       />
+
+      {hasLockedBooks && (
+        <p className="text-sm text-slate-500 mb-4">
+          🔒 = exclusivo do{' '}
+          <Link to="/pricing" className="underline">
+            TechSpeak Vitalício
+          </Link>
+        </p>
+      )}
 
       {filteredAudiobooks.length === 0 ? (
         <p className="text-slate-500">

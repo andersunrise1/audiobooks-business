@@ -61,8 +61,13 @@ function AudiobookListPage() {
               </Link>
               {book.level && <span className="text-slate-500 text-sm">— {book.level}</span>}
               {!book.is_free && !isPro && (
-                <span className="bg-amber-100 text-slate-900 text-xs font-semibold rounded px-2 py-0.5">
-                  Vitalício
+                <span
+                  className="text-amber-600 dark:text-amber-400"
+                  role="img"
+                  aria-label="Exclusivo do TechSpeak Vitalício"
+                  title="Exclusivo do TechSpeak Vitalício"
+                >
+                  🔒
                 </span>
               )}
             </li>

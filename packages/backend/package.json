@@ -11,7 +11,9 @@
     "test": "node --test",
     "test:coverage": "node --test --experimental-test-coverage",
     "test:ai-quality": "node --test tests/quality/*.js",
-    "test:load": "node loadtest/run.js"
+    "test:load": "node loadtest/run.js",
+    "backup": "node scripts/backup.js",
+    "backup:verify": "node scripts/restoreTest.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.114.0",

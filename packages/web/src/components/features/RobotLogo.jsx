@@ -1,7 +1,7 @@
 // Mascot icon for the TechSpeak wordmark: red robot head (US-flag-style
-// contrast against the blue "TechSpeak" text) with blue eyes, transparent
-// background so it blends into the page instead of carrying its own dark
-// backdrop.
+// contrast against the blue "TechSpeak" text) with white eyes - keeping the
+// logo itself to red/blue/white - transparent background so it blends into
+// the page instead of carrying its own dark backdrop.
 function RobotLogo({ className = 'w-7 h-7' }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
@@ -29,8 +29,8 @@ function RobotLogo({ className = 'w-7 h-7' }) {
         className="fill-red-800 dark:fill-red-700"
       />
 
-      <ellipse cx="26" cy="34" rx="4.5" ry="6" className="fill-blue-500 dark:fill-blue-400" />
-      <ellipse cx="38" cy="34" rx="4.5" ry="6" className="fill-blue-500 dark:fill-blue-400" />
+      <ellipse cx="26" cy="34" rx="4.5" ry="6" className="fill-white" />
+      <ellipse cx="38" cy="34" rx="4.5" ry="6" className="fill-white" />
 
       <rect
         x="27"

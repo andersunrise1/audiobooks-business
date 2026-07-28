@@ -298,11 +298,19 @@ Verified for real, end-to-end, via the `mobile-web` preview (same approach as Di
 
 Not done, honestly: no real Android/iOS emulator or physical device exercised (same standing gap since Dia 81-85); no play-time word highlighting during playback (tap-to-translate only, no ticking-`currentTime` sync); offline mode is read-only (no write queue); push notifications are Dia 91-95/96-100's job, not this one's.
 
-Next up per the plan: Dia 91-95 (iOS Build & Testing).
+**Dia 91-100 is done, closing Etapa 6 (Semanas 17-20) — and with it, the entire 100-day detailed plan (Milestone 6, "Mobile ready," Semana 20)**. Both build phases hit the same real, external-account wall this project has hit repeatedly (Stripe/Dia 47, AWS S3/Dia 43, email/Dia 57-58): TestFlight and App Store Connect are gated behind a paid Apple Developer Program membership; Google Play Console behind a paid Google Play Developer account; and both behind a logged-in Expo/EAS account — none of which exist on this machine, confirmed directly (`npx eas-cli whoami` → "Not logged in") rather than assumed.
+
+What's real: `app.json` carries genuine iOS/Android build identity (`bundleIdentifier`/`buildNumber`/`package`/`versionCode`, `com.techspeak.mobile` — a placeholder to change before a real submission) and an `expo-notifications` plugin registration; `eas.json` defines the standard `development`/`preview`/`production` build profiles. `src/services/pushNotifications.js`'s `registerForPushNotificationsAsync` (called once on login) is real, working permission-request/token-fetch code — verified not to crash on the `mobile-web` preview (`Platform.OS === 'web'` no-ops before touching any native-only API) — but the actual Expo push token fetch is gated behind a real EAS `projectId`, still a placeholder. Honestly, not silently: there's no backend endpoint to save a device's push token yet, so even with real credentials nothing would send a push today — building that send-side without ever being able to verify a real push arrives would repeat this project's own rule against half-built features.
+
+`packages/mobile/IOS_BUILD.md`/`ANDROID_BUILD.md` document the exact `eas login` → `eas build:configure` → `eas build` → `eas submit` sequence for whenever real accounts exist, plus each platform's real caveat (Google Play Console vs. App Store Connect's different testing flows). One genuinely real, account-free path was found and documented: `npm run start:tunnel --workspace=packages/mobile` (`expo start --tunnel`) lets a real phone run this exact app via the free Expo Go client over Expo's relay — no Wi-Fi-matching, no paid account — the closest thing to real-device testing available without one. It's documented and ready but not itself exercised end-to-end from here: this sandboxed environment has no phone to scan the QR code with, and confirmed (not assumed) no Android SDK/emulator installed either.
+
+Full backend (299 tests, 291 pass/8 known-baseline fail) and web (38 tests) suites, lint, and Prettier all stay green — no application code outside `packages/mobile` changed this phase.
+
+**With this, every day/commit named in `PROJETO_AUDIOBOOK_PLANO_DETALHADO.md`'s detailed Dia 1-100 plan is done.** The plan's own Milestone list (Semana 25, "Public Launch 🚀") has no further day-by-day breakdown beyond this point — what remains before a real public launch is exactly [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)'s Dia 80 list plus this phase's own new gaps: real Stripe/email/hosting-provider/backup-schedule decisions, and now real Apple/Google Developer + EAS accounts. Nothing here invents next steps beyond what's honestly true.
 
 Other docs:
 
-Other docs:
+- [IOS_BUILD.md](packages/mobile/IOS_BUILD.md) / [ANDROID_BUILD.md](packages/mobile/ANDROID_BUILD.md) — Dia 91-100's exact steps for real mobile builds once real accounts exist.
 - [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) — Dia 80's honest pre-launch checklist review.
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, commit/branch conventions, what CI runs.
@@ -335,7 +343,7 @@ Monorepo with npm workspaces:
 packages/backend/   Node.js + Express, PostgreSQL (pg), .env-based config
 packages/web/       React 19 + Vite + React Router + Tailwind v4 (@tailwindcss/vite, no config file needed)
 packages/desktop/   Electron; main process loads packages/web's dev server (dev) or dist/index.html (prod) — no separate renderer/electron-vite. Offline cache + sync queue use node:sqlite (built into Node 22+/Electron's bundled runtime, no native module build step). Renderer talks to main via the `window.techspeak` bridge (public/preload.js): auth.setSession, cache.getProgress/getFlashcards, cache.queueProgress, sync.now/onStatusChange.
-packages/mobile/    React Native + Expo (later phase, not started)
+packages/mobile/    React Native + Expo SDK 57, reuses the same backend as web/desktop. React Navigation (bottom tabs + native-stack); AsyncStorage for auth/offline cache (no local DB yet, unlike desktop's node:sqlite). expo-audio for playback, expo-notifications for push (client-side only - no backend push-token endpoint yet). No EAS/Apple/Google Developer accounts configured - see IOS_BUILD.md/ANDROID_BUILD.md.
 ```
 External services: Anthropic Claude (chat/explanations — integrated, Dia 26; see `services/aiService.js`) — used instead of the plan's original OpenAI choice. Redis caches AI responses (Dia 30; see `services/cacheService.js`) — no local Redis on this dev machine, best-effort fallback if unreachable, validated via a Redis service in CI. Deepgram (pronunciation transcription) was integrated on Dia 33 and removed on 2026-07-24 at the user's request — not part of the app anymore. Still planned but not yet integrated: ElevenLabs (TTS), Stripe (subscriptions), AWS S3 + CloudFront (audio storage/CDN).
 

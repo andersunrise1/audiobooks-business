@@ -15,7 +15,7 @@ No auth. Returns `{ "status": "ok" }`.
 ### `POST /api/auth/register`
 
 Body: `{ "email", "password", "name"? }`
-201 → `{ "user": { id, email, name, plan, isAdmin }, "accessToken", "refreshToken" }`
+201 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize }, "accessToken", "refreshToken" }`
 409 if the email is already registered.
 
 ### `POST /api/auth/login`
@@ -30,7 +30,7 @@ Body: `{ "refreshToken" }`
 
 ### `GET /api/auth/me` — requires auth
 
-200 → `{ "user": { id, email, name, plan, isAdmin } }`, read fresh from the DB (unlike the JWT
+200 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize } }`, read fresh from the DB (unlike the JWT
 payload, this reflects any changes since login — e.g. `plan` after a successful payment). 404 if
 the user no longer exists.
 
@@ -90,6 +90,16 @@ Body: `{ "feedback" }` — one of `"helpful"`, `"not_helpful"`, or `null` (clear
 Body: `{ "chapterId" }`. For a student who said they didn't understand a chapter: asks Claude for a summary/keywords/exercise based on the chapter's transcript. 200 → `{ "summary", "keywords": [...], "exercise", "cached"? }` — if the model's JSON response fails to parse, `summary` falls back to the raw text and `keywords`/`exercise` are empty rather than erroring. 400 if `chapterId` is missing, 404 if the chapter doesn't exist, 422 if it has no transcript yet, 503 if `ANTHROPIC_API_KEY` isn't configured (unless served from cache) — checked in that order, so a bad request isn't masked by the AI-unavailable case. On a real call failure: 200 with a generic fallback `summary`, empty `keywords`/`exercise`.
 
 ## User (`/api/user`) — all routes require auth
+
+### `PATCH /api/user/theme`
+
+Dia 68-69: customizable primary color and font size, saved to the account so they follow the
+user to another device/browser (unlike the light/dark/system choice, which stays client-side
+only in `localStorage` — see `packages/web/src/store/ThemeContext.jsx`).
+Body: `{ "primaryColor", "fontSize" }` — both required. `primaryColor` one of `blue` (default),
+`purple`, `green`, `red`. `fontSize` one of `small`, `medium` (default), `large`.
+200 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize } }`.
+400 if either value isn't one of the allowed options.
 
 ### `GET /api/user/progress`
 

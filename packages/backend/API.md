@@ -19,7 +19,7 @@ No auth. Returns `{ "status": "ok" }`.
 ### `POST /api/auth/register`
 
 Body: `{ "email", "password", "name"? }`
-201 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize }, "accessToken", "refreshToken" }`
+201 → `{ "user": { id, email, name, plan, isAdmin, isBetaTester, themePrimaryColor, themeFontSize }, "accessToken", "refreshToken" }`
 400 if `email` isn't a valid-shaped email, or `password` is under 8 characters (Dia 75).
 409 if the email is already registered.
 
@@ -35,7 +35,7 @@ Body: `{ "refreshToken" }`
 
 ### `GET /api/auth/me` — requires auth
 
-200 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize } }`, read fresh from the DB (unlike the JWT
+200 → `{ "user": { id, email, name, plan, isAdmin, isBetaTester, themePrimaryColor, themeFontSize } }`, read fresh from the DB (unlike the JWT
 payload, this reflects any changes since login — e.g. `plan` after a successful payment). 404 if
 the user no longer exists.
 
@@ -103,7 +103,7 @@ user to another device/browser (unlike the light/dark/system choice, which stays
 only in `localStorage` — see `packages/web/src/store/ThemeContext.jsx`).
 Body: `{ "primaryColor", "fontSize" }` — both required. `primaryColor` one of `blue` (default),
 `purple`, `green`, `red`. `fontSize` one of `small`, `medium` (default), `large`.
-200 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize } }`.
+200 → `{ "user": { id, email, name, plan, isAdmin, isBetaTester, themePrimaryColor, themeFontSize } }`.
 400 if either value isn't one of the allowed options.
 
 ### `GET /api/user/progress`
@@ -294,11 +294,19 @@ Sets `audiobooks.published_at` back to `NULL` (reverts to draft, hides it from t
 
 ### `GET /api/admin/users`
 
-200 → array of every user: `{ id, email, name, plan, isAdmin, createdAt }` (no `passwordHash`), newest first.
+200 → array of every user: `{ id, email, name, plan, isAdmin, isBetaTester, createdAt }` (no `passwordHash`), newest first.
 
 ### `PATCH /api/admin/users/:id`
 
 Body: `{ "isAdmin" }` (boolean). 200 → the updated user, same shape as above. 400 if `isAdmin` isn't a boolean, or if the caller is trying to remove their own admin access (there's no self-service way back in, since `is_admin` is DB-only — this would permanently lock a lone admin out). 404 if the user doesn't exist.
+
+### `PATCH /api/admin/users/:id/beta-tester` — Dia 76-77
+
+Body: `{ "isBetaTester" }` (boolean). Granting also sets `plan = 'pro'` (free Pro access for beta testers) — reuses the existing `plan` value rather than a separate one, so every existing `plan === 'pro'` check (paywall, AI rate limits, dashboard) keeps working unchanged. Revoking does **not** revert `plan` back to `'free'` — there's no purchase-history table to tell a beta grant apart from a real purchase after the fact, so auto-downgrading risks yanking access from someone who has since paid for real; an admin can still change `plan` separately if genuinely needed. 200 → the updated user (same shape as `GET /api/admin/users`). 400 if `isBetaTester` isn't a boolean. 404 if the user doesn't exist.
+
+### `GET /api/admin/beta-feedback` — Dia 76-77
+
+200 → array of every submission to `POST /api/beta/feedback` below, newest first: `{ id, category, rating, message, wasBetaTester, createdAt, user: { email, name } }`.
 
 ### `GET /api/admin/experiments`
 
@@ -321,6 +329,12 @@ Body: `{ "status"?, "adminResponse"? }` — `status` must be `"open"` or `"resol
 ### `POST /api/support/tickets`
 
 Auth optional (`optionalAuth` — an anonymous visitor can file a ticket, e.g. a pre-purchase question on the pricing page). Body: `{ "subject", "message", "email"? }` — `email` is required only for anonymous requests; an authenticated caller's own account email is used automatically and any `email` in the body is ignored. 201 → `{ "id", "status", "createdAt" }`. 400 if `subject`/`message` is missing, or if the caller is anonymous and `email` is missing/not a valid email shape.
+
+## Beta (`/api/beta`) — Dia 76-77
+
+### `POST /api/beta/feedback`
+
+Requires auth. Open to any authenticated user, not just current beta testers - general product feedback is valuable from anyone, and `was_beta_tester` snapshots the caller's `is_beta_tester` status at submission time so beta feedback can still be told apart later even after someone's beta status changes. Body: `{ "category", "message", "rating"? }` — `category` must be one of `bug`, `feature_request`, `general`; `rating`, if present, must be an integer 1-5. 201 → `{ id, category, rating, message, createdAt }`. 400 if `category` isn't one of the three values, `message` is missing, or `rating` is out of range.
 
 ## Experiments (`/api/experiments`) — A/B testing (Dia 55-56)
 

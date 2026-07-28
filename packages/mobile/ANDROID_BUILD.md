@@ -51,3 +51,38 @@ For **Google Play internal testing** specifically:
 3. Add internal testers by email; they install via the Play Store's internal
    testing opt-in link, no separate app needed (unlike TestFlight, no extra
    client app to install first).
+
+## Testing on a real device today - no account needed
+
+Everything above needs a Play Developer account and an EAS build. There's a
+genuinely real path that needs **neither**: the free
+[Expo Go](https://expo.dev/go) app plus a tunnel connection.
+
+```bash
+npm run start:tunnel --workspace=packages/mobile
+# Prints a QR code. Scan it with Expo Go (Android) or the Camera app
+# (iOS) - --tunnel routes through Expo's relay, so the phone doesn't
+# need to be on the same Wi-Fi as this machine.
+```
+
+This runs the exact same JS this project has been verifying through the
+`mobile-web` preview (Player, Chat, Flashcards, Dashboard, auth) on a real
+physical device, with real native modules (`expo-audio`, `expo-notifications`
+running for real, not the web-platform no-op) - genuinely the most direct
+verification available without any paid account. It does **not** replace an
+EAS build for distribution (Expo Go is a development sandbox, not what ships
+to end users), but it is real device testing.
+
+## Verified vs. not verified
+
+**Verified for real**: the full Dia 86-90 feature set plus Dia 91-95's push-
+notification registration code all run correctly through the `mobile-web`
+preview (Chromium via `react-native-web`) — see CLAUDE.md's Dia 86-90/91-95
+entries for the exact steps exercised.
+
+**Not verified, cannot be from this environment**: this sandboxed environment
+has no phone to scan the Expo Go QR code with, and no Android
+SDK/emulator installed locally (`adb`/`emulator` confirmed absent, not
+assumed) - so the Expo Go path above is documented and ready, but has not
+itself been run end-to-end from here. Same standing category as every
+"verified via mobile-web, not a real device" gap since Dia 81-85.

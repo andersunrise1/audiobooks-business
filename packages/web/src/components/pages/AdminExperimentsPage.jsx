@@ -31,12 +31,12 @@ function AdminExperimentsPage() {
   }, [accessToken]);
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">Experimentos (A/B)</h1>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-stone-400">
         Nenhuma variante afeta usuários com conta Vitalício já ativa — os testes atuam apenas antes
         da compra (preço) ou no aviso do paywall.
       </p>
@@ -64,7 +64,7 @@ function AdminExperimentsPage() {
               ))}
               {(results[experiment.name] ?? []).length === 0 && (
                 <tr>
-                  <td className="p-2 text-slate-400" colSpan={4}>
+                  <td className="p-2 text-slate-500 dark:text-stone-400" colSpan={4}>
                     Nenhuma exposição registrada ainda.
                   </td>
                 </tr>

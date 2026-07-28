@@ -32,6 +32,7 @@ function LoginPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="email"
+          aria-label="Email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -40,6 +41,7 @@ function LoginPage() {
         />
         <input
           type="password"
+          aria-label="Senha"
           placeholder="Senha"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -47,7 +49,7 @@ function LoginPage() {
           className="border border-slate-300 rounded px-3 py-2"
         />
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
@@ -58,7 +60,7 @@ function LoginPage() {
         </button>
       </form>
 
-      <p className="text-sm text-slate-500 mt-3">
+      <p className="text-sm text-slate-500 dark:text-stone-400 mt-3">
         Não tem conta?{' '}
         <Link to="/register" className="underline">
           Criar conta

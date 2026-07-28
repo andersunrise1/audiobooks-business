@@ -70,7 +70,7 @@ function AdminUploadPage() {
   return (
     <div className="flex flex-col gap-4 max-w-xl">
       <h1 className="text-2xl font-bold">Upload de Audiobook</h1>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-stone-400">
         Cria um novo audiobook com seu primeiro capítulo. Os timestamps de{' '}
         <code>words_metadata</code> devem ser informados manualmente (não há geração automática via
         Deepgram nesta versão).
@@ -79,24 +79,28 @@ function AdminUploadPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           required
+          aria-label="Título do audiobook"
           placeholder="Título do audiobook"
           value={form.title}
           onChange={(e) => updateField('title', e.target.value)}
           className="border border-slate-300 rounded px-3 py-2"
         />
         <input
+          aria-label="Descrição"
           placeholder="Descrição"
           value={form.description}
           onChange={(e) => updateField('description', e.target.value)}
           className="border border-slate-300 rounded px-3 py-2"
         />
         <input
+          aria-label="Categoria"
           placeholder="Categoria (ex: Software Engineering)"
           value={form.category}
           onChange={(e) => updateField('category', e.target.value)}
           className="border border-slate-300 rounded px-3 py-2"
         />
         <select
+          aria-label="Nível"
           value={form.level}
           onChange={(e) => updateField('level', e.target.value)}
           className="border border-slate-300 rounded px-3 py-2"
@@ -106,6 +110,7 @@ function AdminUploadPage() {
           <option value="advanced">Advanced</option>
         </select>
         <input
+          aria-label="Título do capítulo"
           placeholder="Título do capítulo"
           value={form.chapterTitle}
           onChange={(e) => updateField('chapterTitle', e.target.value)}
@@ -113,6 +118,7 @@ function AdminUploadPage() {
         />
         <textarea
           required
+          aria-label="Transcript do capítulo"
           placeholder="Transcript do capítulo"
           value={form.transcript}
           onChange={(e) => updateField('transcript', e.target.value)}
@@ -120,13 +126,14 @@ function AdminUploadPage() {
           rows={3}
         />
         <textarea
+          aria-label="words_metadata (JSON)"
           placeholder='words_metadata (JSON, ex: [{"word":"deployed","start_seconds":0.5,"end_seconds":1}])'
           value={form.wordsMetadata}
           onChange={(e) => updateField('wordsMetadata', e.target.value)}
           className="border border-slate-300 rounded px-3 py-2 font-mono text-xs"
           rows={3}
         />
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="flex flex-col gap-1 text-sm text-slate-600 dark:text-stone-300">
           Data de lançamento (opcional — em branco cria como rascunho)
           <input
             type="datetime-local"
@@ -137,6 +144,7 @@ function AdminUploadPage() {
         </label>
         <input
           required
+          aria-label="Arquivo de áudio"
           type="file"
           accept="audio/*"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
@@ -150,7 +158,7 @@ function AdminUploadPage() {
         </button>
       </form>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
       {result && (
         <p className="text-green-600 text-sm">
           Audiobook criado! ID: {result.audiobookId} · capítulo: {result.chapterId} ·{' '}

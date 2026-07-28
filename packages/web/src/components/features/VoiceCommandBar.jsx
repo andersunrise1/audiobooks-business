@@ -83,29 +83,35 @@ function VoiceCommandBar({ context, onNextChapter }) {
               ? 'Processando...'
               : '🎤 Comando de voz'}
         </button>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-slate-500 dark:text-stone-400">
           &quot;Explain X&quot; · &quot;Next chapter&quot; · &quot;Check my progress&quot;
         </span>
       </div>
 
-      {feedback?.error && <p className="text-sm text-red-500">{feedback.error}</p>}
+      {feedback?.error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{feedback.error}</p>
+      )}
 
       {feedback?.intent === 'explain' && (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-stone-400">
           <strong>{feedback.word}:</strong> {feedback.explanation}
         </p>
       )}
       {feedback?.intent === 'next_chapter' && (
-        <p className="text-sm text-slate-500">Indo para o próximo capítulo...</p>
+        <p className="text-sm text-slate-500 dark:text-stone-400">
+          Indo para o próximo capítulo...
+        </p>
       )}
       {feedback?.intent === 'progress' && feedback.stats && (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-stone-400">
           Streak: {feedback.stats.streakDays} dia(s) · Palavras hoje:{' '}
           {feedback.stats.wordsLearned.today} · Flashcards a revisar: {feedback.stats.flashcardsDue}
         </p>
       )}
       {feedback?.intent === 'unknown' && (
-        <p className="text-sm text-slate-500">Não entendi: &quot;{feedback.transcript}&quot;</p>
+        <p className="text-sm text-slate-500 dark:text-stone-400">
+          Não entendi: &quot;{feedback.transcript}&quot;
+        </p>
       )}
     </div>
   );

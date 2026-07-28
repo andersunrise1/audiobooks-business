@@ -58,11 +58,13 @@ function ChapterFeedback({ chapterId }) {
       </div>
 
       {selected && selected !== 'nao-entendi' && (
-        <p className="text-sm text-slate-500">Obrigado pelo feedback!</p>
+        <p className="text-sm text-slate-500 dark:text-stone-400">Obrigado pelo feedback!</p>
       )}
 
-      {loading && <p className="text-sm text-slate-500">Gerando material de apoio...</p>}
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {loading && (
+        <p className="text-sm text-slate-500 dark:text-stone-400">Gerando material de apoio...</p>
+      )}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {remedial && (
         <div className="flex flex-col gap-2 text-sm border-t border-slate-200 dark:border-stone-700 pt-3">

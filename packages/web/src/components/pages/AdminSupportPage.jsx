@@ -37,20 +37,20 @@ function AdminSupportPage() {
   }
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Suporte</h1>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-stone-400">
         Sem envio automático de e-mail nesta versão — a resposta fica registrada aqui; entre em
         contato manualmente com o solicitante enquanto isso não existe.
       </p>
 
-      {actionError && <p className="text-red-500 text-sm">{actionError}</p>}
+      {actionError && <p className="text-red-600 dark:text-red-400 text-sm">{actionError}</p>}
 
       {tickets.length === 0 ? (
-        <p className="text-slate-500">Nenhum ticket registrado ainda.</p>
+        <p className="text-slate-500 dark:text-stone-400">Nenhum ticket registrado ainda.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {tickets.map((ticket) => (
@@ -61,7 +61,10 @@ function AdminSupportPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-semibold">{ticket.subject}</span>
-                  <span className="text-slate-500 text-sm"> — {ticket.email}</span>
+                  <span className="text-slate-500 dark:text-stone-400 text-sm">
+                    {' '}
+                    — {ticket.email}
+                  </span>
                 </div>
                 <span
                   className={`text-xs font-semibold rounded px-2 py-1 ${
@@ -74,7 +77,7 @@ function AdminSupportPage() {
                 </span>
               </div>
 
-              <p className="text-sm text-slate-600">{ticket.message}</p>
+              <p className="text-sm text-slate-600 dark:text-stone-300">{ticket.message}</p>
 
               {ticket.adminResponse && (
                 <p className="text-sm bg-slate-50 dark:bg-stone-800 rounded p-2">
@@ -86,6 +89,7 @@ function AdminSupportPage() {
               {ticket.status !== 'resolved' && (
                 <div className="flex flex-col gap-2">
                   <textarea
+                    aria-label="Resposta"
                     placeholder="Resposta (opcional)"
                     value={responses[ticket.id] ?? ''}
                     onChange={(e) =>

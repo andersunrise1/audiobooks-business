@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme, PRIMARY_COLORS, FONT_SIZES } from '../../store/ThemeContext.jsx';
 
 const COLOR_SWATCH_CLASS = {
@@ -18,15 +18,42 @@ const FONT_SIZE_LABEL = { small: 'Pequena', medium: 'Média', large: 'Grande' };
 function ThemeSettings() {
   const { primaryColor, setPrimaryColor, fontSize, setFontSize } = useTheme();
   const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+
+  // Dia 70: Escape and click-outside both close the popover, matching
+  // standard disclosure-widget keyboard/mouse behavior. Escape additionally
+  // returns focus to the trigger button.
+  useEffect(() => {
+    if (!open) return undefined;
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    function handleClickOutside(event) {
+      if (!containerRef.current?.contains(event.target)) setOpen(false);
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="text-sm py-2 touch-manipulation"
         aria-label="Personalizar tema"
         title="Personalizar tema"
+        aria-haspopup="true"
+        aria-expanded={open}
       >
         🎨
       </button>

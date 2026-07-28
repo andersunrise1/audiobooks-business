@@ -24,7 +24,7 @@ function DashboardPage() {
       <h1 className="text-2xl font-bold">Olá, {user?.name || user?.email}</h1>
 
       {loading && <p>Carregando...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-400">{error}</p>}
 
       <RecommendationsFeed />
 

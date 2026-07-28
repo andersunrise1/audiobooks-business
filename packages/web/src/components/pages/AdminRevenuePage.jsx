@@ -14,7 +14,7 @@ function AdminRevenuePage() {
       .catch((err) => setError(err.message));
   }, [accessToken]);
 
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
   if (!users) return <p>Carregando...</p>;
 
   const byPlan = users.reduce((acc, u) => {

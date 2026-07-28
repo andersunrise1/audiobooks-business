@@ -21,7 +21,7 @@ function AdminAnalyticsPage() {
   }, [accessToken]);
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
   if (!data) return null;
 
   const totalCostUsd = data.costPerUser.reduce((sum, row) => sum + row.totalCostUsd, 0);
@@ -63,7 +63,7 @@ function AdminAnalyticsPage() {
             ))}
             {data.questionsPerChapter.length === 0 && (
               <tr>
-                <td className="p-2 text-slate-400" colSpan={2}>
+                <td className="p-2 text-slate-500 dark:text-stone-400" colSpan={2}>
                   Nenhuma pergunta registrada ainda.
                 </td>
               </tr>
@@ -92,7 +92,7 @@ function AdminAnalyticsPage() {
             ))}
             {data.avgResponseTime.length === 0 && (
               <tr>
-                <td className="p-2 text-slate-400" colSpan={3}>
+                <td className="p-2 text-slate-500 dark:text-stone-400" colSpan={3}>
                   Nenhuma chamada de IA registrada ainda.
                 </td>
               </tr>
@@ -121,7 +121,7 @@ function AdminAnalyticsPage() {
             ))}
             {data.costPerUser.length === 0 && (
               <tr>
-                <td className="p-2 text-slate-400" colSpan={3}>
+                <td className="p-2 text-slate-500 dark:text-stone-400" colSpan={3}>
                   Nenhum uso de IA registrado ainda.
                 </td>
               </tr>

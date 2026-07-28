@@ -59,13 +59,15 @@ function FlashcardReviewPage() {
   }
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
 
   if (!card) {
     return (
       <div>
         <h1 className="text-2xl font-bold mb-2">Flashcards</h1>
-        <p className="text-slate-500">Nenhum flashcard para revisar agora. Volte mais tarde!</p>
+        <p className="text-slate-500 dark:text-stone-400">
+          Nenhum flashcard para revisar agora. Volte mais tarde!
+        </p>
       </div>
     );
   }
@@ -74,7 +76,7 @@ function FlashcardReviewPage() {
     <div className="flex flex-col gap-4 max-w-md">
       <div>
         <h1 className="text-2xl font-bold">Flashcards</h1>
-        <p className="text-slate-500 text-sm">
+        <p className="text-slate-500 dark:text-stone-400 text-sm">
           {index + 1} de {cards.length}
         </p>
         {offline && (
@@ -92,10 +94,14 @@ function FlashcardReviewPage() {
           <div className="flex flex-col gap-2">
             {card.portuguese_translation && <p>{card.portuguese_translation}</p>}
             {card.technical_explanation && (
-              <p className="text-sm text-slate-500">{card.technical_explanation}</p>
+              <p className="text-sm text-slate-500 dark:text-stone-400">
+                {card.technical_explanation}
+              </p>
             )}
             {card.example_sentence && (
-              <p className="text-sm italic text-slate-400">“{card.example_sentence}”</p>
+              <p className="text-sm italic text-slate-500 dark:text-stone-400">
+                “{card.example_sentence}”
+              </p>
             )}
           </div>
         ) : (

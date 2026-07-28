@@ -102,7 +102,7 @@ function AudioPlayer({
           {isPlaying ? '⏸' : '▶'}
         </button>
 
-        <span className="text-sm text-slate-500 tabular-nums shrink-0">
+        <span className="text-sm text-slate-500 dark:text-stone-400 tabular-nums shrink-0">
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
 
@@ -118,7 +118,7 @@ function AudioPlayer({
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-stone-400">
         <label className="flex items-center gap-2">
           Volume
           <input
@@ -143,7 +143,7 @@ function AudioPlayer({
               className={`px-2.5 py-2 rounded touch-manipulation ${
                 speed === option
                   ? 'bg-primary neon-glow text-white'
-                  : 'bg-slate-100 dark:bg-stone-700'
+                  : 'bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200'
               }`}
             >
               {option}x

@@ -30,9 +30,9 @@ function RecommendationsFeed() {
             to={`/audiobooks/${nextChapter.audiobookId}/player`}
             className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 hover:bg-slate-50 dark:hover:bg-stone-800"
           >
-            <p className="text-xs text-slate-400">Continue de onde parou</p>
+            <p className="text-xs text-slate-500 dark:text-stone-400">Continue de onde parou</p>
             <p className="font-semibold">{nextChapter.audiobookTitle}</p>
-            <p className="text-sm text-slate-500">{nextChapter.chapterTitle}</p>
+            <p className="text-sm text-slate-500 dark:text-stone-400">{nextChapter.chapterTitle}</p>
           </Link>
         )}
 
@@ -41,10 +41,10 @@ function RecommendationsFeed() {
             to={`/audiobooks/${recommendedAudiobook.audiobookId}/player`}
             className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 hover:bg-slate-50 dark:hover:bg-stone-800"
           >
-            <p className="text-xs text-slate-400">Experimente também</p>
+            <p className="text-xs text-slate-500 dark:text-stone-400">Experimente também</p>
             <p className="font-semibold">{recommendedAudiobook.title}</p>
             {(recommendedAudiobook.category || recommendedAudiobook.level) && (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-stone-400">
                 {[recommendedAudiobook.category, recommendedAudiobook.level]
                   .filter(Boolean)
                   .join(' · ')}
@@ -55,7 +55,9 @@ function RecommendationsFeed() {
 
         {bestStudyHour && (
           <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-4">
-            <p className="text-xs text-slate-400">Melhor horário para estudar</p>
+            <p className="text-xs text-slate-500 dark:text-stone-400">
+              Melhor horário para estudar
+            </p>
             <p className="font-semibold">{String(bestStudyHour.hour).padStart(2, '0')}h</p>
           </div>
         )}

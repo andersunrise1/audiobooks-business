@@ -39,17 +39,25 @@ function PaymentSuccessPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-md">
-      {!sessionId && <p className="text-red-500 text-sm">Sessão de pagamento não encontrada.</p>}
+      {!sessionId && (
+        <p className="text-red-600 dark:text-red-400 text-sm">
+          Sessão de pagamento não encontrada.
+        </p>
+      )}
 
-      {checking && !upgraded && <p className="text-slate-500">Confirmando seu pagamento...</p>}
+      {checking && !upgraded && (
+        <p className="text-slate-500 dark:text-stone-400">Confirmando seu pagamento...</p>
+      )}
 
       {!checking && upgraded && (
         <>
-          <h1 className="text-2xl font-bold text-green-700">Pagamento confirmado!</h1>
-          <p className="text-slate-600">
+          <h1 className="text-2xl font-bold text-green-700 dark:text-green-400">
+            Pagamento confirmado!
+          </h1>
+          <p className="text-slate-600 dark:text-stone-300">
             Seu acesso Vitalício ao TechSpeak está ativo. Bons estudos!
           </p>
-          <Link to="/dashboard" className="text-slate-900 underline">
+          <Link to="/dashboard" className="text-slate-900 dark:text-stone-100 underline">
             Ir para o dashboard
           </Link>
         </>
@@ -58,7 +66,7 @@ function PaymentSuccessPage() {
       {!checking && !upgraded && (
         <>
           <h1 className="text-xl font-bold">Ainda confirmando...</h1>
-          <p className="text-slate-600">
+          <p className="text-slate-600 dark:text-stone-300">
             Recebemos seu pagamento, mas a confirmação está demorando mais que o normal. Isso pode
             levar alguns instantes — recarregue a página em breve ou entre em contato em{' '}
             <a href="mailto:suporte@techspeak.dev" className="underline">

@@ -60,7 +60,9 @@ function PricingPage() {
     <div className="flex flex-col gap-6 max-w-md">
       <div>
         <h1 className="text-2xl font-bold">TechSpeak Vitalício</h1>
-        <p className="text-slate-500 mt-1">Pagamento único, acesso para sempre.</p>
+        <p className="text-slate-500 dark:text-stone-400 mt-1">
+          Pagamento único, acesso para sempre.
+        </p>
       </div>
 
       <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-6 flex flex-col gap-4">
@@ -71,10 +73,12 @@ function PricingPage() {
         )}
         <p className="text-4xl font-bold">
           R$ {(priceBrlCents / 100).toFixed(0)}{' '}
-          <span className="text-base font-normal text-slate-500">pagamento único</span>
+          <span className="text-base font-normal text-slate-500 dark:text-stone-400">
+            pagamento único
+          </span>
         </p>
 
-        <ul className="flex flex-col gap-2 text-sm text-slate-700">
+        <ul className="flex flex-col gap-2 text-sm text-slate-700 dark:text-stone-200">
           {FEATURES.map((feature) => (
             <li key={feature} className="flex items-start gap-2">
               <span className="text-green-600">✓</span>
@@ -98,7 +102,7 @@ function PricingPage() {
           </button>
         )}
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
       </div>
     </div>
   );

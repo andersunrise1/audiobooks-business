@@ -12,7 +12,15 @@ function TechSpeakWordmark({ className = '', iconClassName = 'w-7 h-7' }) {
       <RobotLogo className={iconClassName} />
       <span>
         {'TechSpe'}
-        <span className="text-white [-webkit-text-stroke:0.6px_rgba(0,0,0,0.6)]">{'ak'}</span>
+        {/* Dia 70: the dark stroke only earns its keep in light mode,
+            where the canvas is white and white-on-white would otherwise
+            vanish. In dark mode the canvas is stone-900, where plain
+            white already has ~15:1 contrast on its own - keeping the
+            stroke there just confused axe-core's contrast checker into
+            reading a blended, low-contrast effective color. */}
+        <span className="text-white [-webkit-text-stroke:0.6px_rgba(0,0,0,0.6)] dark:[-webkit-text-stroke:0px]">
+          {'ak'}
+        </span>
       </span>
     </span>
   );

@@ -27,7 +27,7 @@ function AudiobookListPage() {
   }, [location.state]);
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
 
   const filteredAudiobooks = audiobooks.filter((book) =>
     book.title.toLowerCase().includes(search.toLowerCase()),
@@ -40,6 +40,7 @@ function AudiobookListPage() {
       <input
         ref={searchInputRef}
         type="search"
+        aria-label="Buscar audiobook"
         placeholder="Buscar audiobook..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -47,7 +48,7 @@ function AudiobookListPage() {
       />
 
       {filteredAudiobooks.length === 0 ? (
-        <p className="text-slate-500">
+        <p className="text-slate-500 dark:text-stone-400">
           {audiobooks.length === 0
             ? 'Nenhum audiobook cadastrado ainda.'
             : 'Nenhum audiobook encontrado.'}
@@ -59,7 +60,9 @@ function AudiobookListPage() {
               <Link to={`/audiobooks/${book.id}/player`} className="underline">
                 {book.title}
               </Link>
-              {book.level && <span className="text-slate-500 text-sm">— {book.level}</span>}
+              {book.level && (
+                <span className="text-slate-500 dark:text-stone-400 text-sm">— {book.level}</span>
+              )}
               {!book.is_free && !isPro && (
                 <span
                   className="text-amber-600 dark:text-amber-400"

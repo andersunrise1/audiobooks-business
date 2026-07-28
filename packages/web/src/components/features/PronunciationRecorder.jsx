@@ -64,7 +64,7 @@ function PronunciationRecorder({ targetSentence }) {
 
   if (!isSupported) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-stone-400">
         Reconhecimento de voz não é suportado neste navegador.
       </p>
     );
@@ -72,7 +72,9 @@ function PronunciationRecorder({ targetSentence }) {
 
   return (
     <div className="rounded-lg border border-slate-200 dark:border-stone-700 p-4 flex flex-col gap-3">
-      <p className="text-sm text-slate-500">Pratique a pronúncia desta frase:</p>
+      <p className="text-sm text-slate-500 dark:text-stone-400">
+        Pratique a pronúncia desta frase:
+      </p>
       <p className="italic">
         “
         {targetSentence.split(/\s+/).map((word, i) => (
@@ -80,7 +82,9 @@ function PronunciationRecorder({ targetSentence }) {
             key={i}
             className={
               result &&
-              (result.matchedWords.has(normalizeForMatch(word)) ? 'text-green-600' : 'text-red-500')
+              (result.matchedWords.has(normalizeForMatch(word))
+                ? 'text-green-600'
+                : 'text-red-600 dark:text-red-400')
             }
           >
             {word}{' '}
@@ -113,9 +117,11 @@ function PronunciationRecorder({ targetSentence }) {
         )}
       </div>
 
-      {status === 'error' && <p className="text-sm text-red-500">{errorMessage}</p>}
+      {status === 'error' && (
+        <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+      )}
       {status === 'done' && result && (
-        <div className="text-sm text-slate-500">
+        <div className="text-sm text-slate-500 dark:text-stone-400">
           <p>Você disse: “{transcript}”</p>
           <p className="font-semibold mt-1">Pronúncia: {result.score}%</p>
         </div>

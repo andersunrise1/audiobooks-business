@@ -31,7 +31,9 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <BrowserRouter>
-          <Suspense fallback={<p className="p-6 text-slate-500">Carregando...</p>}>
+          <Suspense
+            fallback={<p className="p-6 text-slate-500 dark:text-stone-400">Carregando...</p>}
+          >
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<HomePage />} />

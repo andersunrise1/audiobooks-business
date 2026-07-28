@@ -3,19 +3,23 @@ import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
 function statusFor(book) {
-  if (!book.published_at) return { label: 'Rascunho', className: 'bg-slate-200 text-slate-700' };
+  if (!book.published_at)
+    return {
+      label: 'Rascunho',
+      className: 'bg-slate-200 text-slate-700 dark:bg-stone-700 dark:text-stone-200',
+    };
 
   const publishedAt = new Date(book.published_at);
   if (publishedAt > new Date()) {
     return {
       label: `Agendado para ${publishedAt.toLocaleString('pt-BR')}`,
-      className: 'bg-amber-100 text-slate-900',
+      className: 'bg-amber-100 text-slate-900 dark:bg-amber-300',
     };
   }
 
   return {
     label: `Publicado em ${publishedAt.toLocaleString('pt-BR')}`,
-    className: 'bg-green-100 text-green-800',
+    className: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400',
   };
 }
 
@@ -102,17 +106,17 @@ function AdminContentPage() {
   }
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Conteúdo</h1>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-stone-400">
         Gerencie o status de publicação dos audiobooks — rascunhos e agendamentos não aparecem no
         catálogo público.
       </p>
 
-      {actionError && <p className="text-red-500 text-sm">{actionError}</p>}
+      {actionError && <p className="text-red-600 dark:text-red-400 text-sm">{actionError}</p>}
 
       <ul className="flex flex-col gap-3">
         {books.map((book) => {
@@ -125,7 +129,12 @@ function AdminContentPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-semibold">{book.title}</span>
-                  {book.level && <span className="text-slate-500 text-sm"> — {book.level}</span>}
+                  {book.level && (
+                    <span className="text-slate-500 dark:text-stone-400 text-sm">
+                      {' '}
+                      — {book.level}
+                    </span>
+                  )}
                 </div>
                 <span className={`text-xs font-semibold rounded px-2 py-1 ${status.className}`}>
                   {status.label}
@@ -149,6 +158,7 @@ function AdminContentPage() {
                 </button>
                 <input
                   type="datetime-local"
+                  aria-label={`Agendar publicação de ${book.title}`}
                   value={scheduleInputs[book.id] ?? ''}
                   onChange={(e) =>
                     setScheduleInputs((prev) => ({ ...prev, [book.id]: e.target.value }))
@@ -176,14 +186,16 @@ function AdminContentPage() {
               {previewId === book.id && (
                 <div className="bg-slate-50 dark:bg-stone-800 rounded p-3 text-sm flex flex-col gap-2">
                   {!preview ? (
-                    <p className="text-slate-500">Carregando preview...</p>
+                    <p className="text-slate-500 dark:text-stone-400">Carregando preview...</p>
                   ) : (
                     preview.chapters.map((chapter) => (
                       <div key={chapter.id}>
                         <p className="font-semibold">
                           Capítulo {chapter.order_index}: {chapter.title}
                         </p>
-                        <p className="text-slate-600">{chapter.transcript || '(sem transcript)'}</p>
+                        <p className="text-slate-600 dark:text-stone-300">
+                          {chapter.transcript || '(sem transcript)'}
+                        </p>
                       </div>
                     ))
                   )}

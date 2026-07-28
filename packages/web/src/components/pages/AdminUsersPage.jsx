@@ -42,7 +42,7 @@ function AdminUsersPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Usuários</h1>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm border border-slate-200 dark:border-stone-700 rounded-lg overflow-hidden">

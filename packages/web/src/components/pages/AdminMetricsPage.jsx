@@ -25,7 +25,7 @@ function AdminMetricsPage() {
   }, [accessToken]);
 
   if (loading) return <p>Carregando...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
   if (!data) return null;
 
   const { completionRates, retention, lifetimeValue } = data;
@@ -33,7 +33,7 @@ function AdminMetricsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">Métricas de Negócio</h1>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-stone-400">
         TechSpeak não tem assinatura recorrente (compra vitalícia única), então &quot;churn&quot;
         aqui mede inatividade de uso, não cancelamento — e o LTV é simplesmente o preço vitalício
         vezes a taxa de conversão, sem fórmula de receita recorrente.
@@ -79,7 +79,7 @@ function AdminMetricsPage() {
             ))}
             {completionRates.length === 0 && (
               <tr>
-                <td className="p-2 text-slate-400" colSpan={4}>
+                <td className="p-2 text-slate-500 dark:text-stone-400" colSpan={4}>
                   Nenhum audiobook cadastrado ainda.
                 </td>
               </tr>

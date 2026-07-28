@@ -74,7 +74,7 @@ function HelpCenterPage() {
     <div className="flex flex-col gap-8 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold">Central de Ajuda</h1>
-        <p className="text-slate-500 mt-1">
+        <p className="text-slate-500 dark:text-stone-400 mt-1">
           Perguntas frequentes e um jeito direto de falar com a gente.
         </p>
       </div>
@@ -85,7 +85,7 @@ function HelpCenterPage() {
           {FAQ.map((item) => (
             <div key={item.question}>
               <p className="font-semibold">{item.question}</p>
-              <p className="text-slate-600 text-sm">{item.answer}</p>
+              <p className="text-slate-600 dark:text-stone-300 text-sm">{item.answer}</p>
             </div>
           ))}
         </div>
@@ -93,7 +93,7 @@ function HelpCenterPage() {
 
       <section>
         <h2 className="text-lg font-semibold mb-3">Falar com o suporte</h2>
-        <p className="text-sm text-slate-500 mb-3">
+        <p className="text-sm text-slate-500 dark:text-stone-400 mb-3">
           Prefere e-mail direto? Escreva para{' '}
           <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">
             {SUPPORT_EMAIL}
@@ -111,6 +111,7 @@ function HelpCenterPage() {
               <input
                 required
                 type="email"
+                aria-label="Seu e-mail"
                 placeholder="Seu e-mail"
                 value={form.email}
                 onChange={(e) => updateField('email', e.target.value)}
@@ -119,6 +120,7 @@ function HelpCenterPage() {
             )}
             <input
               required
+              aria-label="Assunto"
               placeholder="Assunto"
               value={form.subject}
               onChange={(e) => updateField('subject', e.target.value)}
@@ -126,6 +128,7 @@ function HelpCenterPage() {
             />
             <textarea
               required
+              aria-label="Descreva sua dúvida ou problema"
               placeholder="Descreva sua dúvida ou problema"
               value={form.message}
               onChange={(e) => updateField('message', e.target.value)}
@@ -139,7 +142,7 @@ function HelpCenterPage() {
             >
               {submitting ? 'Enviando...' : 'Enviar'}
             </button>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
           </form>
         )}
       </section>

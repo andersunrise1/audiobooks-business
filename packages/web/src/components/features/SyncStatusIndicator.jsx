@@ -27,7 +27,7 @@ function SyncStatusIndicator() {
   }
 
   let label = 'Sincronizando...';
-  let className = 'text-slate-400';
+  let className = 'text-slate-500 dark:text-stone-400';
 
   if (!syncing && status) {
     if (status.ok) {
@@ -35,7 +35,7 @@ function SyncStatusIndicator() {
       className = 'text-green-600';
     } else {
       label = 'Erro de sincronização';
-      className = 'text-red-500';
+      className = 'text-red-600 dark:text-red-400';
     }
   } else if (!syncing && !status) {
     label = 'Aguardando primeira sincronização';
@@ -48,7 +48,7 @@ function SyncStatusIndicator() {
         type="button"
         onClick={handleSyncNow}
         disabled={syncing}
-        className="underline text-slate-500 disabled:opacity-50 touch-manipulation"
+        className="underline text-slate-500 dark:text-stone-400 disabled:opacity-50 touch-manipulation"
       >
         Sincronizar agora
       </button>

@@ -6,7 +6,7 @@ function HomePage() {
       <h1>
         <TechSpeakWordmark className="text-3xl" iconClassName="w-10 h-10" />
       </h1>
-      <p className="text-slate-500">
+      <p className="text-slate-500 dark:text-stone-400">
         Aprenda o inglês que engenheiros de software realmente usam no trabalho.
       </p>
     </div>

@@ -88,7 +88,7 @@ function ChatWidget({ chapterId }) {
 
       <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
         {messages.length === 0 && !sending && (
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 dark:text-stone-400 text-sm">
             Pergunte algo sobre este capítulo, uma palavra ou gramática.
           </p>
         )}
@@ -134,11 +134,11 @@ function ChatWidget({ chapterId }) {
             )}
 
             {message.role === 'assistant' && !message.fallback && (
-              <div className="flex gap-2 mt-1 text-xs text-slate-400">
+              <div className="flex gap-2 mt-1 text-xs text-slate-500 dark:text-stone-400">
                 <button
                   type="button"
                   onClick={() => handleCopy(message)}
-                  className="hover:text-slate-600"
+                  className="hover:text-slate-600 dark:hover:text-stone-300"
                 >
                   {copiedId === message.id
                     ? 'Copiado!'
@@ -188,11 +188,12 @@ function ChatWidget({ chapterId }) {
         <div ref={bottomRef} />
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
 
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"
+          aria-label="Pergunte algo sobre este capítulo"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Pergunte algo sobre este capítulo..."

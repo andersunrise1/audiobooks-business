@@ -169,7 +169,7 @@ function PlayerPage() {
     return (
       <div className="flex flex-col gap-3 max-w-md">
         <h1 className="text-xl font-bold">Este audiobook é exclusivo do Vitalício</h1>
-        <p className="text-slate-600">{message}</p>
+        <p className="text-slate-600 dark:text-stone-300">{message}</p>
         <Link
           to="/pricing"
           onClick={handleSeePlansClick}
@@ -180,14 +180,17 @@ function PlayerPage() {
       </div>
     );
   }
-  if (error) return <p className="text-red-500">{error}</p>;
-  if (!chapter) return <p className="text-slate-500">Este audiobook ainda não tem capítulos.</p>;
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>;
+  if (!chapter)
+    return (
+      <p className="text-slate-500 dark:text-stone-400">Este audiobook ainda não tem capítulos.</p>
+    );
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-bold">{chapter.title}</h1>
-        <p className="text-slate-500 text-sm">
+        <p className="text-slate-500 dark:text-stone-400 text-sm">
           Capítulo {chapterIndex + 1} de {chapters.length}
           {progressByChapter[chapter.id]?.completed && ' · concluído'}
         </p>
@@ -243,7 +246,7 @@ function PlayerPage() {
           <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
         </>
       ) : (
-        <p className="text-sm text-slate-500 border border-slate-200 dark:border-stone-700 rounded-lg p-4">
+        <p className="text-sm text-slate-500 dark:text-stone-400 border border-slate-200 dark:border-stone-700 rounded-lg p-4">
           Crie uma conta gratuita para salvar seu progresso e conversar com o tutor de IA.{' '}
           <Link to="/register" state={{ from: `/audiobooks/${id}/player` }} className="underline">
             Criar conta

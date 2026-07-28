@@ -118,7 +118,7 @@ Body: `{ "wordsLearned"?, "listeningCount"?, "completed"? }` — any subset; omi
 
 ### `POST /api/user/words-learned`
 
-Body: `{ "chapterId", "wordId" }`. Records the click in `word_clicks` (analytics), increments `user_progress.words_learned` for that chapter, and ensures a `flashcards` row exists for the word (created once, `ON CONFLICT DO NOTHING` — later clicks don't reset its SRS progress). 201 → the updated `user_progress` row. 400 if either id is missing.
+Body: `{ "chapterId", "wordId" }`. Records the click in `word_clicks` (analytics), increments `user_progress.words_learned` for that chapter, and ensures a `flashcards` row exists for the word (created once, `ON CONFLICT DO NOTHING` — later clicks don't reset its SRS progress). All 3 writes run in a single transaction (Dia 78-79) — a failure on any of them rolls back the others rather than leaving a partial state. 201 → the updated `user_progress` row. 400 if either id is missing.
 
 ### `GET /api/user/flashcards`
 

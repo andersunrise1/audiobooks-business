@@ -1,12 +1,51 @@
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/AuthContext.jsx';
 import LoginScreen from '../screens/LoginScreen.jsx';
 import RegisterScreen from '../screens/RegisterScreen.jsx';
-import HomeScreen from '../screens/HomeScreen.jsx';
+import AudiobookListScreen from '../screens/AudiobookListScreen.jsx';
+import PlayerScreen from '../screens/PlayerScreen.jsx';
+import ChatScreen from '../screens/ChatScreen.jsx';
+import FlashcardsScreen from '../screens/FlashcardsScreen.jsx';
+import DashboardScreen from '../screens/DashboardScreen.jsx';
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function LogoutButton() {
+  const { logout } = useAuth();
+  return (
+    <Pressable onPress={logout} hitSlop={12} style={{ marginRight: 12 }}>
+      <Text style={{ color: '#2563eb' }}>Sair</Text>
+    </Pressable>
+  );
+}
+
+// Bottom tabs are the app's home base once authenticated (Dia 86-90's
+// "Dashboard"/"Flashcards" priorities live here); Player and Chat are
+// pushed on top as stack screens from Audiobooks, since a player/chat
+// session isn't itself a top-level destination.
+function MainTabs() {
+  return (
+    <Tab.Navigator screenOptions={{ headerRight: () => <LogoutButton /> }}>
+      <Tab.Screen name="Audiobooks" component={AudiobookListScreen} />
+      <Tab.Screen name="Flashcards" component={FlashcardsScreen} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+    </Tab.Navigator>
+  );
+}
+
+function AuthenticatedStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="Player" component={PlayerScreen} options={{ title: '' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Tutor IA' }} />
+    </Stack.Navigator>
+  );
+}
 
 // Swapping the whole navigator based on isAuthenticated (rather than
 // per-screen guards, the web app's approach with ProtectedRoute) is the
@@ -26,16 +65,14 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        )}
-      </Stack.Navigator>
+      {isAuthenticated ? (
+        <AuthenticatedStack />
+      ) : (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </Stack.Navigator>
+      )}
     </NavigationContainer>
   );
 }

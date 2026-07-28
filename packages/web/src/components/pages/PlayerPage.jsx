@@ -1,11 +1,7 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AudioPlayer from '../features/AudioPlayer.jsx';
 import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
-import PronunciationRecorder from '../features/PronunciationRecorder.jsx';
-import ChatWidget from '../features/ChatWidget.jsx';
-import ChapterFeedback from '../features/ChapterFeedback.jsx';
-import VoiceCommandBar from '../features/VoiceCommandBar.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
@@ -17,6 +13,16 @@ import {
   getCachedProgress,
   isDesktop,
 } from '../../services/desktopBridge.js';
+
+// Dia 73-74: these are the heavier, non-essential-to-first-paint parts of
+// the player (voice commands, AI chat, pronunciation scoring, post-chapter
+// feedback) - lazy-loading them shrinks the PlayerPage route's own chunk,
+// which was already the largest lazy chunk in the app (21.83kB / 6.61kB
+// gzip) even after Dia 23's route-level code splitting.
+const PronunciationRecorder = lazy(() => import('../features/PronunciationRecorder.jsx'));
+const ChatWidget = lazy(() => import('../features/ChatWidget.jsx'));
+const ChapterFeedback = lazy(() => import('../features/ChapterFeedback.jsx'));
+const VoiceCommandBar = lazy(() => import('../features/VoiceCommandBar.jsx'));
 
 function PlayerPage() {
   const { id } = useParams();
@@ -214,7 +220,11 @@ function PlayerPage() {
         onWordClick={handleWordClick}
       />
 
-      {chapter.transcript && <PronunciationRecorder targetSentence={chapter.transcript} />}
+      {chapter.transcript && (
+        <Suspense fallback={null}>
+          <PronunciationRecorder targetSentence={chapter.transcript} />
+        </Suspense>
+      )}
 
       <div className="flex gap-2">
         <button
@@ -236,7 +246,7 @@ function PlayerPage() {
       </div>
 
       {isAuthenticated ? (
-        <>
+        <Suspense fallback={null}>
           <VoiceCommandBar context={chapter.transcript} onNextChapter={handleNextChapter} />
 
           {progressByChapter[chapter.id]?.completed && (
@@ -244,7 +254,7 @@ function PlayerPage() {
           )}
 
           <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
-        </>
+        </Suspense>
       ) : (
         <p className="text-sm text-slate-500 dark:text-stone-400 border border-slate-200 dark:border-stone-700 rounded-lg p-4">
           Crie uma conta gratuita para salvar seu progresso e conversar com o tutor de IA.{' '}

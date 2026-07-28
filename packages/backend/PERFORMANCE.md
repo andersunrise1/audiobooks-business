@@ -62,15 +62,26 @@ time as the AI-under-load check below.
 **Servidor aguenta?** Yes — zero errors, zero timeouts, even at 1000
 concurrent connections. But latency at 1000 concurrent (p50 568ms) is
 ~20x worse than the two simpler endpoints' p50 (~25-30ms) at only 100
-concurrent. The likely cause, not yet fixed (that's Dia 73-74's job):
-`statsService.getUserStats` runs **5 separate queries** per request
-(`packages/backend/src/services/statsService.js`), and `config/database.js`'s
-`pg.Pool` has no explicit `max` set — it defaults to 10 connections. At
-1000 concurrent requests × 5 queries each, requests are almost certainly
-queueing for one of only 10 available DB connections rather than failing —
-exactly the behavior a connection pool is supposed to have under overload
-(degrade gracefully, don't error), but it's the real, measured reason for
-the latency cliff, not a guess.
+concurrent.
+
+**Update, Dia 73-74**: root-caused with `EXPLAIN ANALYZE` against the real
+DB, not guessed — every one of `getUserStats`'s 5 queries executed in
+under 1ms even under this exact load, and the query planner correctly
+chose sequential scans over the existing indexes given this dataset's
+small table sizes (adding more indexes would not have helped). The real
+cause was `pg.Pool` having no explicit `max` (node-postgres defaults to 10) against 1000 concurrent requests each needing up to 5 simultaneous
+connections. Fixed two ways: `config/database.js` now sets `max: 20`
+(`DB_POOL_MAX` env-overridable), and `statsService.getUserStats` merges
+two queries that both scanned `word_clicks` with the same `user_id`
+filter (word-count-by-period and the streak's activity dates) into one,
+cutting the endpoint from 5 queries to 4. Re-ran the identical Scenario 3
+load afterward: 1,636 → **1,863 req/s** (+14%), p50 568ms → **522ms**
+(-8%), p99 840ms → 812ms. Real, measured, but modest — halving the
+per-request connection count and doubling the pool doesn't erase the
+fundamental fact that 1000 concurrent requests against one Postgres
+instance's bounded connection pool will always queue _somewhere_; this
+isn't a number to keep tuning further without real production traffic
+data to justify it.
 
 ### AI-under-load check (real Anthropic API calls, not mocked)
 

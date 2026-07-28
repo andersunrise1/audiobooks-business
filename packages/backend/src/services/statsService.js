@@ -28,50 +28,51 @@ export function computeStreakDays(activityDates) {
 }
 
 export async function getUserStats(userId) {
-  const [wordsResult, flashcardsResult, timeResult, streakResult, audiobooksResult] =
-    await Promise.all([
-      pool.query(
-        `SELECT
-           count(DISTINCT word_id) FILTER (WHERE created_at >= date_trunc('day', now())) AS today,
-           count(DISTINCT word_id) FILTER (WHERE created_at >= date_trunc('week', now())) AS week,
-           count(DISTINCT word_id) FILTER (WHERE created_at >= date_trunc('month', now())) AS month
-         FROM word_clicks
-         WHERE user_id = $1`,
-        [userId],
-      ),
-      pool.query(
-        `SELECT count(*) AS due
-         FROM flashcards
-         WHERE user_id = $1 AND (next_review IS NULL OR next_review <= now())`,
-        [userId],
-      ),
-      pool.query(
-        `SELECT COALESCE(SUM(c.duration_seconds * up.listening_count), 0) AS total_seconds
-         FROM user_progress up
-         JOIN chapters c ON c.id = up.chapter_id
-         WHERE up.user_id = $1`,
-        [userId],
-      ),
-      pool.query(
-        `SELECT DISTINCT to_char(created_at, 'YYYY-MM-DD') AS activity_date
-         FROM word_clicks
-         WHERE user_id = $1`,
-        [userId],
-      ),
-      pool.query(
-        `SELECT a.id AS audiobook_id, a.title,
-                count(DISTINCT up.chapter_id) AS chapters_started,
-                count(DISTINCT c.id) AS chapters_total
-         FROM audiobooks a
-         JOIN chapters c ON c.audiobook_id = a.id
-         JOIN user_progress up ON up.chapter_id = c.id AND up.user_id = $1
-         GROUP BY a.id, a.title
-         ORDER BY a.title`,
-        [userId],
-      ),
-    ]);
+  // Dia 73-74: word_clicks day/week/month counts and the distinct activity
+  // dates used for the streak both scan the same table with the same
+  // user_id filter - merged into one query (was two) so this endpoint
+  // needs 4 simultaneous pool connections instead of 5. EXPLAIN ANALYZE
+  // confirmed the query itself was never the slow part (sub-millisecond on
+  // this dataset); this only helps by reducing how many of the pool's
+  // connections one request holds at once under concurrent load.
+  const [wordsResult, flashcardsResult, timeResult, audiobooksResult] = await Promise.all([
+    pool.query(
+      `SELECT
+         count(DISTINCT word_id) FILTER (WHERE created_at >= date_trunc('day', now())) AS today,
+         count(DISTINCT word_id) FILTER (WHERE created_at >= date_trunc('week', now())) AS week,
+         count(DISTINCT word_id) FILTER (WHERE created_at >= date_trunc('month', now())) AS month,
+         array_agg(DISTINCT to_char(created_at, 'YYYY-MM-DD')) FILTER (WHERE created_at IS NOT NULL) AS activity_dates
+       FROM word_clicks
+       WHERE user_id = $1`,
+      [userId],
+    ),
+    pool.query(
+      `SELECT count(*) AS due
+       FROM flashcards
+       WHERE user_id = $1 AND (next_review IS NULL OR next_review <= now())`,
+      [userId],
+    ),
+    pool.query(
+      `SELECT COALESCE(SUM(c.duration_seconds * up.listening_count), 0) AS total_seconds
+       FROM user_progress up
+       JOIN chapters c ON c.id = up.chapter_id
+       WHERE up.user_id = $1`,
+      [userId],
+    ),
+    pool.query(
+      `SELECT a.id AS audiobook_id, a.title,
+              count(DISTINCT up.chapter_id) AS chapters_started,
+              count(DISTINCT c.id) AS chapters_total
+       FROM audiobooks a
+       JOIN chapters c ON c.audiobook_id = a.id
+       JOIN user_progress up ON up.chapter_id = c.id AND up.user_id = $1
+       GROUP BY a.id, a.title
+       ORDER BY a.title`,
+      [userId],
+    ),
+  ]);
 
-  const streakDays = computeStreakDays(streakResult.rows.map((row) => row.activity_date));
+  const streakDays = computeStreakDays(wordsResult.rows[0].activity_dates ?? []);
 
   return {
     wordsLearned: {

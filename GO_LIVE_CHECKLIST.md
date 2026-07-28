@@ -10,6 +10,30 @@ Nothing here is code work unless explicitly marked **(dev work)** — most
 steps are account creation, configuration, and business decisions only you
 can make.
 
+## Phase 0 — Business/tax setup (already done: MEI)
+
+MEI is already open — this phase is just the remaining loose ends before
+real sales start:
+
+- **Confirm the MEI's CNAE covers digital products/online courses** (e.g.
+  "edição de outros produtos digitais" / "portais e outros serviços de
+  informação na internet" / "ensino via internet"). If missing, add it as a
+  free secondary activity via [gov.br/mei](https://www.gov.br/mei).
+- **Open the Stripe account under the MEI's CNPJ**, not a personal CPF, so
+  revenue (including international sales) is correctly attributed to the
+  business from day one.
+- **Watch the MEI revenue ceiling** (R\$81,000/year, current rule) — combined
+  domestic + international sales count together, no separate bucket for
+  foreign customers. Crossing it means migrating to Simples Nacional (ME),
+  a normal next step, not a problem, but worth tracking as the business
+  grows.
+- International sales still go through the MEI's normal annual declaration
+  (DASN-SIMEI) — there's no separate foreign-revenue field, it's all summed.
+- This is general guidance, not accounting/legal advice — Brazil's 2026-2033
+  tax reform (EC 132/2023, IBS/CBS) is still being phased in, and a real
+  accountant should confirm specifics before real money moves. Many
+  accountants serve MEI accounts for R\$50-150/month.
+
 ## Phase 1 — Hosting (web + backend + database)
 
 1. **Pick a hosting provider.** For a solo developer, [Railway](https://railway.app)

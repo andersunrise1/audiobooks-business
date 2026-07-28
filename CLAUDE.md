@@ -272,9 +272,18 @@ Verified for real: fix #1 via the new integration test against real Postgres (fu
 
 Not done, honestly: no new bugs were found in `packages/web`'s React code this pass (the audit's findings clustered in backend transaction-safety and Electron/desktop sync, not the frontend); this is a one-time re-read rather than a recurring practice, so future days could still surface more of the same class of issue.
 
-Next up per the plan: Dia 80 (Pre-Launch Checklist).
+**Dia 80 is done, closing Etapa 5 (Semanas 13-16, Dias 61-80)**. The plan's 11-item pre-launch checklist is answered honestly in the new [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md), item by item, with today's real verification runs rather than a recap of old day entries.
+
+Two items got genuinely new, buildable work rather than just a status check: **backup system** and **disaster recovery** had zero infrastructure before today (`grep`-confirmed: no `pg_dump`/backup reference existed anywhere in the repo). `packages/backend/scripts/backup.js` (`npm run backup`) runs `pg_dump -Fc` against `DATABASE_URL` into a gitignored `backups/` directory; `scripts/restoreTest.js` (`npm run backup:verify`) is the part that actually matters — an untested backup isn't a real backup — it restores the latest dump into a throwaway database on the same Postgres instance (never the real dev DB), compares row counts against the source for `users`/`audiobooks`/`chapters`/`words`/`flashcards`, and drops the throwaway DB in a `finally` block regardless of outcome. Run for real against this dev DB's actual accumulated data (94 users, 25 audiobooks, 125 chapters, 127 words, 7 flashcards) — every count matched, and no leftover throwaway database was left behind. `packages/backend/DISASTER_RECOVERY.md` documents the tested procedure plus the honest gaps (no automated schedule or off-site copy, since no hosting provider is chosen yet — same standing gap as `deploy-staging.yml`'s own TODO).
+
+The other 9 checklist items were verified, not rebuilt: re-ran the full golden path live against the real backend (register → login → catalog → free-tier chapters → word click → stats → flashcards → checkout's expected 503 → support ticket → beta feedback → admin analytics/content-analytics/experiments), confirming Dia 78-79's transaction fix works correctly on the real happy path too, not just its own failure-injection test. Measured real numbers rather than assuming: backend coverage (94.26% lines, `test:coverage` already existed since Dia 21) is close to the plan's 95% target; web coverage had never been measured before today — `@vitest/coverage-v8` + a new `test:coverage` script put a real number on it (56.91% lines), honestly far under 95%, consistent with this project's established pattern of verifying UI work live in-browser rather than writing a test for every component.
+
+Not done, honestly (all pre-existing, tracked gaps compiled rather than newly discovered): no real Stripe test-mode checkout has ever run (still no Stripe account); no email-sending service exists at all (not "undertested" — there's nothing to test); no hosting provider is chosen, which is also what blocks a real production backup schedule/DR rehearsal. `LAUNCH_CHECKLIST.md`'s bottom line spells out exactly what's launch-ready versus blocking.
+
+Next up per the plan: Etapa 6 (Mobile / React Native, Semanas 17-20) — a new phase, not started yet.
 
 Other docs:
+- [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) — Dia 80's honest pre-launch checklist review.
 - [Audiobooks_English_Business.txt](Audiobooks_English_Business.txt) — product positioning/pitch notes.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, commit/branch conventions, what CI runs.
 - [MONETIZATION_REPORT.md](MONETIZATION_REPORT.md) — Dia 59-60's honest review of the plan's conversion/churn/CAC/LTV checklist.

@@ -10,7 +10,8 @@
     "migrate": "node src/db/migrate.js",
     "test": "node --test",
     "test:coverage": "node --test --experimental-test-coverage",
-    "test:ai-quality": "node --test tests/quality/*.js"
+    "test:ai-quality": "node --test tests/quality/*.js",
+    "test:load": "node loadtest/run.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.114.0",
@@ -24,5 +25,8 @@
     "pg": "^8.22.0",
     "redis": "^6.1.0",
     "stripe": "^22.3.2"
+  },
+  "devDependencies": {
+    "autocannon": "^8.0.0"
   }
 }

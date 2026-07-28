@@ -17,18 +17,29 @@ async function apiRequest(apiUrl, path, { method = 'GET', body, token } = {}) {
   return res.json();
 }
 
+// Dia 78-79: previously a single failing entry (a stale chapter/flashcard id,
+// a transient network error) threw out of the loop, which skipped every
+// later queued entry AND - since syncNow's try/catch wraps this whole
+// sequence - skipped pullLatest()/checkForNotifications() too, permanently
+// (every future sync would hit the same first bad entry and never progress
+// past it). Each entry is now isolated: a failure is left queued to retry
+// later, but doesn't block its siblings or the rest of the sync cycle.
 async function pushQueuedUpdates(apiUrl, token) {
   const queued = db.getQueuedUpdates();
   let pushed = 0;
 
   for (const entry of queued) {
-    await apiRequest(apiUrl, `/api/user/progress/${entry.chapter_id}`, {
-      method: 'POST',
-      token,
-      body: JSON.parse(entry.payload),
-    });
-    db.clearQueuedUpdate(entry.id);
-    pushed += 1;
+    try {
+      await apiRequest(apiUrl, `/api/user/progress/${entry.chapter_id}`, {
+        method: 'POST',
+        token,
+        body: JSON.parse(entry.payload),
+      });
+      db.clearQueuedUpdate(entry.id);
+      pushed += 1;
+    } catch {
+      // Leave it queued - next sync retries it. Doesn't stop the loop.
+    }
   }
 
   return pushed;
@@ -39,13 +50,17 @@ async function pushQueuedReviews(apiUrl, token) {
   let pushed = 0;
 
   for (const entry of queued) {
-    await apiRequest(apiUrl, `/api/user/flashcards/${entry.flashcard_id}/review`, {
-      method: 'POST',
-      token,
-      body: { quality: entry.quality },
-    });
-    db.clearQueuedReview(entry.id);
-    pushed += 1;
+    try {
+      await apiRequest(apiUrl, `/api/user/flashcards/${entry.flashcard_id}/review`, {
+        method: 'POST',
+        token,
+        body: { quality: entry.quality },
+      });
+      db.clearQueuedReview(entry.id);
+      pushed += 1;
+    } catch {
+      // Leave it queued - next sync retries it. Doesn't stop the loop.
+    }
   }
 
   return pushed;

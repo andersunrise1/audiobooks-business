@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/AuthContext.jsx';
+import { registerForPushNotificationsAsync } from '../services/pushNotifications.js';
 import LoginScreen from '../screens/LoginScreen.jsx';
 import RegisterScreen from '../screens/RegisterScreen.jsx';
 import AudiobookListScreen from '../screens/AudiobookListScreen.jsx';
@@ -54,6 +56,17 @@ function AuthenticatedStack() {
 // screen that needed auth.
 export default function AppNavigator() {
   const { isAuthenticated, isReady } = useAuth();
+
+  // Registering on login (not on every app open) is deliberate - a token
+  // is only useful once there's an account to associate it with server-
+  // side, and no endpoint saves it yet (see IOS_BUILD.md/
+  // ANDROID_BUILD.md's "not done" list - there's no
+  // POST /api/user/push-token equivalent on the backend).
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerForPushNotificationsAsync();
+    }
+  }, [isAuthenticated]);
 
   if (!isReady) {
     return (

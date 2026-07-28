@@ -1,6 +1,5 @@
 import { createTicket } from '../services/supportTicketService.js';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { isValidEmail } from '../utils/validation.js';
 
 export async function submitTicket(req, res) {
   const { subject, message } = req.body;
@@ -10,7 +9,7 @@ export async function submitTicket(req, res) {
     return res.status(400).json({ error: 'subject and message are required' });
   }
 
-  if (!email || !EMAIL_PATTERN.test(email)) {
+  if (!isValidEmail(email)) {
     return res.status(400).json({ error: 'a valid email is required' });
   }
 

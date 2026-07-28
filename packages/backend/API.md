@@ -4,6 +4,10 @@ Base URL (dev): `http://localhost:3000`
 
 All request/response bodies are JSON. Authenticated routes require an `Authorization: Bearer <accessToken>` header; the access token expires after 15 minutes (`packages/backend/src/utils/jwt.js`) — use `POST /api/auth/refresh-token` to get a new one without asking the user to log in again.
 
+## Security (Dia 75)
+
+Every response gets `helmet`'s standard security headers (`X-Content-Type-Options`, etc.). CORS is restricted to `FRONTEND_URL` (default `http://localhost:5173`) — requests with no `Origin` header (curl, server-to-server, the desktop app) are allowed through; a browser request from any other origin is rejected. When `NODE_ENV=production`, plain HTTP requests are redirected to HTTPS and `Strict-Transport-Security` is set; this is a no-op in dev/test. Every `/api/*` route is capped at `GENERAL_RATE_LIMIT` requests per IP per 15 minutes (default 300), with a tighter `AUTH_RATE_LIMIT` (default 20) specifically on `/api/auth/*` — both separate from the existing per-user `/api/ai/*` rate limit (Dia 37).
+
 ## Health
 
 ### `GET /api/health`
@@ -16,6 +20,7 @@ No auth. Returns `{ "status": "ok" }`.
 
 Body: `{ "email", "password", "name"? }`
 201 → `{ "user": { id, email, name, plan, isAdmin, themePrimaryColor, themeFontSize }, "accessToken", "refreshToken" }`
+400 if `email` isn't a valid-shaped email, or `password` is under 8 characters (Dia 75).
 409 if the email is already registered.
 
 ### `POST /api/auth/login`

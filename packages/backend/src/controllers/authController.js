@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/database.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
+import { isValidEmail, isValidPassword, MIN_PASSWORD_LENGTH } from '../utils/validation.js';
 
 const SALT_ROUNDS = 12;
 
@@ -19,8 +20,14 @@ function toPublicUser(user) {
 export async function register(req, res) {
   const { email, password, name } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'a valid email is required' });
+  }
+
+  if (!isValidPassword(password)) {
+    return res
+      .status(400)
+      .json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);

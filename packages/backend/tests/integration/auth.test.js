@@ -31,6 +31,24 @@ describe('Authentication', () => {
     assert.ok(accessToken);
   });
 
+  test('rejects registration with a malformed email (Dia 75)', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'not-an-email', password: 'correct-horse-battery-staple' }),
+    });
+    assert.equal(res.status, 400);
+  });
+
+  test('rejects registration with a too-short password (Dia 75)', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `short-pw-${Date.now()}@techspeak.test`, password: 'short' }),
+    });
+    assert.equal(res.status, 400);
+  });
+
   test('should login with valid credentials', async () => {
     const { email, password } = await registerAndTrack();
 

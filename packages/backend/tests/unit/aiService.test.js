@@ -2,6 +2,7 @@ import { describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   explainTechnicalTerm,
+  translateAnyWord,
   chatReply,
   getRemedialContent,
   explainCacheKey,
@@ -155,6 +156,108 @@ describe('aiService.getRemedialContent', () => {
       assert.equal(result.summary, 'nao consigo gerar isso agora');
       assert.deepEqual(result.keywords, []);
       assert.equal(result.exercise, '');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  // Real bug caught live: Claude sometimes wraps the JSON in a ```json
+  // fence despite the system prompt explicitly asking for none - this
+  // used to fall all the way through to the plain-text fallback above
+  // instead of parsing the (well-formed, just fenced) JSON underneath.
+  test('parses a JSON response even when wrapped in a markdown code fence', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [
+        {
+          type: 'text',
+          text: '```json\n{"summary": "resumo", "keywords": ["a"], "exercise": "ex"}\n```',
+        },
+      ],
+    }));
+
+    try {
+      const result = await getRemedialContent('some transcript');
+
+      assert.equal(result.summary, 'resumo');
+      assert.deepEqual(result.keywords, ['a']);
+      assert.equal(result.exercise, 'ex');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+});
+
+describe('aiService.translateAnyWord', () => {
+  test('parses a well-formed JSON translation response', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            part_of_speech: 'substantivo',
+            portuguese_translation: 'determinacao',
+            technical_explanation: 'Coragem diante de dificuldades.',
+            example_sentence: 'She showed real grit.',
+          }),
+        },
+      ],
+    }));
+
+    try {
+      const result = await translateAnyWord('grit', 'She showed real grit.');
+
+      assert.equal(result.part_of_speech, 'substantivo');
+      assert.equal(result.portuguese_translation, 'determinacao');
+      assert.equal(result.technical_explanation, 'Coragem diante de dificuldades.');
+      assert.equal(result.example_sentence, 'She showed real grit.');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  // The exact bug caught live in-browser: the Haiku model wrapped its JSON
+  // in a ```json fence, which used to make this fall through to the
+  // "not valid JSON" branch and store the raw fenced text as a fake
+  // translation instead of the real parsed fields.
+  test('parses a translation response wrapped in a markdown code fence', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [
+        {
+          type: 'text',
+          text:
+            '```json\n' +
+            JSON.stringify({
+              part_of_speech: 'substantivo',
+              portuguese_translation: 'câmeras',
+              technical_explanation: 'Dispositivos de video.',
+              example_sentence: 'A few cameras still dark.',
+            }) +
+            '\n```',
+        },
+      ],
+    }));
+
+    try {
+      const result = await translateAnyWord('cameras', 'A few cameras still dark.');
+
+      assert.equal(result.portuguese_translation, 'câmeras');
+      assert.equal(result.part_of_speech, 'substantivo');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('falls back to the raw text as the translation when the response is not valid JSON', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [{ type: 'text', text: 'algo deu errado' }],
+    }));
+
+    try {
+      const result = await translateAnyWord('word', 'context');
+
+      assert.equal(result.portuguese_translation, 'algo deu errado');
+      assert.equal(result.part_of_speech, null);
+      assert.equal(result.example_sentence, 'context');
     } finally {
       createMock.mock.restore();
     }

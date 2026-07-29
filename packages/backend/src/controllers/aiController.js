@@ -1,5 +1,6 @@
 import {
   explainTechnicalTerm,
+  translateAnyWord,
   chatReply,
   buildChatContext,
   getRemedialContent,
@@ -14,6 +15,7 @@ import {
   getChatFallback,
   getRemedialFallback,
 } from '../services/aiFallbackService.js';
+import { lookupWord, insertDictionaryEntry } from '../services/technicalDictionaryService.js';
 import { pool } from '../config/database.js';
 
 export async function explainWord(req, res) {
@@ -40,6 +42,82 @@ export async function explainWord(req, res) {
   } catch (err) {
     console.error('AI explain call failed, serving fallback:', err.message);
     res.json(await getExplainFallback(word));
+  }
+}
+
+// Dia [current]: click-any-word-to-translate. Unlike explainWord (a
+// freeform-text explanation of an already-known technical term),
+// translateWord's job is to resolve *any* word in a chapter's transcript
+// to a real `words` row - creating one if it doesn't exist yet - so the
+// existing words-learned/flashcard/progress flow (unchanged) can use it
+// exactly like a pre-tagged word. Three tiers, cheapest first: an existing
+// `words` row for this exact (word, chapter) > the shared
+// technical_dictionary > a live AI call, which also seeds
+// technical_dictionary so future chapters get a free hit.
+export async function translateWord(req, res) {
+  const { word, context, chapterId } = req.body;
+
+  if (!word || !context || !chapterId) {
+    return res.status(400).json({ error: 'word, context, and chapterId are required' });
+  }
+
+  const { rows: existingRows } = await pool.query(
+    `SELECT id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence
+     FROM words WHERE lower(word) = lower($1) AND chapter_id = $2`,
+    [word, chapterId],
+  );
+  if (existingRows.length > 0) {
+    return res.json(existingRows[0]);
+  }
+
+  const dictionaryEntry = await lookupWord(word);
+  if (dictionaryEntry) {
+    const { rows } = await pool.query(
+      `INSERT INTO words (word, chapter_id, portuguese_translation, technical_explanation, example_sentence)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence`,
+      [
+        word,
+        chapterId,
+        dictionaryEntry.portuguese_translation,
+        dictionaryEntry.technical_explanation,
+        dictionaryEntry.example_sentence,
+      ],
+    );
+    return res.json({ ...rows[0], part_of_speech: dictionaryEntry.part_of_speech });
+  }
+
+  if (!isAiConfigured()) {
+    return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
+  }
+
+  try {
+    const translated = await translateAnyWord(word, context, { userId: req.user.id });
+
+    await insertDictionaryEntry({
+      word,
+      partOfSpeech: translated.part_of_speech,
+      portugueseTranslation: translated.portuguese_translation,
+      technicalExplanation: translated.technical_explanation,
+      exampleSentence: translated.example_sentence,
+    });
+
+    const { rows } = await pool.query(
+      `INSERT INTO words (word, chapter_id, portuguese_translation, technical_explanation, example_sentence)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence`,
+      [
+        word,
+        chapterId,
+        translated.portuguese_translation,
+        translated.technical_explanation,
+        translated.example_sentence,
+      ],
+    );
+    res.json({ ...rows[0], part_of_speech: translated.part_of_speech });
+  } catch (err) {
+    console.error('AI translate call failed:', err.message);
+    res.status(502).json({ error: 'translation temporarily unavailable' });
   }
 }
 

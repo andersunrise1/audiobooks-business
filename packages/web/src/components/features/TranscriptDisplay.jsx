@@ -7,11 +7,14 @@ function normalize(text) {
   return text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
 
-// Splits the transcript into display segments: a run of tokens matching a
-// tagged word (possibly multi-word, e.g. "pull request") becomes one
-// clickable segment; everything else stays as plain text. This keeps the
-// full sentence visible even when only some words are tagged, instead of
-// reconstructing the sentence purely from the tagged words.
+// Every non-whitespace token becomes a clickable "word" segment (Dia
+// [current]: "todas as palavras tem que ficar clicaveis com pop up",
+// matching a reference reading app) - `word` carries the already-loaded
+// data when the token matches a tagged vocabulary term (possibly
+// multi-word, e.g. "pull request"), or is null for any other token, which
+// TranscriptDisplay resolves on demand via onTranslateWord. A token that
+// normalizes to an empty string (pure punctuation, e.g. a lone quote mark)
+// stays plain text - there's no real word there to translate.
 function buildSegments(transcript, words) {
   const byWord = new Map(words.map((word) => [normalize(word.word), word]));
   const tokens = transcript.split(/(\s+)/);
@@ -20,7 +23,7 @@ function buildSegments(transcript, words) {
 
   while (i < tokens.length) {
     const token = tokens[i];
-    if (token === '' || /^\s+$/.test(token)) {
+    if (token === '' || /^\s+$/.test(token) || normalize(token) === '') {
       segments.push({ type: 'text', text: token });
       i += 1;
       continue;
@@ -37,41 +40,50 @@ function buildSegments(transcript, words) {
       }
     }
 
-    const match = byWord.get(normalize(token));
-    segments.push(
-      match ? { type: 'word', text: token, word: match } : { type: 'text', text: token },
-    );
+    const match = byWord.get(normalize(token)) ?? null;
+    segments.push({ type: 'word', text: token, word: match });
     i += 1;
   }
 
   return segments;
 }
 
-function TranscriptDisplay({ words, activeWordId, transcript, onWordClick, fontSize = 'text-lg' }) {
-  const [selectedWordId, setSelectedWordId] = useState(null);
+function TranscriptDisplay({
+  words,
+  activeWordId,
+  transcript,
+  onWordClick,
+  onTranslateWord,
+  fontSize = 'text-lg',
+}) {
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [loadingText, setLoadingText] = useState(null);
 
   useEffect(() => {
-    if (!selectedWordId) return undefined;
-    const timer = setTimeout(() => setSelectedWordId(null), POPUP_AUTO_CLOSE_MS);
+    if (!selectedWord) return undefined;
+    const timer = setTimeout(() => setSelectedWord(null), POPUP_AUTO_CLOSE_MS);
     return () => clearTimeout(timer);
-  }, [selectedWordId]);
+  }, [selectedWord]);
 
   const segments = useMemo(() => buildSegments(transcript ?? '', words), [transcript, words]);
-  const hasClickableWords = segments.some((segment) => segment.type === 'word');
 
   if (!transcript) return null;
 
-  const selectedWord = words.find((word) => word.id === selectedWordId) ?? null;
+  async function selectSegment(segment) {
+    if (segment.word) {
+      setSelectedWord(segment.word);
+      onWordClick?.(segment.word);
+      return;
+    }
 
-  function selectWord(word) {
-    setSelectedWordId(word.id);
-    onWordClick?.(word);
-  }
-
-  if (!hasClickableWords) {
-    return (
-      <p className={`${fontSize} leading-loose text-slate-700 dark:text-stone-200`}>{transcript}</p>
-    );
+    if (!onTranslateWord) return;
+    setLoadingText(segment.text);
+    try {
+      const resolved = await onTranslateWord(normalize(segment.text));
+      if (resolved) setSelectedWord(resolved);
+    } finally {
+      setLoadingText(null);
+    }
   }
 
   return (
@@ -80,17 +92,19 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick, fontS
         {segments.map((segment, index) =>
           segment.type === 'word' ? (
             <span
-              key={`${segment.word.id}-${index}`}
+              key={index}
               role="button"
               tabIndex={0}
-              onClick={() => selectWord(segment.word)}
+              onClick={() => selectSegment(segment)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') selectWord(segment.word);
+                if (event.key === 'Enter' || event.key === ' ') selectSegment(segment);
               }}
               className={`rounded px-1 py-0.5 cursor-pointer touch-manipulation transition-colors ${
-                segment.word.id === activeWordId
+                segment.word && segment.word.id === activeWordId
                   ? 'bg-primary text-white font-semibold'
-                  : 'underline decoration-primary/40 decoration-2 underline-offset-4 hover:bg-slate-200 dark:hover:bg-stone-700'
+                  : loadingText === segment.text
+                    ? 'bg-slate-200 dark:bg-stone-700 animate-pulse'
+                    : 'underline decoration-primary/40 decoration-2 underline-offset-4 hover:bg-slate-200 dark:hover:bg-stone-700'
               }`}
             >
               {segment.text}
@@ -102,9 +116,9 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick, fontS
       </p>
 
       <TranslationPopup
-        key={selectedWordId}
+        key={selectedWord?.id ?? selectedWord?.word}
         word={selectedWord}
-        onClose={() => setSelectedWordId(null)}
+        onClose={() => setSelectedWord(null)}
       />
     </>
   );

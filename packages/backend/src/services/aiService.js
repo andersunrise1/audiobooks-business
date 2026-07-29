@@ -38,6 +38,16 @@ async function logUsage(endpoint, model, response, userId, responseTimeMs) {
   });
 }
 
+// Claude sometimes wraps a JSON response in a ```json ... ``` fence despite
+// the system prompt explicitly asking for none (observed live from
+// translateAnyWord using the Haiku model) - strip it before JSON.parse
+// instead of letting a well-formed-but-fenced response fall through to the
+// "not valid JSON" fallback path.
+function extractJson(text) {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  return fenced ? fenced[1] : text;
+}
+
 export function explainCacheKey(word, context) {
   return `ai:explain:${word.toLowerCase()}:${hashKey(context)}`;
 }
@@ -74,6 +84,52 @@ export async function explainTechnicalTerm(word, context, { userId, endpoint = '
   return response.content.find((block) => block.type === 'text')?.text ?? '';
 }
 
+// Dia [current]: click-any-word-to-translate (not just curated technical
+// vocabulary) - the user asked for every word in a chapter to be clickable,
+// matching a reference reading app. There's no comprehensive EN-PT
+// dictionary in this project, only ~90 curated technical_dictionary
+// entries, so any word outside that set needs to be generated on demand.
+// Runs on the cheap/fast model (same tier as explainTechnicalTerm) since
+// this is a short, high-volume, cacheable call - callers should check
+// technical_dictionary first and only reach this for a real miss.
+const TRANSLATE_SYSTEM_PROMPT =
+  'Você é um dicionário de inglês para falantes de português. ' +
+  'Responda APENAS com um JSON valido (sem markdown, sem texto fora do JSON), no formato: ' +
+  '{"part_of_speech": "classe gramatical em portugues (substantivo, verbo, adjetivo, etc)", ' +
+  '"portuguese_translation": "traducao curta para portugues", ' +
+  '"technical_explanation": "explicacao breve em portugues, 1 frase, usando o contexto dado", ' +
+  '"example_sentence": "a frase de contexto original, sem alteracoes"}.';
+
+export async function translateAnyWord(word, context, { userId } = {}) {
+  const { response, responseTimeMs } = await createMessage({
+    model: EXPLAIN_MODEL,
+    max_tokens: 200,
+    system: TRANSLATE_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: `Palavra: "${word}"\nFrase de contexto: "${context}"` }],
+  });
+
+  await logUsage('translate', EXPLAIN_MODEL, response, userId, responseTimeMs);
+
+  const text = response.content.find((block) => block.type === 'text')?.text ?? '';
+
+  try {
+    const parsed = JSON.parse(extractJson(text));
+    return {
+      part_of_speech: parsed.part_of_speech ?? null,
+      portuguese_translation: parsed.portuguese_translation ?? null,
+      technical_explanation: parsed.technical_explanation ?? null,
+      example_sentence: parsed.example_sentence ?? context,
+    };
+  } catch {
+    return {
+      part_of_speech: null,
+      portuguese_translation: text || null,
+      technical_explanation: null,
+      example_sentence: context,
+    };
+  }
+}
+
 const REMEDIAL_SYSTEM_PROMPT =
   'Você é um tutor de inglês técnico. O aluno terminou um capítulo e disse que não entendeu. ' +
   'Responda APENAS com um JSON valido (sem markdown, sem texto fora do JSON), no formato: ' +
@@ -92,7 +148,7 @@ export async function getRemedialContent(transcript, { userId } = {}) {
   const text = response.content.find((block) => block.type === 'text')?.text ?? '';
 
   try {
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(extractJson(text));
     return {
       summary: parsed.summary ?? '',
       keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],

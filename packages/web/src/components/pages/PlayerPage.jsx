@@ -171,6 +171,28 @@ function PlayerPage() {
     }
   }
 
+  // Resolves any word in the transcript that isn't already tagged - the
+  // backend checks technical_dictionary before ever calling AI, and caches
+  // the result as a real words row, so the same word only costs a real AI
+  // call once, ever, across the whole catalog. Only wired in for
+  // authenticated users (same boundary ChatWidget/VoiceCommandBar already
+  // used) since it can trigger a real, rate-limited AI call.
+  async function handleTranslateWord(word) {
+    if (!isAuthenticated || !chapter) return null;
+    try {
+      const resolved = await apiRequest('/api/ai/translate-word', {
+        method: 'POST',
+        token: accessToken,
+        body: { word, context: chapter.transcript, chapterId: chapter.id },
+      });
+      await handleWordClick(resolved);
+      return resolved;
+    } catch (err) {
+      console.error('failed to translate word', err);
+      return null;
+    }
+  }
+
   if (loading) return <p>Carregando...</p>;
   if (paywalled) {
     const message =
@@ -241,6 +263,7 @@ function PlayerPage() {
         activeWordId={activeWordId}
         transcript={chapter.transcript}
         onWordClick={handleWordClick}
+        onTranslateWord={isAuthenticated ? handleTranslateWord : undefined}
         fontSize={fontSize}
       />
 

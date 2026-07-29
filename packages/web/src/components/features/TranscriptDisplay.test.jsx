@@ -48,16 +48,43 @@ describe('TranscriptDisplay', () => {
     expect(screen.getByText('implantei')).toBeInTheDocument();
   });
 
-  test('falls back to plain transcript text when there are no timestamped words', () => {
-    render(<TranscriptDisplay words={[]} activeWordId={null} transcript="Yesterday I deployed." />);
-    expect(screen.getByText('Yesterday I deployed.')).toBeInTheDocument();
+  test('every word is clickable, even untagged ones, when there are no tagged words at all', () => {
+    // The sentence is split across multiple <span role="button"> elements
+    // (one per token), so getByText(fullSentence) can't find it - that's a
+    // testing-library limitation for text split across elements, not a
+    // real gap. Assert on the rendered container text instead.
+    const { container } = render(
+      <TranscriptDisplay words={[]} activeWordId={null} transcript="Yesterday I deployed." />,
+    );
+    expect(container.textContent).toBe('Yesterday I deployed.');
+    expect(screen.getByRole('button', { name: 'Yesterday' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'deployed.' })).toBeInTheDocument();
+  });
+
+  test('clicking an untagged word calls onTranslateWord and shows the resolved popup', async () => {
+    const user = userEvent.setup();
+    const onTranslateWord = vi.fn().mockResolvedValue({
+      id: 'w-new',
+      word: 'grit',
+      portuguese_translation: 'determinacao',
+    });
+
+    render(
+      <TranscriptDisplay
+        words={[]}
+        activeWordId={null}
+        transcript="She showed real grit today."
+        onTranslateWord={onTranslateWord}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'grit' }));
+
+    expect(onTranslateWord).toHaveBeenCalledWith('grit');
+    expect(await screen.findByText('determinacao')).toBeInTheDocument();
   });
 
   test('keeps the full sentence visible when only some words are tagged', () => {
-    // The sentence is split across multiple <span> elements (one per
-    // matched/unmatched token), so getByText(fullSentence) can't find it -
-    // that's a testing-library limitation for text split across elements,
-    // not a real gap. Assert on the rendered container text instead.
     const partialWords = [{ id: 'w2', word: 'deployed', portuguese_translation: 'implantei' }];
     const { container } = render(
       <TranscriptDisplay words={partialWords} activeWordId={null} transcript={transcript} />,

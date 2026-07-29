@@ -575,3 +575,179 @@ describe('AI fallback content when a real AI call fails (Dia 39)', () => {
     }
   });
 });
+
+// Click-any-word-to-translate: resolves any word to a real `words` row,
+// three tiers cheapest first (existing row > technical_dictionary > AI).
+describe('POST /api/ai/translate-word', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+  let audiobookId;
+  let chapterId;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+
+    audiobookId = randomUUID();
+    chapterId = randomUUID();
+    await pool.query(`INSERT INTO audiobooks (id, title) VALUES ($1, 'Translate Test Book')`, [
+      audiobookId,
+    ]);
+    await pool.query(
+      `INSERT INTO chapters (id, audiobook_id, title, order_index, transcript)
+       VALUES ($1, $2, 'Chapter 1', 1, 'She showed real grit finishing the project alone.')`,
+      [chapterId, audiobookId],
+    );
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM technical_dictionary WHERE word = $1', ['grit']);
+    await pool.query('DELETE FROM audiobooks WHERE id = $1', [audiobookId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await stopTestServer(server);
+  });
+
+  test('rejects unauthenticated requests', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/translate-word`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word: 'grit', context: 'sentence', chapterId }),
+    });
+    assert.equal(res.status, 401);
+  });
+
+  test('returns an existing words row for this chapter without calling AI', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('should not be called');
+    });
+    try {
+      // Seed a words row directly to prove the existing-row short-circuit.
+      const { rows } = await pool.query(
+        `INSERT INTO words (word, chapter_id, portuguese_translation)
+         VALUES ('grit', $1, 'determinacao') RETURNING id`,
+        [chapterId],
+      );
+
+      const res = await fetch(`${baseUrl}/api/ai/translate-word`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ word: 'grit', context: 'sentence', chapterId }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.id, rows[0].id);
+      assert.equal(data.portuguese_translation, 'determinacao');
+      assert.equal(createMock.mock.callCount(), 0);
+    } finally {
+      createMock.mock.restore();
+      await pool.query('DELETE FROM words WHERE chapter_id = $1', [chapterId]);
+    }
+  });
+
+  test('falls back to technical_dictionary and creates a words row, without calling AI', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('should not be called');
+    });
+    try {
+      // "deployed" is seeded into technical_dictionary by migration 005.
+      const res = await fetch(`${baseUrl}/api/ai/translate-word`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          word: 'deployed',
+          context: 'She deployed the fix.',
+          chapterId,
+        }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.match(data.portuguese_translation, /implant/i);
+      assert.equal(createMock.mock.callCount(), 0);
+
+      const { rows } = await pool.query(
+        'SELECT id FROM words WHERE word = $1 AND chapter_id = $2',
+        ['deployed', chapterId],
+      );
+      assert.equal(rows.length, 1);
+    } finally {
+      createMock.mock.restore();
+      await pool.query('DELETE FROM words WHERE chapter_id = $1', [chapterId]);
+    }
+  });
+
+  test('calls AI for a genuinely new word and seeds technical_dictionary for future hits', async () => {
+    const createMock = mock.method(client.messages, 'create', async () => ({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            part_of_speech: 'substantivo',
+            portuguese_translation: 'determinacao',
+            technical_explanation: 'Coragem e persistencia diante de dificuldades.',
+            example_sentence: 'She showed real grit finishing the project alone.',
+          }),
+        },
+      ],
+      usage: { input_tokens: 10, output_tokens: 10 },
+    }));
+
+    try {
+      const res = await fetch(`${baseUrl}/api/ai/translate-word`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          word: 'grit',
+          context: 'She showed real grit finishing the project alone.',
+          chapterId,
+        }),
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.portuguese_translation, 'determinacao');
+      assert.equal(data.part_of_speech, 'substantivo');
+      assert.equal(createMock.mock.callCount(), 1);
+
+      const dictionaryRow = await pool.query('SELECT * FROM technical_dictionary WHERE word = $1', [
+        'grit',
+      ]);
+      assert.equal(dictionaryRow.rows.length, 1);
+
+      const wordsRow = await pool.query(
+        'SELECT id FROM words WHERE word = $1 AND chapter_id = $2',
+        ['grit', chapterId],
+      );
+      assert.equal(wordsRow.rows.length, 1);
+    } finally {
+      createMock.mock.restore();
+      await pool.query('DELETE FROM words WHERE chapter_id = $1', [chapterId]);
+    }
+  });
+
+  test('returns 400 when word, context, or chapterId is missing', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/translate-word`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ word: 'grit' }),
+    });
+    assert.equal(res.status, 400);
+  });
+});

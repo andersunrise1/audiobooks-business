@@ -16,7 +16,6 @@ function AudioPlayer({
   onTimeUpdate,
   onEnded,
   volume = 1,
-  onVolumeChange,
   speed = 1,
   onSpeedChange,
   onPrevChapter,
@@ -49,6 +48,13 @@ function AudioPlayer({
     return () => window.removeEventListener('techspeak:toggle-playback', togglePlay);
   }, []);
 
+  // Dia [current]: volume is now controlled from ReaderTopBar's settings
+  // popover, outside this component - react to prop changes instead of
+  // only applying volume from this component's own (now-removed) slider.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
   function skip(delta) {
     const audio = audioRef.current;
     if (!audio) return;
@@ -61,12 +67,6 @@ function AudioPlayer({
     const time = Number(event.target.value);
     if (audioRef.current) audioRef.current.currentTime = time;
     setCurrentTime(time);
-  }
-
-  function handleVolumeChange(event) {
-    const value = Number(event.target.value);
-    onVolumeChange?.(value);
-    if (audioRef.current) audioRef.current.volume = value;
   }
 
   function cycleSpeed() {
@@ -83,6 +83,7 @@ function AudioPlayer({
     audio.volume = volume;
     audio.playbackRate = speed;
     if (startTime) audio.currentTime = startTime;
+    onTimeUpdate?.(audio.currentTime, audio.duration);
   }
 
   function handleTimeUpdate() {
@@ -197,20 +198,6 @@ function AudioPlayer({
           🔁
         </button>
       </div>
-
-      <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-stone-400 justify-center">
-        Volume
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={volume}
-          onChange={handleVolumeChange}
-          className="w-24 h-6 touch-manipulation accent-primary"
-          aria-label="Volume"
-        />
-      </label>
     </div>
   );
 }

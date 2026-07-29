@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AudioPlayer from '../features/AudioPlayer.jsx';
 import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
+import ReaderTopBar from '../features/ReaderTopBar.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
@@ -33,9 +34,11 @@ function PlayerPage() {
   const [progressByChapter, setProgressByChapter] = useState({});
   const [words, setWords] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [audioSrc, setAudioSrc] = useState(null);
   const [playbackVolume, setPlaybackVolume] = useState(1);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [fontSize, setFontSize] = useState('text-lg');
   const [error, setError] = useState('');
   const [paywalled, setPaywalled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -141,6 +144,11 @@ function PlayerPage() {
     setChapterIndex((i) => Math.max(i - 1, 0));
   }
 
+  function handleTimeUpdate(time, totalDuration) {
+    setCurrentTime(time);
+    setDuration(totalDuration || 0);
+  }
+
   function handleChapterEnded() {
     if (!chapter) return;
     const previous = progressByChapter[chapter.id];
@@ -198,21 +206,27 @@ function PlayerPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-2xl mx-auto">
-      <div>
-        <p className="text-slate-500 dark:text-stone-400 text-sm">
-          Capítulo {chapterIndex + 1} de {chapters.length}
-          {progressByChapter[chapter.id]?.completed && ' · concluído'}
-        </p>
-        <h1 className="text-2xl font-bold">{chapter.title}</h1>
-      </div>
+      <ReaderTopBar
+        chapters={chapters}
+        chapterIndex={chapterIndex}
+        onSelectChapter={setChapterIndex}
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
+        progressFraction={duration ? currentTime / duration : 0}
+        volume={playbackVolume}
+        onVolumeChange={setPlaybackVolume}
+      />
+
+      {progressByChapter[chapter.id]?.completed && (
+        <p className="text-slate-500 dark:text-stone-400 text-sm -mt-2">Concluído</p>
+      )}
 
       <AudioPlayer
         key={chapter.id}
         src={audioSrc ?? chapter.audio_url}
         onEnded={handleChapterEnded}
-        onTimeUpdate={setCurrentTime}
+        onTimeUpdate={handleTimeUpdate}
         volume={playbackVolume}
-        onVolumeChange={setPlaybackVolume}
         speed={playbackSpeed}
         onSpeedChange={setPlaybackSpeed}
         onPrevChapter={handlePrevChapter}
@@ -221,11 +235,14 @@ function PlayerPage() {
         hasNextChapter={chapterIndex < chapters.length - 1}
       />
 
+      <h2 className="text-xl font-bold">{chapter.title}</h2>
+
       <TranscriptDisplay
         words={words}
         activeWordId={activeWordId}
         transcript={chapter.transcript}
         onWordClick={handleWordClick}
+        fontSize={fontSize}
       />
 
       {chapter.transcript && (

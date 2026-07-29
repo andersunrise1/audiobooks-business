@@ -47,7 +47,7 @@ function buildSegments(transcript, words) {
   return segments;
 }
 
-function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
+function TranscriptDisplay({ words, activeWordId, transcript, onWordClick, fontSize = 'text-lg' }) {
   const [selectedWordId, setSelectedWordId] = useState(null);
 
   useEffect(() => {
@@ -69,12 +69,14 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
   }
 
   if (!hasClickableWords) {
-    return <p className="text-lg leading-loose text-slate-700 dark:text-stone-200">{transcript}</p>;
+    return (
+      <p className={`${fontSize} leading-loose text-slate-700 dark:text-stone-200`}>{transcript}</p>
+    );
   }
 
   return (
     <>
-      <p className="text-lg leading-loose text-slate-700 dark:text-stone-200">
+      <p className={`${fontSize} leading-loose text-slate-700 dark:text-stone-200`}>
         {segments.map((segment, index) =>
           segment.type === 'word' ? (
             <span

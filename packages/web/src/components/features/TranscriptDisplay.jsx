@@ -69,12 +69,12 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
   }
 
   if (!hasClickableWords) {
-    return <p className="leading-relaxed text-slate-700 dark:text-stone-200">{transcript}</p>;
+    return <p className="text-lg leading-loose text-slate-700 dark:text-stone-200">{transcript}</p>;
   }
 
   return (
     <>
-      <p className="leading-loose text-slate-700 dark:text-stone-200">
+      <p className="text-lg leading-loose text-slate-700 dark:text-stone-200">
         {segments.map((segment, index) =>
           segment.type === 'word' ? (
             <span
@@ -85,8 +85,10 @@ function TranscriptDisplay({ words, activeWordId, transcript, onWordClick }) {
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') selectWord(segment.word);
               }}
-              className={`rounded px-1 py-1 cursor-pointer touch-manipulation transition-colors hover:bg-slate-200 hover:text-slate-900 ${
-                segment.word.id === activeWordId ? 'bg-yellow-200 text-slate-900 font-semibold' : ''
+              className={`rounded px-1 py-0.5 cursor-pointer touch-manipulation transition-colors ${
+                segment.word.id === activeWordId
+                  ? 'bg-primary text-white font-semibold'
+                  : 'underline decoration-primary/40 decoration-2 underline-offset-4 hover:bg-slate-200 dark:hover:bg-stone-700'
               }`}
             >
               {segment.text}

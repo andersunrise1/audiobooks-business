@@ -25,8 +25,8 @@ describe('TranscriptDisplay', () => {
 
   test('highlights the active word', () => {
     render(<TranscriptDisplay words={words} activeWordId="w2" transcript={transcript} />);
-    expect(screen.getByText('deployed')).toHaveClass('bg-yellow-200');
-    expect(screen.getByText('Yesterday')).not.toHaveClass('bg-yellow-200');
+    expect(screen.getByText('deployed')).toHaveClass('bg-primary');
+    expect(screen.getByText('Yesterday')).not.toHaveClass('bg-primary');
   });
 
   test('clicking a word calls onWordClick and opens the translation popup', async () => {

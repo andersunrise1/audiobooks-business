@@ -137,6 +137,10 @@ function PlayerPage() {
     setChapterIndex((i) => Math.min(i + 1, chapters.length - 1));
   }
 
+  function handlePrevChapter() {
+    setChapterIndex((i) => Math.max(i - 1, 0));
+  }
+
   function handleChapterEnded() {
     if (!chapter) return;
     const previous = progressByChapter[chapter.id];
@@ -193,13 +197,13 @@ function PlayerPage() {
     );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold">{chapter.title}</h1>
         <p className="text-slate-500 dark:text-stone-400 text-sm">
           Capítulo {chapterIndex + 1} de {chapters.length}
           {progressByChapter[chapter.id]?.completed && ' · concluído'}
         </p>
+        <h1 className="text-2xl font-bold">{chapter.title}</h1>
       </div>
 
       <AudioPlayer
@@ -211,6 +215,10 @@ function PlayerPage() {
         onVolumeChange={setPlaybackVolume}
         speed={playbackSpeed}
         onSpeedChange={setPlaybackSpeed}
+        onPrevChapter={handlePrevChapter}
+        onNextChapter={handleNextChapter}
+        hasPrevChapter={chapterIndex > 0}
+        hasNextChapter={chapterIndex < chapters.length - 1}
       />
 
       <TranscriptDisplay
@@ -225,25 +233,6 @@ function PlayerPage() {
           <PronunciationRecorder targetSentence={chapter.transcript} />
         </Suspense>
       )}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={chapterIndex === 0}
-          onClick={() => setChapterIndex((i) => i - 1)}
-          className="px-3 py-1 rounded bg-slate-100 dark:bg-stone-700 disabled:opacity-50"
-        >
-          Anterior
-        </button>
-        <button
-          type="button"
-          disabled={chapterIndex === chapters.length - 1}
-          onClick={handleNextChapter}
-          className="px-3 py-1 rounded bg-slate-100 dark:bg-stone-700 disabled:opacity-50"
-        >
-          Próximo
-        </button>
-      </div>
 
       {isAuthenticated ? (
         <Suspense fallback={null}>

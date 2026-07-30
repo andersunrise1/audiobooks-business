@@ -45,6 +45,37 @@ export async function explainWord(req, res) {
   }
 }
 
+// Inserts a new words row for a resolved (word, chapter) pair, or returns
+// the existing one if a concurrent request already won the race - the
+// `words_chapter_id_lower_word_key` unique index (migration 045) is what
+// makes ON CONFLICT possible here; without it, two near-simultaneous
+// requests for the same untagged word could both pass translateWord's
+// earlier "does it already exist" check and both insert, which is exactly
+// what produced a real duplicate row for "Jordan" during live testing.
+async function insertWordOrGetExisting(word, chapterId, entry) {
+  const { rows } = await pool.query(
+    `INSERT INTO words (word, chapter_id, portuguese_translation, technical_explanation, example_sentence)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (chapter_id, lower(word)) DO NOTHING
+     RETURNING id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence`,
+    [
+      word,
+      chapterId,
+      entry.portuguese_translation,
+      entry.technical_explanation,
+      entry.example_sentence,
+    ],
+  );
+  if (rows.length > 0) return rows[0];
+
+  const { rows: existing } = await pool.query(
+    `SELECT id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence
+     FROM words WHERE lower(word) = lower($1) AND chapter_id = $2`,
+    [word, chapterId],
+  );
+  return existing[0];
+}
+
 // Dia [current]: click-any-word-to-translate. Unlike explainWord (a
 // freeform-text explanation of an already-known technical term),
 // translateWord's job is to resolve *any* word in a chapter's transcript
@@ -72,19 +103,8 @@ export async function translateWord(req, res) {
 
   const dictionaryEntry = await lookupWord(word);
   if (dictionaryEntry) {
-    const { rows } = await pool.query(
-      `INSERT INTO words (word, chapter_id, portuguese_translation, technical_explanation, example_sentence)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence`,
-      [
-        word,
-        chapterId,
-        dictionaryEntry.portuguese_translation,
-        dictionaryEntry.technical_explanation,
-        dictionaryEntry.example_sentence,
-      ],
-    );
-    return res.json({ ...rows[0], part_of_speech: dictionaryEntry.part_of_speech });
+    const row = await insertWordOrGetExisting(word, chapterId, dictionaryEntry);
+    return res.json({ ...row, part_of_speech: dictionaryEntry.part_of_speech });
   }
 
   if (!isAiConfigured()) {
@@ -102,19 +122,8 @@ export async function translateWord(req, res) {
       exampleSentence: translated.example_sentence,
     });
 
-    const { rows } = await pool.query(
-      `INSERT INTO words (word, chapter_id, portuguese_translation, technical_explanation, example_sentence)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, word, pronunciation, portuguese_translation, technical_explanation, example_sentence`,
-      [
-        word,
-        chapterId,
-        translated.portuguese_translation,
-        translated.technical_explanation,
-        translated.example_sentence,
-      ],
-    );
-    res.json({ ...rows[0], part_of_speech: translated.part_of_speech });
+    const row = await insertWordOrGetExisting(word, chapterId, translated);
+    res.json({ ...row, part_of_speech: translated.part_of_speech });
   } catch (err) {
     console.error('AI translate call failed:', err.message);
     res.status(502).json({ error: 'translation temporarily unavailable' });

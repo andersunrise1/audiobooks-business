@@ -687,6 +687,50 @@ describe('POST /api/ai/translate-word', () => {
     }
   });
 
+  test('two concurrent requests for the same untagged word never create a duplicate words row', async () => {
+    // Regression test for a real race caught during live testing: two
+    // near-simultaneous requests for the same (word, chapter) both passed
+    // the "does it already exist" check before either insert landed,
+    // producing two rows for the same word (migration 045's unique index +
+    // insertWordOrGetExisting's ON CONFLICT is the fix).
+    const createMock = mock.method(client.messages, 'create', async () => {
+      throw new Error('should not be called');
+    });
+    try {
+      const body = JSON.stringify({
+        word: 'deployed',
+        context: 'She deployed the fix.',
+        chapterId,
+      });
+      const [resA, resB] = await Promise.all([
+        fetch(`${baseUrl}/api/ai/translate-word`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body,
+        }),
+        fetch(`${baseUrl}/api/ai/translate-word`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body,
+        }),
+      ]);
+
+      assert.equal(resA.status, 200);
+      assert.equal(resB.status, 200);
+      const [dataA, dataB] = await Promise.all([resA.json(), resB.json()]);
+      assert.equal(dataA.id, dataB.id);
+
+      const { rows } = await pool.query(
+        'SELECT id FROM words WHERE word = $1 AND chapter_id = $2',
+        ['deployed', chapterId],
+      );
+      assert.equal(rows.length, 1);
+    } finally {
+      createMock.mock.restore();
+      await pool.query('DELETE FROM words WHERE chapter_id = $1', [chapterId]);
+    }
+  });
+
   test('calls AI for a genuinely new word and seeds technical_dictionary for future hits', async () => {
     const createMock = mock.method(client.messages, 'create', async () => ({
       content: [

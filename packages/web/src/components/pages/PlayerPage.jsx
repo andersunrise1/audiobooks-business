@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AudioPlayer from '../features/AudioPlayer.jsx';
+import NarrationPlayer from '../features/NarrationPlayer.jsx';
 import TranscriptDisplay from '../features/TranscriptDisplay.jsx';
 import ReaderTopBar from '../features/ReaderTopBar.jsx';
 import { useWordSync } from '../../hooks/useWordSync.js';
@@ -238,19 +239,26 @@ function PlayerPage() {
         <p className="text-slate-500 dark:text-stone-400 text-sm -mt-2">Concluído</p>
       )}
 
-      <AudioPlayer
-        key={chapter.id}
-        src={audioSrc ?? chapter.audio_url}
-        onEnded={handleChapterEnded}
-        onTimeUpdate={handleTimeUpdate}
-        volume={playbackVolume}
-        speed={playbackSpeed}
-        onSpeedChange={setPlaybackSpeed}
-        onPrevChapter={handlePrevChapter}
-        onNextChapter={handleNextChapter}
-        hasPrevChapter={chapterIndex > 0}
-        hasNextChapter={chapterIndex < chapters.length - 1}
-      />
+      {chapter.audio_url ? (
+        <AudioPlayer
+          key={chapter.id}
+          src={audioSrc ?? chapter.audio_url}
+          onEnded={handleChapterEnded}
+          onTimeUpdate={handleTimeUpdate}
+          volume={playbackVolume}
+          speed={playbackSpeed}
+          onSpeedChange={setPlaybackSpeed}
+          onPrevChapter={handlePrevChapter}
+          onNextChapter={handleNextChapter}
+          hasPrevChapter={chapterIndex > 0}
+          hasNextChapter={chapterIndex < chapters.length - 1}
+        />
+      ) : (
+        // No recorded audio for this chapter (most of the catalog, as of
+        // this feature) - offer optional browser-based narration instead of
+        // silently showing no player at all.
+        <NarrationPlayer key={chapter.id} text={chapter.transcript} onEnded={handleChapterEnded} />
+      )}
 
       <h2 className="text-xl font-bold">{chapter.title}</h2>
 

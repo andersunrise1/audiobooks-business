@@ -240,7 +240,7 @@ function PlayerPage() {
     );
 
   return (
-    <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-4 max-w-2xl mx-auto pb-28">
       {chapterIndex > 0 && (
         <button
           type="button"

@@ -169,7 +169,7 @@ function NarrationPlayer({ text, onEnded }) {
 
   if (!supported) {
     return (
-      <p className="text-sm text-slate-500 dark:text-stone-400 border border-slate-200 dark:border-stone-700 rounded-lg p-3">
+      <p className="fixed inset-x-0 bottom-0 z-30 text-sm text-stone-300 bg-black border-t border-stone-800 p-3">
         Narração por voz não é suportada neste navegador. Você ainda pode ler o capítulo
         normalmente.
       </p>
@@ -177,8 +177,8 @@ function NarrationPlayer({ text, onEnded }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-stone-700 flex flex-col gap-3 p-3">
-      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-stone-700 overflow-hidden">
+    <div className="fixed inset-x-0 bottom-0 z-30 bg-black border-t border-stone-800 flex flex-col gap-3 p-3">
+      <div className="h-1.5 rounded-full bg-stone-800 overflow-hidden">
         <div
           className="h-full bg-primary transition-all"
           style={{ width: `${Math.round(progress * 100)}%` }}
@@ -189,7 +189,7 @@ function NarrationPlayer({ text, onEnded }) {
         <button
           type="button"
           onClick={cycleSpeed}
-          className="px-2.5 h-9 rounded-full bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200 text-sm font-medium touch-manipulation"
+          className="px-2.5 h-9 rounded-full bg-stone-800 text-stone-200 text-sm font-medium touch-manipulation"
           aria-label="Alterar velocidade da narração"
         >
           {speed}x
@@ -200,9 +200,7 @@ function NarrationPlayer({ text, onEnded }) {
           onClick={() => selectGender('female')}
           aria-pressed={genderPref === 'female'}
           className={`px-2.5 h-9 rounded-full text-sm font-medium touch-manipulation ${
-            genderPref === 'female'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200'
+            genderPref === 'female' ? 'bg-primary/20 text-primary' : 'bg-stone-800 text-stone-200'
           }`}
           aria-label="Voz feminina"
         >
@@ -214,9 +212,7 @@ function NarrationPlayer({ text, onEnded }) {
           onClick={() => selectGender('male')}
           aria-pressed={genderPref === 'male'}
           className={`px-2.5 h-9 rounded-full text-sm font-medium touch-manipulation ${
-            genderPref === 'male'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200'
+            genderPref === 'male' ? 'bg-primary/20 text-primary' : 'bg-stone-800 text-stone-200'
           }`}
           aria-label="Voz masculina"
         >
@@ -236,7 +232,7 @@ function NarrationPlayer({ text, onEnded }) {
           type="button"
           onClick={stop}
           disabled={!isSpeaking}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-slate-600 dark:text-stone-300 disabled:opacity-30 touch-manipulation"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-stone-300 disabled:opacity-30 touch-manipulation"
           aria-label="Parar narração"
         >
           ⏹

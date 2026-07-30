@@ -94,7 +94,7 @@ function AudioPlayer({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-stone-700 flex flex-col gap-3 p-3">
+    <div className="fixed inset-x-0 bottom-0 z-30 bg-black border-t border-stone-800 flex flex-col gap-3 p-3">
       <audio
         ref={audioRef}
         src={src}
@@ -111,7 +111,7 @@ function AudioPlayer({
       />
 
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-500 dark:text-stone-400 tabular-nums shrink-0 w-9">
+        <span className="text-xs text-stone-400 tabular-nums shrink-0 w-9">
           {formatTime(currentTime)}
         </span>
         <input
@@ -124,7 +124,7 @@ function AudioPlayer({
           className="flex-1 h-6 touch-manipulation accent-primary"
           aria-label="Progresso"
         />
-        <span className="text-xs text-slate-500 dark:text-stone-400 tabular-nums shrink-0 w-9 text-right">
+        <span className="text-xs text-stone-400 tabular-nums shrink-0 w-9 text-right">
           {formatTime(duration)}
         </span>
       </div>
@@ -133,7 +133,7 @@ function AudioPlayer({
         <button
           type="button"
           onClick={cycleSpeed}
-          className="px-2.5 h-9 rounded-full bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200 text-sm font-medium touch-manipulation"
+          className="px-2.5 h-9 rounded-full bg-stone-800 text-stone-200 text-sm font-medium touch-manipulation"
           aria-label="Alterar velocidade"
         >
           {speed}x
@@ -143,7 +143,7 @@ function AudioPlayer({
           type="button"
           onClick={onPrevChapter}
           disabled={!hasPrevChapter}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-slate-600 dark:text-stone-300 disabled:opacity-30 touch-manipulation"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-stone-300 disabled:opacity-30 touch-manipulation"
           aria-label="Capítulo anterior"
         >
           ⏮
@@ -152,7 +152,7 @@ function AudioPlayer({
         <button
           type="button"
           onClick={() => skip(-SKIP_SECONDS)}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-slate-600 dark:text-stone-300 touch-manipulation"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-stone-300 touch-manipulation"
           aria-label={`Voltar ${SKIP_SECONDS} segundos`}
         >
           ⏪10
@@ -170,7 +170,7 @@ function AudioPlayer({
         <button
           type="button"
           onClick={() => skip(SKIP_SECONDS)}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-slate-600 dark:text-stone-300 touch-manipulation"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-stone-300 touch-manipulation"
           aria-label={`Avançar ${SKIP_SECONDS} segundos`}
         >
           10⏩
@@ -180,7 +180,7 @@ function AudioPlayer({
           type="button"
           onClick={onNextChapter}
           disabled={!hasNextChapter}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-slate-600 dark:text-stone-300 disabled:opacity-30 touch-manipulation"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-stone-300 disabled:opacity-30 touch-manipulation"
           aria-label="Próximo capítulo"
         >
           ⏭
@@ -191,7 +191,7 @@ function AudioPlayer({
           onClick={() => setRepeat((r) => !r)}
           aria-pressed={repeat}
           className={`w-9 h-9 flex items-center justify-center rounded-full touch-manipulation ${
-            repeat ? 'bg-primary/20 text-primary' : 'text-slate-600 dark:text-stone-300'
+            repeat ? 'bg-primary/20 text-primary' : 'text-stone-300'
           }`}
           aria-label="Repetir capítulo"
         >

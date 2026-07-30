@@ -104,7 +104,7 @@ function TranscriptDisplay({
                   ? 'bg-primary text-white font-semibold'
                   : loadingText === segment.text
                     ? 'bg-slate-200 dark:bg-stone-700 animate-pulse'
-                    : 'underline decoration-primary/40 decoration-2 underline-offset-4 hover:bg-slate-200 dark:hover:bg-stone-700'
+                    : 'hover:bg-slate-200 dark:hover:bg-stone-700'
               }`}
             >
               {segment.text}

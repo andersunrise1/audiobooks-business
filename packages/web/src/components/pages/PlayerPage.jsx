@@ -16,11 +16,10 @@ import {
 } from '../../services/desktopBridge.js';
 
 // Dia 73-74: these are the heavier, non-essential-to-first-paint parts of
-// the player (AI chat, pronunciation scoring, post-chapter feedback) -
-// lazy-loading them shrinks the PlayerPage route's own chunk, which was
-// already the largest lazy chunk in the app (21.83kB / 6.61kB gzip) even
-// after Dia 23's route-level code splitting.
-const PronunciationRecorder = lazy(() => import('../features/PronunciationRecorder.jsx'));
+// the player (AI chat, post-chapter feedback) - lazy-loading them shrinks
+// the PlayerPage route's own chunk, which was already the largest lazy
+// chunk in the app (21.83kB / 6.61kB gzip) even after Dia 23's route-level
+// code splitting.
 const ChatWidget = lazy(() => import('../features/ChatWidget.jsx'));
 const ChapterFeedback = lazy(() => import('../features/ChapterFeedback.jsx'));
 
@@ -266,12 +265,6 @@ function PlayerPage() {
         onTranslateWord={isAuthenticated ? handleTranslateWord : undefined}
         fontSize={fontSize}
       />
-
-      {chapter.transcript && (
-        <Suspense fallback={null}>
-          <PronunciationRecorder targetSentence={chapter.transcript} />
-        </Suspense>
-      )}
 
       {isAuthenticated ? (
         <Suspense fallback={null}>

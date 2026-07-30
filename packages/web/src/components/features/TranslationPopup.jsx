@@ -2,8 +2,11 @@ function TranslationPopup({ word, onClose }) {
   if (!word) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-6 flex justify-center px-4 pointer-events-none">
-      <div className="animate-popup-in pointer-events-auto max-w-sm w-full rounded-lg bg-slate-900 text-white shadow-lg p-4 flex flex-col gap-1">
+    <div className="fixed inset-x-0 bottom-32 flex justify-center px-4 pointer-events-none z-40">
+      <div
+        onClick={onClose}
+        className="animate-popup-in pointer-events-auto max-w-sm w-full rounded-lg bg-slate-900 text-white shadow-lg p-4 flex flex-col gap-1 cursor-pointer touch-manipulation"
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold">{word.word}</span>
@@ -43,6 +46,8 @@ function TranslationPopup({ word, onClose }) {
             ))}
           </div>
         )}
+
+        <p className="text-xs text-slate-500 mt-1">Toque em qualquer lugar para fechar</p>
       </div>
     </div>
   );

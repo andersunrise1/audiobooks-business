@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import TranslationPopup from './TranslationPopup.jsx';
-
-const POPUP_AUTO_CLOSE_MS = 3000;
 
 function normalize(text) {
   return text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
@@ -58,12 +56,6 @@ function TranscriptDisplay({
 }) {
   const [selectedWord, setSelectedWord] = useState(null);
   const [loadingText, setLoadingText] = useState(null);
-
-  useEffect(() => {
-    if (!selectedWord) return undefined;
-    const timer = setTimeout(() => setSelectedWord(null), POPUP_AUTO_CLOSE_MS);
-    return () => clearTimeout(timer);
-  }, [selectedWord]);
 
   const segments = useMemo(() => buildSegments(transcript ?? '', words), [transcript, words]);
 

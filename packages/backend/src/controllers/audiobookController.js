@@ -51,7 +51,8 @@ export async function getAudiobookChapters(req, res) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, audiobook_id, title, order_index, audio_url, duration_seconds, transcript, created_at
+    `SELECT id, audiobook_id, title, order_index, audio_url, audio_url_female, audio_url_male,
+            duration_seconds, transcript, created_at
      FROM chapters
      WHERE audiobook_id = $1
      ORDER BY order_index ASC`,

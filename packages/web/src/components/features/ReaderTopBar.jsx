@@ -17,6 +17,8 @@ function ReaderTopBar({
   progressFraction,
   volume,
   onVolumeChange,
+  voicePref,
+  onVoicePrefChange,
 }) {
   const navigate = useNavigate();
   const [showChapterMenu, setShowChapterMenu] = useState(false);
@@ -114,6 +116,40 @@ function ReaderTopBar({
                 <p className="text-xs text-slate-400 dark:text-stone-500 mt-1">
                   Abaixe pra 0 e apenas leia o texto.
                 </p>
+
+                {onVoicePrefChange && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-stone-700">
+                    <p className="text-sm text-slate-600 dark:text-stone-300 mb-1.5">
+                      Voz da narração
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onVoicePrefChange('female')}
+                        aria-pressed={voicePref === 'female'}
+                        className={`flex-1 h-9 rounded-full text-sm font-medium touch-manipulation ${
+                          voicePref === 'female'
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200'
+                        }`}
+                      >
+                        Mulher
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onVoicePrefChange('male')}
+                        aria-pressed={voicePref === 'male'}
+                        className={`flex-1 h-9 rounded-full text-sm font-medium touch-manipulation ${
+                          voicePref === 'male'
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200'
+                        }`}
+                      >
+                        Homem
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -15,12 +15,10 @@ import {
   isDesktop,
 } from '../../services/desktopBridge.js';
 
-// Dia 73-74: these are the heavier, non-essential-to-first-paint parts of
-// the player (AI chat, post-chapter feedback) - lazy-loading them shrinks
-// the PlayerPage route's own chunk, which was already the largest lazy
-// chunk in the app (21.83kB / 6.61kB gzip) even after Dia 23's route-level
-// code splitting.
-const ChatWidget = lazy(() => import('../features/ChatWidget.jsx'));
+// Dia 73-74: this is a heavier, non-essential-to-first-paint part of the
+// player (post-chapter feedback) - lazy-loading it shrinks the PlayerPage
+// route's own chunk, which was already the largest lazy chunk in the app
+// (21.83kB / 6.61kB gzip) even after Dia 23's route-level code splitting.
 const ChapterFeedback = lazy(() => import('../features/ChapterFeedback.jsx'));
 
 function PlayerPage() {
@@ -174,8 +172,7 @@ function PlayerPage() {
   // backend checks technical_dictionary before ever calling AI, and caches
   // the result as a real words row, so the same word only costs a real AI
   // call once, ever, across the whole catalog. Only wired in for
-  // authenticated users (same boundary ChatWidget/VoiceCommandBar already
-  // used) since it can trigger a real, rate-limited AI call.
+  // authenticated users since it can trigger a real, rate-limited AI call.
   async function handleTranslateWord(word) {
     if (!isAuthenticated || !chapter) return null;
     try {
@@ -267,16 +264,15 @@ function PlayerPage() {
       />
 
       {isAuthenticated ? (
-        <Suspense fallback={null}>
-          {progressByChapter[chapter.id]?.completed && (
+        progressByChapter[chapter.id]?.completed && (
+          <Suspense fallback={null}>
             <ChapterFeedback key={`feedback-${chapter.id}`} chapterId={chapter.id} />
-          )}
-
-          <ChatWidget key={`chat-${chapter.id}`} chapterId={chapter.id} />
-        </Suspense>
+          </Suspense>
+        )
       ) : (
         <p className="text-sm text-slate-500 dark:text-stone-400 border border-slate-200 dark:border-stone-700 rounded-lg p-4">
-          Crie uma conta gratuita para salvar seu progresso e conversar com o tutor de IA.{' '}
+          Crie uma conta gratuita para salvar seu progresso e traduzir qualquer palavra
+          automaticamente.{' '}
           <Link to="/register" state={{ from: `/audiobooks/${id}/player` }} className="underline">
             Criar conta
           </Link>

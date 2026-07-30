@@ -7,10 +7,8 @@ import { getExperimentAssignment, getVisitorId } from '../../services/experiment
 const FEATURES = [
   'Todos os audiobooks, para sempre (25 hoje, crescendo)',
   'Flashcards ilimitados',
-  'Tradução ao clicar na palavra, ilimitada',
-  'Prática de pronúncia ilimitada',
+  'Tradução ao clicar em qualquer palavra, ilimitada',
   'Modo offline (desktop)',
-  'Chat com o tutor de IA (10 mensagens/dia)',
 ];
 
 function PricingPage() {

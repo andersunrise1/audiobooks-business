@@ -8,7 +8,7 @@ const FAQ = [
   {
     question: 'O que é o TechSpeak Vitalício?',
     answer:
-      'É um pagamento único de R$ 57 que dá acesso para sempre a todos os audiobooks do catálogo atual e futuro (sem contar pacotes de novos livros vendidos separadamente), flashcards e tradução ilimitados, prática de pronúncia e modo offline no app desktop.',
+      'É um pagamento único de R$ 57 que dá acesso para sempre a todos os audiobooks do catálogo atual e futuro (sem contar pacotes de novos livros vendidos separadamente), flashcards e tradução ilimitados, e modo offline no app desktop.',
   },
   {
     question: 'Quantos audiobooks estão disponíveis gratuitamente?',
@@ -16,9 +16,9 @@ const FAQ = [
       '2 audiobooks completos ficam disponíveis no plano gratuito, sem necessidade de compra: "Daily Standup" e "Remote Work Communication". Os demais fazem parte do Vitalício.',
   },
   {
-    question: 'Como funciona o tutor de IA?',
+    question: 'Como funciona a tradução de palavras?',
     answer:
-      'O chat com o tutor de IA tem um limite diário de mensagens (1/dia no plano gratuito, 10/dia no Vitalício) — esse limite existe mesmo para quem já comprou, já que cada mensagem tem um custo real de processamento.',
+      'Clique em qualquer palavra do texto para ver a tradução, a explicação e um exemplo de uso. Palavras já catalogadas aparecem na hora; palavras novas são traduzidas automaticamente.',
   },
   {
     question: 'O app funciona offline?',

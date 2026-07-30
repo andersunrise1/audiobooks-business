@@ -1,3 +1,5 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -26,6 +28,7 @@ import { generalRateLimit, authRateLimit } from './middleware/generalRateLimit.j
 // way; it protects this app's actual web users from other sites silently
 // making credentialed cross-origin requests.
 const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function corsOrigin(origin, callback) {
   if (!origin || origin === allowedOrigin) return callback(null, true);
@@ -45,6 +48,18 @@ export function createApp() {
   // this route is registered (with express.raw()) before the global JSON
   // parser below - every other route still gets normal JSON parsing.
   app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
+  // Serves locally-generated narration audio (scripts/generateNarration.js).
+  // helmet() defaults Cross-Origin-Resource-Policy to 'same-origin', which
+  // would otherwise block the frontend (a different origin/port in dev)
+  // from loading these files in an <audio> tag - overridden here for just
+  // this static route rather than weakening it globally.
+  app.use(
+    '/audio',
+    express.static(path.join(__dirname, '../public/audio'), {
+      setHeaders: (res) => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
+    }),
+  );
 
   app.use(express.json());
   app.use('/api', generalRateLimit);

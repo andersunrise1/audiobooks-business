@@ -321,7 +321,14 @@ function PlayerPage() {
       />
 
       {progressByChapter[chapter.id]?.completed && (
-        <p className="text-slate-500 dark:text-stone-400 text-sm -mt-2">Concluído</p>
+        <div className="flex flex-col gap-2 -mt-2">
+          <p className="text-slate-500 dark:text-stone-400 text-sm">Concluído</p>
+          <p className="text-sm text-slate-600 dark:text-stone-300 bg-slate-50 dark:bg-stone-800 border border-slate-200 dark:border-stone-700 rounded-lg p-3">
+            💡 <strong>Dica:</strong> releia este capítulo mais vezes (use o botão 🔁) e revise seus
+            flashcards depois. A repetição é comprovadamente a forma mais eficaz de fixar
+            vocabulário novo na memória — é assim que seu inglês técnico avança de verdade.
+          </p>
+        </div>
       )}
 
       {resolvedChapterAudioUrl ? (

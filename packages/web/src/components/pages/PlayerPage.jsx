@@ -45,6 +45,26 @@ function PlayerPage() {
   // Dia 55-56: paywall message A/B test - falls back to the Dia 49 original
   // copy while the assignment call is in flight or if it fails.
   const [paywallVariant, setPaywallVariant] = useState(null);
+  // Whether the progress fetch below has settled with a real success/
+  // failure for an authenticated visitor - progressByChapter starts as {}
+  // either way, so this is what tells the resume logic below it's safe to
+  // read. An anonymous visitor never needs this (progressReady, further
+  // down, treats them as always ready).
+  const [progressLoaded, setProgressLoaded] = useState(false);
+  // Guards the auto-resume jump to only happen once per book load, so
+  // manually browsing to an earlier chapter afterward doesn't get
+  // overridden the next time progressByChapter updates (e.g. after
+  // finishing a chapter).
+  const [hasResumed, setHasResumed] = useState(false);
+  // Tracks which book these two flags belong to, so they can be reset
+  // during render (React's own recommended pattern for state that should
+  // reset when a prop changes) instead of inside an effect.
+  const [resetForBookId, setResetForBookId] = useState(id);
+  if (id !== resetForBookId) {
+    setResetForBookId(id);
+    setProgressLoaded(false);
+    setHasResumed(false);
+  }
 
   // Free audiobooks are playable by anonymous visitors (Dia 49's backend
   // already supports this via optionalAuth) - this route no longer requires
@@ -55,7 +75,6 @@ function PlayerPage() {
       .then((chapterList) => {
         setPaywalled(false);
         setChapters(chapterList);
-        setChapterIndex(0);
       })
       .catch((err) => {
         if (err.status === 403) {
@@ -78,11 +97,26 @@ function PlayerPage() {
         if (!isDesktop) return;
         // Offline on desktop: fall back to the last-synced local cache
         // instead of leaving progress (e.g. "concluído" markers) blank.
-        getCachedProgress().then((cached) => {
+        return getCachedProgress().then((cached) => {
           setProgressByChapter(Object.fromEntries(cached.map((p) => [p.chapter_id, p])));
         });
-      });
-  }, [isAuthenticated, accessToken]);
+      })
+      .finally(() => setProgressLoaded(true));
+  }, [id, isAuthenticated, accessToken]);
+
+  // Reading marker: jump straight to the first not-yet-completed chapter
+  // instead of always landing on chapter 1, so reopening a book in
+  // progress continues where the reader left off. Computed during render
+  // (guarded by hasResumed, so it only ever applies once per book load)
+  // rather than in an effect, since it's purely derived from chapters +
+  // progress that already changed this render - the React-recommended
+  // pattern for adjusting state in response to other state changing.
+  const progressReady = !isAuthenticated || progressLoaded;
+  if (!hasResumed && chapters.length > 0 && progressReady) {
+    const firstIncomplete = chapters.findIndex((c) => !progressByChapter[c.id]?.completed);
+    setHasResumed(true);
+    setChapterIndex(firstIncomplete === -1 ? chapters.length - 1 : firstIncomplete);
+  }
 
   useEffect(() => {
     if (!paywalled) return;

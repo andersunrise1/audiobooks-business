@@ -19,8 +19,18 @@ vi.mock('../../services/api.js', () => ({
         },
       ]);
     }
+    if (path === '/api/audiobooks/b3/chapters') {
+      return Promise.resolve([
+        { id: 'c10', title: 'Ch1', audio_url: 'https://example.com/1.mp3', transcript: 'One.' },
+        { id: 'c11', title: 'Ch2', audio_url: 'https://example.com/2.mp3', transcript: 'Two.' },
+        { id: 'c12', title: 'Ch3', audio_url: 'https://example.com/3.mp3', transcript: 'Three.' },
+      ]);
+    }
     if (path === '/api/user/progress') {
-      return Promise.resolve([]);
+      // Shared across every test in this file - only book b3's resume test
+      // relies on this, and it's harmless for other tests since none of
+      // their chapters (e.g. c1) appear here.
+      return Promise.resolve([{ chapter_id: 'c10', completed: true, listening_count: 1 }]);
     }
     if (path === '/api/audiobooks/chapters/c1/words') {
       return Promise.resolve([
@@ -33,6 +43,13 @@ vi.mock('../../services/api.js', () => ({
         },
       ]);
     }
+    if (
+      path === '/api/audiobooks/chapters/c10/words' ||
+      path === '/api/audiobooks/chapters/c11/words' ||
+      path === '/api/audiobooks/chapters/c12/words'
+    ) {
+      return Promise.resolve([]);
+    }
     if (path === '/api/user/words-learned') {
       return Promise.resolve({ chapter_id: 'c1', words_learned: 1 });
     }
@@ -40,10 +57,10 @@ vi.mock('../../services/api.js', () => ({
   }),
 }));
 
-function renderPlayerPage() {
+function renderPlayerPage(bookId = 'b1') {
   return render(
     <AuthProvider>
-      <MemoryRouter initialEntries={['/audiobooks/b1/player']}>
+      <MemoryRouter initialEntries={[`/audiobooks/${bookId}/player`]}>
         <Routes>
           <Route path="/audiobooks/:id/player" element={<PlayerPage />} />
         </Routes>
@@ -81,6 +98,15 @@ describe('PlayerPage', () => {
       '/api/user/words-learned',
       expect.objectContaining({ body: { chapterId: 'c1', wordId: 'w1' } }),
     );
+  });
+
+  test('reading marker: resumes on the first not-yet-completed chapter', async () => {
+    renderPlayerPage('b3');
+
+    // Book b3 has chapters c10 (completed), c11, c12 - should land on c11
+    // (chapter 2), not restart from chapter 1 like a fresh book would.
+    expect(await screen.findByText(/Capítulo 2 de 3/)).toBeInTheDocument();
+    expect(await screen.findByText('Ch2')).toBeInTheDocument();
   });
 });
 

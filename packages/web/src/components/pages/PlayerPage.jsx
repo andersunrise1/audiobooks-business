@@ -352,7 +352,7 @@ function PlayerPage() {
 
       {showRepeatTip && (
         <div className="fixed top-28 inset-x-0 z-30 flex justify-center px-4 pointer-events-none">
-          <div className="animate-popup-in pointer-events-auto max-w-sm w-full rounded-lg bg-slate-900 text-white shadow-lg p-3 flex items-start gap-2">
+          <div className="animate-popup-in pointer-events-auto max-w-sm w-full rounded-lg bg-white text-slate-900 shadow-lg p-3 flex items-start gap-2">
             <p className="text-sm flex-1">
               💡 <strong>Dica:</strong> releia este capítulo mais vezes (use o botão 🔁) e revise
               seus flashcards depois. A repetição é comprovadamente a forma mais eficaz de fixar
@@ -361,7 +361,7 @@ function PlayerPage() {
             <button
               type="button"
               onClick={() => setShowRepeatTip(false)}
-              className="w-6 h-6 shrink-0 flex items-center justify-center text-slate-400 hover:text-white touch-manipulation"
+              className="w-6 h-6 shrink-0 flex items-center justify-center text-slate-400 hover:text-slate-900 touch-manipulation"
               aria-label="Fechar dica"
             >
               ✕

@@ -150,6 +150,32 @@ function PlayerPage() {
     localStorage.setItem('techspeak_font_family', family);
   }
 
+  // Nudges the reader toward re-listening/reviewing flashcards when they
+  // open a chapter they've already completed - shows for 8s then closes on
+  // its own, so it doesn't linger and get in the way of actually reading.
+  // Arming the toast (tipArmedForChapterId) happens during render, the same
+  // pattern resetForBookId above uses, since it's purely a reaction to
+  // chapter/progress changing this render; only the 8s auto-hide itself
+  // needs an effect (a real external timer to synchronize with), and that
+  // effect's only setState call is deferred inside the timeout callback.
+  // Gated on hasResumed (read as it was at the *start* of this render, since
+  // setHasResumed(true) above doesn't retroactively change that binding) -
+  // without it, this would arm the tip for chapter 1 (still completed) in
+  // the same render the resume logic decides to jump away from it, since
+  // `chapter` here still reflects the pre-jump chapterIndex.
+  const isChapterCompleted = Boolean(progressByChapter[chapter?.id]?.completed);
+  const [tipArmedForChapterId, setTipArmedForChapterId] = useState(null);
+  const [showRepeatTip, setShowRepeatTip] = useState(false);
+  if (hasResumed && isChapterCompleted && chapter?.id && tipArmedForChapterId !== chapter.id) {
+    setTipArmedForChapterId(chapter.id);
+    setShowRepeatTip(true);
+  }
+  useEffect(() => {
+    if (!showRepeatTip) return undefined;
+    const timer = setTimeout(() => setShowRepeatTip(false), 8000);
+    return () => clearTimeout(timer);
+  }, [showRepeatTip]);
+
   useEffect(() => {
     if (!chapter?.id) return;
     apiRequest(`/api/audiobooks/chapters/${chapter.id}/words`)
@@ -321,13 +347,26 @@ function PlayerPage() {
       />
 
       {progressByChapter[chapter.id]?.completed && (
-        <div className="flex flex-col gap-2 -mt-2">
-          <p className="text-slate-500 dark:text-stone-400 text-sm">Concluído</p>
-          <p className="text-sm text-slate-600 dark:text-stone-300 bg-slate-50 dark:bg-stone-800 border border-slate-200 dark:border-stone-700 rounded-lg p-3">
-            💡 <strong>Dica:</strong> releia este capítulo mais vezes (use o botão 🔁) e revise seus
-            flashcards depois. A repetição é comprovadamente a forma mais eficaz de fixar
-            vocabulário novo na memória — é assim que seu inglês técnico avança de verdade.
-          </p>
+        <p className="text-slate-500 dark:text-stone-400 text-sm -mt-2">Concluído</p>
+      )}
+
+      {showRepeatTip && (
+        <div className="fixed top-28 inset-x-0 z-30 flex justify-center px-4 pointer-events-none">
+          <div className="animate-popup-in pointer-events-auto max-w-sm w-full rounded-lg bg-slate-900 text-white shadow-lg p-3 flex items-start gap-2">
+            <p className="text-sm flex-1">
+              💡 <strong>Dica:</strong> releia este capítulo mais vezes (use o botão 🔁) e revise
+              seus flashcards depois. A repetição é comprovadamente a forma mais eficaz de fixar
+              vocabulário novo na memória — é assim que seu inglês técnico avança de verdade.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowRepeatTip(false)}
+              className="w-6 h-6 shrink-0 flex items-center justify-center text-slate-400 hover:text-white touch-manipulation"
+              aria-label="Fechar dica"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 

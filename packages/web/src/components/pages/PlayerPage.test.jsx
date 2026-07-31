@@ -107,6 +107,27 @@ describe('PlayerPage', () => {
     // (chapter 2), not restart from chapter 1 like a fresh book would.
     expect(await screen.findByText(/Capítulo 2 de 3/)).toBeInTheDocument();
     expect(await screen.findByText('Ch2')).toBeInTheDocument();
+    // Regression check: the repetition tip below used to arm itself for
+    // c10 (completed) in the same render the resume logic above decided to
+    // jump away from it, so it would briefly show on c11 (not completed).
+    expect(screen.queryByText(/releia este capítulo/)).not.toBeInTheDocument();
+  });
+
+  test('repetition tip shows on an already-completed chapter and can be dismissed', async () => {
+    const user = userEvent.setup();
+    renderPlayerPage('b3');
+
+    await screen.findByText('Ch2');
+    // Both the side-arrow and the AudioPlayer's own control share this
+    // aria-label - either one navigates back to c10 (completed).
+    const [prevButton] = screen.getAllByRole('button', { name: 'Capítulo anterior' });
+    await user.click(prevButton);
+
+    expect(await screen.findByText('Ch1')).toBeInTheDocument();
+    expect(await screen.findByText(/releia este capítulo/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Fechar dica' }));
+    expect(screen.queryByText(/releia este capítulo/)).not.toBeInTheDocument();
   });
 });
 

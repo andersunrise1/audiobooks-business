@@ -53,6 +53,7 @@ function TranscriptDisplay({
   onWordClick,
   onTranslateWord,
   fontSize = 'text-lg',
+  fontFamily = 'font-sans',
 }) {
   const [selectedWord, setSelectedWord] = useState(null);
   const [loadingText, setLoadingText] = useState(null);
@@ -80,7 +81,7 @@ function TranscriptDisplay({
 
   return (
     <>
-      <p className={`${fontSize} leading-loose text-slate-700 dark:text-stone-200`}>
+      <p className={`${fontSize} ${fontFamily} leading-loose text-slate-700 dark:text-stone-200`}>
         {segments.map((segment, index) =>
           segment.type === 'word' ? (
             <span

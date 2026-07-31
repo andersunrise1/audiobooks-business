@@ -36,6 +36,9 @@ function PlayerPage() {
   const [playbackVolume, setPlaybackVolume] = useState(1);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [fontSize, setFontSize] = useState('text-lg');
+  const [fontFamily, setFontFamily] = useState(
+    () => localStorage.getItem('techspeak_font_family') || 'font-sans',
+  );
   const [voicePref, setVoicePref] = useState(
     () => localStorage.getItem('techspeak_voice_pref') || 'female',
   );
@@ -140,6 +143,11 @@ function PlayerPage() {
   function handleVoicePrefChange(pref) {
     setVoicePref(pref);
     localStorage.setItem('techspeak_voice_pref', pref);
+  }
+
+  function handleFontFamilyChange(family) {
+    setFontFamily(family);
+    localStorage.setItem('techspeak_font_family', family);
   }
 
   useEffect(() => {
@@ -303,6 +311,8 @@ function PlayerPage() {
         onSelectChapter={setChapterIndex}
         fontSize={fontSize}
         onFontSizeChange={setFontSize}
+        fontFamily={fontFamily}
+        onFontFamilyChange={handleFontFamilyChange}
         progressFraction={duration ? currentTime / duration : 0}
         volume={playbackVolume}
         onVolumeChange={setPlaybackVolume}
@@ -344,6 +354,7 @@ function PlayerPage() {
         onWordClick={handleWordClick}
         onTranslateWord={isAuthenticated ? handleTranslateWord : undefined}
         fontSize={fontSize}
+        fontFamily={fontFamily}
       />
 
       {isAuthenticated ? (

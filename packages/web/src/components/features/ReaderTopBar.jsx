@@ -8,12 +8,20 @@ const FONT_SIZES = ['text-base', 'text-lg', 'text-xl'];
 // size, and a settings popover holding the volume control (the "abaixar o
 // volume e só ler" requirement) - kept out of the main playback bar to
 // match the reference's minimal bottom controls.
+const FONT_FAMILIES = [
+  { value: 'font-sans', label: 'Padrão' },
+  { value: 'font-serif', label: 'Serifada' },
+  { value: 'font-mono', label: 'Monoespaçada' },
+];
+
 function ReaderTopBar({
   chapters,
   chapterIndex,
   onSelectChapter,
   fontSize,
   onFontSizeChange,
+  fontFamily,
+  onFontFamilyChange,
   progressFraction,
   volume,
   onVolumeChange,
@@ -116,6 +124,31 @@ function ReaderTopBar({
                 <p className="text-xs text-slate-400 dark:text-stone-500 mt-1">
                   Abaixe pra 0 e apenas leia o texto.
                 </p>
+
+                {onFontFamilyChange && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-stone-700">
+                    <p className="text-sm text-slate-600 dark:text-stone-300 mb-1.5">
+                      Fonte de leitura
+                    </p>
+                    <div className="flex gap-1.5">
+                      {FONT_FAMILIES.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => onFontFamilyChange(option.value)}
+                          aria-pressed={fontFamily === option.value}
+                          className={`flex-1 h-9 px-1 rounded-full text-xs font-medium touch-manipulation ${option.value} ${
+                            fontFamily === option.value
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {onVoicePrefChange && (
                   <div className="mt-3 pt-3 border-t border-slate-200 dark:border-stone-700">

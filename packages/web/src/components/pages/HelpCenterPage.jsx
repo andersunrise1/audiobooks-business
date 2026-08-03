@@ -42,12 +42,36 @@ const FAQ = [
 
 const INITIAL_FORM = { subject: '', message: '', email: '' };
 
+// Deliberately not shown on the Pricing page or anywhere else in the normal
+// navigation - the self-service refund button only appears here, after the
+// customer has already gone out of their way to contact support, so it's
+// not sitting in front of a paying customer as a constant invitation to
+// cancel. It still fully honors the CDC Art. 49 right described in the FAQ
+// above - it's just not advertised as a one-click action on every screen.
+const REFUND_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 function HelpCenterPage() {
-  const { isAuthenticated, accessToken } = useAuth();
+  const { isAuthenticated, user, accessToken, refreshUser } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [confirmingRefund, setConfirmingRefund] = useState(false);
+  const [refunding, setRefunding] = useState(false);
+  const [refundError, setRefundError] = useState('');
+  const [refunded, setRefunded] = useState(false);
+  // Snapshotting "now" via useState's lazy initializer (runs once, on
+  // mount) instead of calling Date.now() directly in the render body -
+  // React's purity rule flags the latter as an impure call.
+  const [nowMs] = useState(() => Date.now());
+
+  const withinRefundWindow =
+    isAuthenticated &&
+    user?.plan === 'pro' &&
+    !refunded &&
+    !user?.refundedAt &&
+    Boolean(user?.purchasedAt) &&
+    nowMs - new Date(user.purchasedAt).getTime() <= REFUND_WINDOW_MS;
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -72,6 +96,21 @@ function HelpCenterPage() {
       setError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleRefund() {
+    setRefunding(true);
+    setRefundError('');
+    try {
+      await apiRequest('/api/payment/refund', { method: 'POST', token: accessToken });
+      setRefunded(true);
+      setConfirmingRefund(false);
+      await refreshUser();
+    } catch (err) {
+      setRefundError(err.message);
+    } finally {
+      setRefunding(false);
     }
   }
 
@@ -107,9 +146,57 @@ function HelpCenterPage() {
         </p>
 
         {submitted ? (
-          <p className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded px-4 py-3 text-sm">
-            Mensagem enviada! Vamos responder o quanto antes.
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded px-4 py-3 text-sm">
+              Mensagem enviada! Vamos responder o quanto antes.
+            </p>
+
+            {refunded && (
+              <p className="bg-slate-50 dark:bg-stone-800 text-slate-600 dark:text-stone-300 rounded px-4 py-3 text-sm">
+                Reembolso confirmado. Seu acesso Vitalício foi encerrado.
+              </p>
+            )}
+
+            {withinRefundWindow && !confirmingRefund && (
+              <button
+                type="button"
+                onClick={() => setConfirmingRefund(true)}
+                className="text-sm text-slate-500 dark:text-stone-400 underline touch-manipulation self-start"
+              >
+                Solicitar reembolso (dentro do prazo de 7 dias)
+              </button>
+            )}
+
+            {confirmingRefund && (
+              <div className="border border-slate-200 dark:border-stone-700 rounded-lg p-3 flex flex-col gap-2">
+                <p className="text-sm text-slate-600 dark:text-stone-300">
+                  Tem certeza? O reembolso é processado imediatamente e seu acesso Vitalício será
+                  encerrado na hora.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRefund}
+                    disabled={refunding}
+                    className="bg-red-600 text-white rounded px-3 py-2 text-sm font-semibold disabled:opacity-50 touch-manipulation"
+                  >
+                    {refunding ? 'Processando...' : 'Confirmar reembolso'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingRefund(false)}
+                    disabled={refunding}
+                    className="bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200 rounded px-3 py-2 text-sm font-medium touch-manipulation"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                {refundError && (
+                  <p className="text-red-600 dark:text-red-400 text-sm">{refundError}</p>
+                )}
+              </div>
+            )}
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {!isAuthenticated && (

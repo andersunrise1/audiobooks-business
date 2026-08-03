@@ -27,7 +27,12 @@ const FAQ = [
   },
   {
     question: 'Existe reembolso ou cancelamento?',
-    answer: `O Vitalício não é uma assinatura recorrente — é um pagamento único, então não há cobrança para "cancelar". Para dúvidas sobre reembolso de uma compra específica, entre em contato pelo formulário abaixo ou por ${SUPPORT_EMAIL}.`,
+    answer: `O Vitalício não é uma assinatura recorrente — é um pagamento único, então não há cobrança para "cancelar". Além disso, por se tratar de uma compra feita pela internet, você tem direito de se arrepender e pedir reembolso integral em até 7 dias corridos a partir da compra, garantido pelo Código de Defesa do Consumidor (veja a pergunta abaixo). Para solicitar, entre em contato pelo formulário abaixo ou por ${SUPPORT_EMAIL}.`,
+  },
+  {
+    question: 'Qual a legislação sobre o direito de arrependimento?',
+    answer:
+      'Art. 49 da Lei nº 8.078/1990 (Código de Defesa do Consumidor): "O consumidor pode desistir do contrato, no prazo de 7 dias a contar de sua assinatura ou do ato de recebimento do produto ou serviço, sempre que a contratação de fornecimento de produtos e serviços ocorrer fora do estabelecimento comercial, especialmente por telefone ou a domicílio." Como a compra do TECHSPEAKING Vitalício é feita pela internet (fora de estabelecimento comercial), esse direito se aplica normalmente.',
   },
   {
     question: 'Como reporto um bug ou problema técnico?',

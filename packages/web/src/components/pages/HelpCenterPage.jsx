@@ -6,7 +6,7 @@ const SUPPORT_EMAIL = 'suporte@techspeak.dev';
 
 const FAQ = [
   {
-    question: 'O que é o TechSpeak Vitalício?',
+    question: 'O que é o TECHSPEAKING Vitalício?',
     answer:
       'É um pagamento único de R$ 57 que dá acesso para sempre a todos os audiobooks do catálogo atual e futuro (sem contar pacotes de novos livros vendidos separadamente), flashcards e tradução ilimitados, e modo offline no app desktop.',
   },

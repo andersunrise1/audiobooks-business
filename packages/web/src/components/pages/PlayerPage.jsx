@@ -279,7 +279,7 @@ function PlayerPage() {
   if (paywalled) {
     const message =
       paywallVariant?.config?.message ??
-      'Este audiobook faz parte do TechSpeak Vitalício. Faça login e adquira o acesso para continuar.';
+      'Este audiobook faz parte do TECHSPEAKING Vitalício. Faça login e adquira o acesso para continuar.';
 
     function handleSeePlansClick() {
       if (paywallVariant) {

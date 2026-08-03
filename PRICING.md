@@ -1,6 +1,6 @@
 # Pricing Strategy
 
-TechSpeak's pricing model. **Supersedes an earlier subscription-tier draft**
+TECHSPEAKING's pricing model. **Supersedes an earlier subscription-tier draft**
 (Free/Pro monthly/annual) from Dia 46 — on 2026-07-25 the user chose a
 lifetime-access model instead, deliberately departing from the plan's
 original 3-tier SaaS structure. This is a strategy document — **no billing
@@ -34,7 +34,7 @@ pronunciation, word translation — all free or near-free to serve) from
 - **Flashcards** for words learned from those 2 audiobooks.
 - **1 chat com o tutor por dia.**
 
-## TechSpeak Vitalício — R$ 57 (pagamento único)
+## TECHSPEAKING Vitalício — R$ 57 (pagamento único)
 
 - **Todos os audiobooks, para sempre** — inclui o catálogo atual (25
   audiobooks, ~7 horas de conteúdo) e qualquer audiobook adicionado no

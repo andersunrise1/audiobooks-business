@@ -34,7 +34,7 @@ function AdminMetricsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">Métricas de Negócio</h1>
       <p className="text-sm text-slate-500 dark:text-stone-400">
-        TechSpeak não tem assinatura recorrente (compra vitalícia única), então &quot;churn&quot;
+        TECHSPEAKING não tem assinatura recorrente (compra vitalícia única), então &quot;churn&quot;
         aqui mede inatividade de uso, não cancelamento — e o LTV é simplesmente o preço vitalício
         vezes a taxa de conversão, sem fórmula de receita recorrente.
       </p>

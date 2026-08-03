@@ -55,7 +55,7 @@ function PaymentSuccessPage() {
             Pagamento confirmado!
           </h1>
           <p className="text-slate-600 dark:text-stone-300">
-            Seu acesso Vitalício ao TechSpeak está ativo. Bons estudos!
+            Seu acesso Vitalício ao TECHSPEAKING está ativo. Bons estudos!
           </p>
           <Link to="/dashboard" className="text-slate-900 dark:text-stone-100 underline">
             Ir para o dashboard

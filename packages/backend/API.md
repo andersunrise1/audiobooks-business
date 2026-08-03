@@ -1,4 +1,4 @@
-# TechSpeak API
+# TECHSPEAKING API
 
 Base URL (dev): `http://localhost:3000`
 
@@ -41,7 +41,7 @@ the user no longer exists.
 
 ## Audiobooks (`/api/audiobooks`)
 
-Browsing the catalog is public (no auth required); reading a non-free audiobook's chapter content requires TechSpeak Vitalício (Dia 49 — see "Free-tier paywall" below). Every endpoint here only ever returns **published** audiobooks (Dia 51-52: `published_at IS NOT NULL AND published_at <= now()`) — a draft or scheduled-for-the-future audiobook 404s here exactly as if it didn't exist; `GET /api/admin/audiobooks/:id` is the only way to see/preview one before it's live.
+Browsing the catalog is public (no auth required); reading a non-free audiobook's chapter content requires TECHSPEAKING Vitalício (Dia 49 — see "Free-tier paywall" below). Every endpoint here only ever returns **published** audiobooks (Dia 51-52: `published_at IS NOT NULL AND published_at <= now()`) — a draft or scheduled-for-the-future audiobook 404s here exactly as if it didn't exist; `GET /api/admin/audiobooks/:id` is the only way to see/preview one before it's live.
 
 ### `GET /api/audiobooks`
 
@@ -53,7 +53,7 @@ Browsing the catalog is public (no auth required); reading a non-free audiobook'
 
 ### `GET /api/audiobooks/:id/chapters`
 
-Auth optional — a valid bearer token is only used to check `plan` for non-free audiobooks; anonymous requests are always treated as free-plan. 200 → array of `{ id, audiobook_id, title, order_index, audio_url, duration_seconds, transcript, created_at }`, ordered by `order_index`. 404 if the audiobook doesn't exist. 403 (`{ "error": "Este audiobook faz parte do TechSpeak Vitalicio..." }`) if the audiobook isn't `is_free` and the caller isn't authenticated with `plan` `pro`/`corporate`.
+Auth optional — a valid bearer token is only used to check `plan` for non-free audiobooks; anonymous requests are always treated as free-plan. 200 → array of `{ id, audiobook_id, title, order_index, audio_url, duration_seconds, transcript, created_at }`, ordered by `order_index`. 404 if the audiobook doesn't exist. 403 (`{ "error": "Este audiobook faz parte do TECHSPEAKING Vitalicio..." }`) if the audiobook isn't `is_free` and the caller isn't authenticated with `plan` `pro`/`corporate`.
 
 ### Free-tier paywall (Dia 49)
 
@@ -268,7 +268,7 @@ Response shape depends on the recognized intent:
 }
 ```
 
-`completionRates` counts distinct users with any `user_progress` row for one of an audiobook's chapters (`usersStarted`) vs. distinct users with `completed = true` for **every** one of that audiobook's chapters (`usersCompleted`); `completionRate` is `null` until someone has started it. `retention` adapts "churn" for TechSpeak's one-time-purchase model (there's no subscription to cancel) into activity churn: distinct `word_clicks` users in the last 30 days vs. the 30-60-days-ago window, and how many of the earlier group are still active now; both rate fields are `null` until there's a prior-period baseline to compare against. `lifetimeValue` is intentionally simple under a lifetime-purchase model — `totalRevenueBrlCents` is just `payingUsers × 5700` (no recurring-revenue formula, since there's no recurring revenue), `averageLtvBrlCents` divides that across every user (paying or not).
+`completionRates` counts distinct users with any `user_progress` row for one of an audiobook's chapters (`usersStarted`) vs. distinct users with `completed = true` for **every** one of that audiobook's chapters (`usersCompleted`); `completionRate` is `null` until someone has started it. `retention` adapts "churn" for TECHSPEAKING's one-time-purchase model (there's no subscription to cancel) into activity churn: distinct `word_clicks` users in the last 30 days vs. the 30-60-days-ago window, and how many of the earlier group are still active now; both rate fields are `null` until there's a prior-period baseline to compare against. `lifetimeValue` is intentionally simple under a lifetime-purchase model — `totalRevenueBrlCents` is just `payingUsers × 5700` (no recurring-revenue formula, since there's no recurring revenue), `averageLtvBrlCents` divides that across every user (paying or not).
 
 ### `POST /api/admin/audiobooks`
 
@@ -338,7 +338,7 @@ Requires auth. Open to any authenticated user, not just current beta testers - g
 
 ## Experiments (`/api/experiments`) — A/B testing (Dia 55-56)
 
-Public, no auth — an anonymous pricing-page visitor needs a variant before ever logging in. `services/experimentService.js` defines two experiments in code (not DB-driven): `pricing_price` (`control` = R$57 vs `discount` = R$47 — the plan's original "$9.99 vs $12.99" item adapted to TechSpeak's actual one-time-purchase pricing, testing the exact R$47/57/67 anchors `PRICING.md` itself names as alternatives worth validating) and `paywall_message` (two copy variants for the Dia 49 paywall panel: `control`, the original message, vs `benefit`, a catalog/AI-tutor-focused pitch). Variant assignment is a deterministic hash of `experimentName:subjectId` — the same subject always gets the same variant, no DB read needed to compute it.
+Public, no auth — an anonymous pricing-page visitor needs a variant before ever logging in. `services/experimentService.js` defines two experiments in code (not DB-driven): `pricing_price` (`control` = R$57 vs `discount` = R$47 — the plan's original "$9.99 vs $12.99" item adapted to TECHSPEAKING's actual one-time-purchase pricing, testing the exact R$47/57/67 anchors `PRICING.md` itself names as alternatives worth validating) and `paywall_message` (two copy variants for the Dia 49 paywall panel: `control`, the original message, vs `benefit`, a catalog/AI-tutor-focused pitch). Variant assignment is a deterministic hash of `experimentName:subjectId` — the same subject always gets the same variant, no DB read needed to compute it.
 
 ### `GET /api/experiments/:name/assignment?subjectId=`
 
@@ -350,7 +350,7 @@ Body: `{ "subjectId", "variant", "metadata"? }`. Logs a conversion event for lat
 
 ## Payment (`/api/payment`)
 
-`TechSpeak Vitalício` is a one-time purchase (Dia 46's pricing decision — see `PRICING.md`), not a subscription, so this is a single Stripe Checkout Session in `payment` mode, not `create-subscription`/webhooks-for-renewal as the plan's original draft assumed. See `PAYMENT_TROUBLESHOOTING.md` for how to test this against a real Stripe test-mode account once one exists, and common failure modes.
+`TECHSPEAKING Vitalício` is a one-time purchase (Dia 46's pricing decision — see `PRICING.md`), not a subscription, so this is a single Stripe Checkout Session in `payment` mode, not `create-subscription`/webhooks-for-renewal as the plan's original draft assumed. See `PAYMENT_TROUBLESHOOTING.md` for how to test this against a real Stripe test-mode account once one exists, and common failure modes.
 
 ### `POST /api/payment/create-checkout-session` — requires auth
 

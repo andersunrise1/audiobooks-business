@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { pool } from '../config/database.js';
 
 // Dia 55-56: adapted from the plan's "$9.99 vs $12.99" subscription-tier
-// draft to what's actually real here - TechSpeak Vitalicio is a one-time
+// draft to what's actually real here - TECHSPEAKING Vitalicio is a one-time
 // R$57 purchase (Dia 46), so this tests price anchors PRICING.md itself
 // names as the alternatives worth validating (R$47/57/67), plus a UI
 // variant on the Dia 49 paywall message. Neither variant is live against a
@@ -19,11 +19,11 @@ export const EXPERIMENTS = {
     variants: {
       control: {
         message:
-          'Este audiobook faz parte do TechSpeak Vitalicio. Faca login e adquira o acesso para continuar.',
+          'Este audiobook faz parte do TECHSPEAKING Vitalicio. Faca login e adquira o acesso para continuar.',
       },
       benefit: {
         message:
-          'Desbloqueie os 25 audiobooks do catalogo e o tutor de IA com o TechSpeak Vitalicio - pagamento unico, acesso para sempre.',
+          'Desbloqueie os 25 audiobooks do catalogo e o tutor de IA com o TECHSPEAKING Vitalicio - pagamento unico, acesso para sempre.',
       },
     },
   },

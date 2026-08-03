@@ -2,7 +2,7 @@ import { pool } from '../config/database.js';
 import { getUserPlan, isPaidPlan } from '../services/planService.js';
 
 export const PAYWALL_MESSAGE =
-  'Este audiobook faz parte do TechSpeak Vitalicio. Faca login e adquira o acesso para continuar.';
+  'Este audiobook faz parte do TECHSPEAKING Vitalicio. Faca login e adquira o acesso para continuar.';
 
 // Dia 51-52: a draft (published_at IS NULL) or scheduled-for-the-future
 // audiobook doesn't exist yet from the public catalog's point of view - the

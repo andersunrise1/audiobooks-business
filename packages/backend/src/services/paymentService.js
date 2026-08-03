@@ -1,10 +1,10 @@
 import { pool } from '../config/database.js';
 import { stripeClient } from '../config/stripe.js';
 
-// TechSpeak Vitalicio: one-time purchase, not a subscription (Dia 46's
+// TECHSPEAKING Vitalicio: one-time purchase, not a subscription (Dia 46's
 // pricing decision) - see PRICING.md/MONETIZATION.md.
 export const LIFETIME_PRICE_BRL_CENTS = 5700;
-export const LIFETIME_PRODUCT_NAME = 'TechSpeak Vitalicio';
+export const LIFETIME_PRODUCT_NAME = 'TECHSPEAKING Vitalicio';
 
 export function isStripeConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY);

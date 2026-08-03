@@ -53,7 +53,7 @@ function FeedbackPage() {
         <h1 className="text-2xl font-bold">Feedback</h1>
         <p className="text-slate-500 dark:text-stone-400 mt-1">
           Conta pra gente o que está funcionando, o que não está, ou o que você gostaria de ver no
-          TechSpeak.
+          TECHSPEAKING.
         </p>
       </div>
 

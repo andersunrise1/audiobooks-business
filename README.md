@@ -1,4 +1,4 @@
-# TechSpeak
+# TECHSPEAKING
 
 Plataforma de aprendizado de inglês técnico para profissionais de software: audiobooks com tradução palavra a palavra, chat com IA, flashcards (SM-2) e feedback de pronúncia.
 

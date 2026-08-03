@@ -39,7 +39,7 @@ export async function getAudiobookCompletionRates() {
   }));
 }
 
-// TechSpeak has no subscription to cancel (Dia 46's lifetime-purchase
+// TECHSPEAKING has no subscription to cancel (Dia 46's lifetime-purchase
 // decision), so "churn" here is adapted to mean engagement/activity churn -
 // users who were active in the prior 30-day window but haven't clicked a
 // word (the broadest real usage signal, word_clicks) in the most recent one -

@@ -67,8 +67,8 @@ function AudiobookListPage() {
                 <span
                   className="text-amber-600 dark:text-amber-400"
                   role="img"
-                  aria-label="Exclusivo do TechSpeak Vitalício"
-                  title="Exclusivo do TechSpeak Vitalício"
+                  aria-label="Exclusivo do TECHSPEAKING Vitalício"
+                  title="Exclusivo do TECHSPEAKING Vitalício"
                 >
                   🔒
                 </span>

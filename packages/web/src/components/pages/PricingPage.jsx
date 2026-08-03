@@ -57,7 +57,7 @@ function PricingPage() {
   return (
     <div className="flex flex-col gap-6 max-w-md">
       <div>
-        <h1 className="text-2xl font-bold">TechSpeak Vitalício</h1>
+        <h1 className="text-2xl font-bold">TECHSPEAKING Vitalício</h1>
         <p className="text-slate-500 dark:text-stone-400 mt-1">
           Pagamento único, acesso para sempre.
         </p>

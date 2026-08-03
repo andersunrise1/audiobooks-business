@@ -310,6 +310,139 @@ describe('POST /api/payment/webhook', () => {
   });
 });
 
+describe('POST /api/payment/refund', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+  });
+
+  after(async () => {
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    await stopTestServer(server);
+  });
+
+  function postRefund(token) {
+    return fetch(`${baseUrl}/api/payment/refund`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  }
+
+  test('rejects unauthenticated requests', async () => {
+    const res = await postRefund();
+    assert.equal(res.status, 401);
+  });
+
+  test('returns 503 when Stripe is not configured', async () => {
+    assert.ok(!process.env.STRIPE_SECRET_KEY);
+    const res = await postRefund(accessToken);
+    assert.equal(res.status, 503);
+  });
+
+  test('rejects a free-plan user (nothing to refund)', async () => {
+    await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      const res = await postRefund(accessToken);
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.match(data.error, /no lifetime purchase/);
+    });
+  });
+
+  test('rejects a pro-plan account with no purchase record (e.g. beta-granted access)', async () => {
+    await pool.query(`UPDATE users SET plan = 'pro' WHERE id = $1`, [userId]);
+
+    try {
+      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+        const res = await postRefund(accessToken);
+        assert.equal(res.status, 400);
+        const data = await res.json();
+        assert.match(data.error, /no purchase record/);
+      });
+    } finally {
+      await pool.query(`UPDATE users SET plan = 'free' WHERE id = $1`, [userId]);
+    }
+  });
+
+  test('rejects a purchase older than the refund window', async () => {
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+    await pool.query(
+      `UPDATE users SET plan = 'pro', stripe_payment_intent_id = 'pi_old', purchased_at = $2 WHERE id = $1`,
+      [userId, eightDaysAgo],
+    );
+
+    try {
+      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+        const res = await postRefund(accessToken);
+        assert.equal(res.status, 403);
+        const data = await res.json();
+        assert.match(data.error, /refund window has expired/);
+      });
+    } finally {
+      await pool.query(
+        `UPDATE users SET plan = 'free', stripe_payment_intent_id = NULL, purchased_at = NULL WHERE id = $1`,
+        [userId],
+      );
+    }
+  });
+
+  test('refunds a real recent purchase, calling Stripe and downgrading the account', async () => {
+    await pool.query(
+      `UPDATE users SET plan = 'pro', stripe_payment_intent_id = 'pi_recent', purchased_at = now() WHERE id = $1`,
+      [userId],
+    );
+
+    const refundMock = mock.method(stripeClient.refunds, 'create', async () => ({ id: 're_1' }));
+
+    try {
+      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+        const res = await postRefund(accessToken);
+        assert.equal(res.status, 200);
+        const data = await res.json();
+        assert.equal(data.refunded, true);
+      });
+
+      const [args] = refundMock.mock.calls[0].arguments;
+      assert.equal(args.payment_intent, 'pi_recent');
+
+      const { rows } = await pool.query('SELECT plan, refunded_at FROM users WHERE id = $1', [
+        userId,
+      ]);
+      assert.equal(rows[0].plan, 'free');
+      assert.ok(rows[0].refunded_at);
+    } finally {
+      refundMock.mock.restore();
+    }
+  });
+
+  test('rejects a second refund attempt on the same purchase', async () => {
+    await pool.query(
+      `UPDATE users SET plan = 'pro', stripe_payment_intent_id = 'pi_again', purchased_at = now(), refunded_at = now() WHERE id = $1`,
+      [userId],
+    );
+
+    try {
+      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+        const res = await postRefund(accessToken);
+        assert.equal(res.status, 400);
+        const data = await res.json();
+        assert.match(data.error, /already been refunded/);
+      });
+    } finally {
+      await pool.query(
+        `UPDATE users SET plan = 'free', stripe_payment_intent_id = NULL, purchased_at = NULL, refunded_at = NULL WHERE id = $1`,
+        [userId],
+      );
+    }
+  });
+});
+
 describe('Payment sandbox flow (Dia 50)', () => {
   let server;
   let baseUrl;

@@ -61,6 +61,41 @@ export function constructWebhookEvent(rawBody, signature) {
   );
 }
 
-export async function grantLifetimeAccess(userId) {
-  await pool.query(`UPDATE users SET plan = 'pro' WHERE id = $1`, [userId]);
+// Only resets purchased_at/refunded_at when the incoming payment_intent is
+// actually new (IS DISTINCT FROM), not just on every grant call - Stripe
+// can redeliver the same checkout.session.completed event (Dia 50's
+// idempotency test), and a redelivery must not push the refund window
+// back out. A genuinely new payment_intent (e.g. the user buys again after
+// an earlier refund) does start a fresh window, which is correct.
+export async function grantLifetimeAccess(userId, paymentIntentId = null) {
+  await pool.query(
+    `UPDATE users
+     SET plan = 'pro',
+         purchased_at = CASE WHEN stripe_payment_intent_id IS DISTINCT FROM $2 THEN now() ELSE purchased_at END,
+         refunded_at = CASE WHEN stripe_payment_intent_id IS DISTINCT FROM $2 THEN NULL ELSE refunded_at END,
+         stripe_payment_intent_id = $2
+     WHERE id = $1`,
+    [userId, paymentIntentId],
+  );
+}
+
+// CDC Art. 49 (Codigo de Defesa do Consumidor): a 7-day right of withdrawal
+// for purchases made outside a commercial establishment, which an online
+// checkout is - see HelpCenterPage's FAQ. This is the statutory floor, not
+// a marketing choice, so it isn't one of PRICING.md's tunable numbers.
+export const REFUND_WINDOW_DAYS = 7;
+
+export function isWithinRefundWindow(purchasedAt) {
+  if (!purchasedAt) return false;
+  const elapsedMs = Date.now() - new Date(purchasedAt).getTime();
+  return elapsedMs <= REFUND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+}
+
+// Actually moves money back via Stripe's real Refunds API, then revokes
+// access - the two happen together so a refunded purchase can't leave the
+// account with (or without) access inconsistent with what was actually
+// charged.
+export async function refundLifetimePurchase(user) {
+  await stripeClient.refunds.create({ payment_intent: user.stripe_payment_intent_id });
+  await pool.query(`UPDATE users SET plan = 'free', refunded_at = now() WHERE id = $1`, [user.id]);
 }

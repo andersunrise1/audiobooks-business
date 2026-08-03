@@ -11,8 +11,10 @@ const FEATURES = [
   'Modo offline (desktop)',
 ];
 
+const REFUND_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 function PricingPage() {
-  const { isAuthenticated, user, accessToken } = useAuth();
+  const { isAuthenticated, user, accessToken, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +22,17 @@ function PricingPage() {
   // to the control price/copy while the assignment call is in flight or if
   // it fails, so the page never blocks on this.
   const [priceVariant, setPriceVariant] = useState(null);
+  const [confirmingRefund, setConfirmingRefund] = useState(false);
+  const [refunding, setRefunding] = useState(false);
+  const [refundError, setRefundError] = useState('');
+  const [refunded, setRefunded] = useState(false);
+  // Snapshotting "now" via useState's lazy initializer (runs once, on
+  // mount) instead of calling Date.now() directly in the render body -
+  // React's purity rule flags the latter as an impure call. A few minutes
+  // of staleness here is harmless: this only decides whether to show the
+  // refund button at all, and the backend re-checks the real window before
+  // ever calling Stripe.
+  const [nowMs] = useState(() => Date.now());
 
   useEffect(() => {
     getExperimentAssignment('pricing_price')
@@ -53,6 +66,30 @@ function PricingPage() {
   }
 
   const alreadyOwns = user?.plan === 'pro';
+  // Client-side mirror of paymentService.isWithinRefundWindow - purely for
+  // deciding whether to show the button at all; the backend re-checks this
+  // for real before actually calling Stripe, so this half never needs to be
+  // perfectly authoritative on its own.
+  const withinRefundWindow =
+    !refunded &&
+    !user?.refundedAt &&
+    Boolean(user?.purchasedAt) &&
+    nowMs - new Date(user.purchasedAt).getTime() <= REFUND_WINDOW_MS;
+
+  async function handleRefund() {
+    setRefunding(true);
+    setRefundError('');
+    try {
+      await apiRequest('/api/payment/refund', { method: 'POST', token: accessToken });
+      setRefunded(true);
+      setConfirmingRefund(false);
+      await refreshUser();
+    } catch (err) {
+      setRefundError(err.message);
+    } finally {
+      setRefunding(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-md">
@@ -86,9 +123,57 @@ function PricingPage() {
         </ul>
 
         {alreadyOwns ? (
-          <p className="text-center bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded px-4 py-2 font-semibold">
-            Você já tem acesso Vitalício ✓
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-center bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded px-4 py-2 font-semibold">
+              Você já tem acesso Vitalício ✓
+            </p>
+
+            {refunded && (
+              <p className="text-center bg-slate-50 dark:bg-stone-800 text-slate-600 dark:text-stone-300 rounded px-4 py-2 text-sm">
+                Reembolso confirmado. Seu acesso Vitalício foi encerrado.
+              </p>
+            )}
+
+            {withinRefundWindow && !confirmingRefund && (
+              <button
+                type="button"
+                onClick={() => setConfirmingRefund(true)}
+                className="text-sm text-slate-500 dark:text-stone-400 underline touch-manipulation self-center"
+              >
+                Solicitar reembolso (dentro do prazo de {`7`} dias)
+              </button>
+            )}
+
+            {confirmingRefund && (
+              <div className="border border-slate-200 dark:border-stone-700 rounded-lg p-3 flex flex-col gap-2">
+                <p className="text-sm text-slate-600 dark:text-stone-300">
+                  Tem certeza? O reembolso é processado imediatamente e seu acesso Vitalício será
+                  encerrado na hora.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRefund}
+                    disabled={refunding}
+                    className="bg-red-600 text-white rounded px-3 py-2 text-sm font-semibold disabled:opacity-50 touch-manipulation"
+                  >
+                    {refunding ? 'Processando...' : 'Confirmar reembolso'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingRefund(false)}
+                    disabled={refunding}
+                    className="bg-slate-100 dark:bg-stone-700 text-slate-700 dark:text-stone-200 rounded px-3 py-2 text-sm font-medium touch-manipulation"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                {refundError && (
+                  <p className="text-red-600 dark:text-red-400 text-sm">{refundError}</p>
+                )}
+              </div>
+            )}
+          </div>
         ) : (
           <button
             type="button"

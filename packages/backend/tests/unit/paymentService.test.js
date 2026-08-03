@@ -6,6 +6,9 @@ import {
   createLifetimeCheckoutSession,
   constructWebhookEvent,
   grantLifetimeAccess,
+  refundLifetimePurchase,
+  isWithinRefundWindow,
+  REFUND_WINDOW_DAYS,
   LIFETIME_PRICE_BRL_CENTS,
   LIFETIME_PRODUCT_NAME,
 } from '../../src/services/paymentService.js';
@@ -115,15 +118,68 @@ describe('paymentService.constructWebhookEvent', () => {
 });
 
 describe('paymentService.grantLifetimeAccess', () => {
-  test('updates the user plan to pro', async () => {
+  test('updates the user plan to pro and records the payment intent', async () => {
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    try {
+      await grantLifetimeAccess('user-1', 'pi_123');
+      const [sql, params] = queryMock.mock.calls[0].arguments;
+      assert.match(sql, /UPDATE users/);
+      assert.match(sql, /plan = 'pro'/);
+      assert.deepEqual(params, ['user-1', 'pi_123']);
+    } finally {
+      queryMock.mock.restore();
+    }
+  });
+
+  test('defaults the payment intent to null when not given', async () => {
     const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
 
     try {
       await grantLifetimeAccess('user-1');
+      const [, params] = queryMock.mock.calls[0].arguments;
+      assert.deepEqual(params, ['user-1', null]);
+    } finally {
+      queryMock.mock.restore();
+    }
+  });
+});
+
+describe('paymentService.isWithinRefundWindow', () => {
+  test('is false when there is no purchase date', () => {
+    assert.equal(isWithinRefundWindow(null), false);
+  });
+
+  test(`is true within ${REFUND_WINDOW_DAYS} days of the purchase`, () => {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    assert.equal(isWithinRefundWindow(oneDayAgo), true);
+  });
+
+  test(`is false after ${REFUND_WINDOW_DAYS} days have passed`, () => {
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    assert.equal(isWithinRefundWindow(eightDaysAgo), false);
+  });
+});
+
+describe('paymentService.refundLifetimePurchase', () => {
+  test('calls the real Stripe refund API and downgrades the account', async () => {
+    const refundMock = mock.method(stripeClient.refunds, 'create', async () => ({
+      id: 're_123',
+    }));
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    try {
+      await refundLifetimePurchase({ id: 'user-1', stripe_payment_intent_id: 'pi_123' });
+
+      const [refundArgs] = refundMock.mock.calls[0].arguments;
+      assert.equal(refundArgs.payment_intent, 'pi_123');
+
       const [sql, params] = queryMock.mock.calls[0].arguments;
-      assert.match(sql, /UPDATE users SET plan = 'pro'/);
+      assert.match(sql, /plan = 'free'/);
+      assert.match(sql, /refunded_at = now\(\)/);
       assert.deepEqual(params, ['user-1']);
     } finally {
+      refundMock.mock.restore();
       queryMock.mock.restore();
     }
   });

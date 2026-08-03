@@ -10,7 +10,7 @@ vi.mock('../../services/api.js', () => ({
   apiRequest: vi.fn((path, options) => {
     if (path === '/api/auth/login') {
       const { email, password } = options.body;
-      if (email === 'ander@techspeak.dev' && password === 'senha123') {
+      if (email === 'ander@techspeaking.dev' && password === 'senha123') {
         return Promise.resolve({
           user: { id: 'u1', email, name: 'Ander' },
           accessToken: 'fake-token',
@@ -49,7 +49,7 @@ describe('Login flow', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByPlaceholderText('Email'), 'ander@techspeak.dev');
+    await user.type(screen.getByPlaceholderText('Email'), 'ander@techspeaking.dev');
     await user.type(screen.getByPlaceholderText('Senha'), 'senha123');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
@@ -60,7 +60,7 @@ describe('Login flow', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByPlaceholderText('Email'), 'wrong@techspeak.dev');
+    await user.type(screen.getByPlaceholderText('Email'), 'wrong@techspeaking.dev');
     await user.type(screen.getByPlaceholderText('Senha'), 'wrong-password');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 

@@ -82,7 +82,7 @@ describe('Accessibility (jest-axe)', () => {
     localStorage.setItem(
       'techspeak_auth',
       JSON.stringify({
-        user: { id: 'u1', email: 'ander@techspeak.dev', name: 'Ander', plan: 'pro' },
+        user: { id: 'u1', email: 'ander@techspeaking.dev', name: 'Ander', plan: 'pro' },
         accessToken: 'fake-token',
       }),
     );

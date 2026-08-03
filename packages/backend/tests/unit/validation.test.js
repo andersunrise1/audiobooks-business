@@ -4,7 +4,7 @@ import { isValidEmail, isValidPassword, MIN_PASSWORD_LENGTH } from '../../src/ut
 
 describe('isValidEmail', () => {
   test('accepts a well-formed email', () => {
-    assert.equal(isValidEmail('ander@techspeak.dev'), true);
+    assert.equal(isValidEmail('ander@techspeaking.dev'), true);
   });
 
   test('rejects a string with no @', () => {

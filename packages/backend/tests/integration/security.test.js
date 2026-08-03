@@ -55,7 +55,7 @@ describe('Auth-route rate limiting (Dia 75)', () => {
       return fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'nobody@techspeak.dev', password: 'wrong' }),
+        body: JSON.stringify({ email: 'nobody@techspeaking.dev', password: 'wrong' }),
       });
     }
 

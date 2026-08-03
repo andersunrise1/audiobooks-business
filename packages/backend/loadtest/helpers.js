@@ -7,7 +7,7 @@
 export const BASE_URL = process.env.LOADTEST_BASE_URL || 'http://localhost:3000';
 
 export async function registerTestUser(index) {
-  const email = `loadtest-${Date.now()}-${index}@techspeak.dev`;
+  const email = `loadtest-${Date.now()}-${index}@techspeaking.dev`;
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

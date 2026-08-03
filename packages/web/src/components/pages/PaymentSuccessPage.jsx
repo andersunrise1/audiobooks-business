@@ -69,8 +69,8 @@ function PaymentSuccessPage() {
           <p className="text-slate-600 dark:text-stone-300">
             Recebemos seu pagamento, mas a confirmação está demorando mais que o normal. Isso pode
             levar alguns instantes — recarregue a página em breve ou entre em contato em{' '}
-            <a href="mailto:suporte@techspeak.dev" className="underline">
-              suporte@techspeak.dev
+            <a href="mailto:suporte@techspeaking.dev" className="underline">
+              suporte@techspeaking.dev
             </a>
             .
           </p>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiRequest } from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
-const SUPPORT_EMAIL = 'suporte@techspeak.dev';
+const SUPPORT_EMAIL = 'suporte@techspeaking.dev';
 
 const FAQ = [
   {

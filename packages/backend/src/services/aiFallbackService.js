@@ -3,7 +3,7 @@ import { lookupWord } from './technicalDictionaryService.js';
 // Shown when a real AI call throws (network error, Anthropic outage/rate
 // limit, timeout) - distinct from the ANTHROPIC_API_KEY-missing 503, which
 // is a deployment/config signal, not a runtime failure to fall back from.
-export const SUPPORT_CONTACT_EMAIL = 'suporte@techspeak.dev';
+export const SUPPORT_CONTACT_EMAIL = 'suporte@techspeaking.dev';
 export const EXTERNAL_DOCS_URL = 'https://developer.mozilla.org/';
 
 const GENERAL_FAQ = [

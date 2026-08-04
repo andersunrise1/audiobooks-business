@@ -82,4 +82,22 @@ describe('NarrationPlayer', () => {
 
     expect(window.speechSynthesis.cancel).toHaveBeenCalled();
   });
+
+  test('changing speed while paused does not resume speech', async () => {
+    mockSpeechSynthesis([MALE_VOICE, FEMALE_VOICE]);
+    const user = userEvent.setup();
+
+    render(<NarrationPlayer text="Hello there." />);
+
+    await user.click(screen.getByRole('button', { name: 'Ouvir narração' }));
+    await user.click(screen.getByRole('button', { name: 'Pausar narração' }));
+    expect(window.speechSynthesis.pause).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: 'Alterar velocidade da narração' }));
+
+    // Regression: previously this called speak() again (restarting and
+    // forcing playback back on) instead of staying paused/stopped.
+    expect(window.speechSynthesis.speak).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Ouvir narração' })).toBeInTheDocument();
+  });
 });

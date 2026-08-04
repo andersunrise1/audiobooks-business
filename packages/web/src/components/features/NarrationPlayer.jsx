@@ -159,7 +159,16 @@ function NarrationPlayer({ text, onEnded }) {
     const index = SPEED_OPTIONS.indexOf(speed);
     const next = SPEED_OPTIONS[(index + 1) % SPEED_OPTIONS.length];
     setSpeed(next);
-    if (isSpeaking) speak(next);
+    if (isSpeaking && !isPaused) {
+      speak(next);
+    } else if (isSpeaking && isPaused) {
+      // Paused: resume() would continue the existing utterance at its old
+      // rate (Web Speech API can't change the rate of an in-flight
+      // utterance), and speak() would force playback back on, silently
+      // overriding the pause. Stop instead so the next Play press starts
+      // fresh at the new speed, without resuming the audience didn't ask for.
+      stop();
+    }
   }
 
   function selectGender(pref) {

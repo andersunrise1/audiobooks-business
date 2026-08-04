@@ -6,18 +6,28 @@ import KeyboardShortcutsHelp from '../features/KeyboardShortcutsHelp.jsx';
 import ThemeToggle from '../features/ThemeToggle.jsx';
 import ThemeSettings from '../features/ThemeSettings.jsx';
 import TechSpeakWordmark from '../features/TechSpeakWordmark.jsx';
+import UsFlagIcon from '../features/UsFlagIcon.jsx';
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (
-    <header className="border-b border-slate-200 dark:border-stone-700 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+    // The `dark` class forces this subtree into dark mode regardless of the
+    // reader's actual light/dark/system choice (ThemeContext toggles `dark`
+    // on <html>, not here) - the navbar itself always stays black per the
+    // user's request, while every other page still follows the real theme
+    // toggle normally. Tailwind's `@custom-variant dark` matches `.dark *`,
+    // so every descendant's existing `dark:` utility (badges, wordmark,
+    // ThemeToggle/ThemeSettings popovers, etc.) resolves correctly without
+    // needing its own change.
+    <header className="dark bg-black text-stone-100 border-b border-slate-200 dark:border-stone-700 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
       <Link to="/">
         <TechSpeakWordmark className="text-lg" />
       </Link>
 
       <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <Link to="/audiobooks" className="py-2 touch-manipulation">
+        <Link to="/audiobooks" className="py-2 touch-manipulation inline-flex items-center gap-1.5">
+          <UsFlagIcon />
           Audiobooks
         </Link>
         <Link to="/help" className="py-2 touch-manipulation">

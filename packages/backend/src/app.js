@@ -20,18 +20,24 @@ import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { enforceHttps } from './middleware/security.js';
 import { generalRateLimit, authRateLimit } from './middleware/generalRateLimit.js';
 
-// Dia 75: restricted to the real frontend origin (already used for Stripe
-// redirect URLs) instead of the previous wide-open default. Requests with
-// no Origin header (curl, server-to-server, the desktop app's main
-// process) are allowed through - CORS is a browser-enforced mechanism, so
-// restricting it doesn't meaningfully constrain non-browser clients either
-// way; it protects this app's actual web users from other sites silently
-// making credentialed cross-origin requests.
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+// Dia 75: restricted to the real frontend origin(s) (already used for
+// Stripe redirect URLs) instead of the previous wide-open default. FRONTEND_URL
+// accepts a comma-separated list so a second legitimate origin (e.g. a LAN
+// address used to test the dev server from a phone) can be added without
+// loosening this back to wide-open. Requests with no Origin header (curl,
+// server-to-server, the desktop app's main process) are allowed through -
+// CORS is a browser-enforced mechanism, so restricting it doesn't
+// meaningfully constrain non-browser clients either way; it protects this
+// app's actual web users from other sites silently making credentialed
+// cross-origin requests.
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function corsOrigin(origin, callback) {
-  if (!origin || origin === allowedOrigin) return callback(null, true);
+  if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
   return callback(new Error('Not allowed by CORS'));
 }
 
@@ -57,6 +63,15 @@ export function createApp() {
   app.use(
     '/audio',
     express.static(path.join(__dirname, '../public/audio'), {
+      setHeaders: (res) => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
+    }),
+  );
+
+  // Serves locally-generated audiobook cover illustrations (same pattern as
+  // /audio above, same CORP override reasoning).
+  app.use(
+    '/covers',
+    express.static(path.join(__dirname, '../public/covers'), {
       setHeaders: (res) => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
     }),
   );

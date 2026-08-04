@@ -314,7 +314,10 @@ function PlayerPage() {
           type="button"
           onClick={handlePrevChapter}
           aria-label="Capítulo anterior"
-          className="fixed left-1 md:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/90 dark:bg-stone-800/90 shadow-md text-slate-600 dark:text-stone-300 text-2xl touch-manipulation"
+          // sm:+ needs to clear the 192px Sidebar (visible from sm: up,
+          // per Layout.jsx) instead of sitting flush against the viewport
+          // edge, where it was overlapping the audiobook cover art.
+          className="fixed left-1 sm:left-52 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/90 dark:bg-stone-800/90 shadow-md text-slate-600 dark:text-stone-300 text-2xl touch-manipulation"
         >
           ‹
         </button>

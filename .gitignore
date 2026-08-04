@@ -8,4 +8,3 @@ build/
 .claude/settings.local.json
 packages/backend/backups/
 packages/backend/public/audio/generated/
-packages/backend/public/covers/

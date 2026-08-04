@@ -120,21 +120,21 @@ function FlashcardReviewPage() {
           <button
             type="button"
             onClick={() => handleRate(1)}
-            className="px-3 py-3 rounded bg-red-100 text-red-700 touch-manipulation"
+            className="px-3 py-3 rounded bg-red-600 text-white touch-manipulation dark:shadow-[0_0_14px_rgba(239,68,68,0.6)] dark:hover:shadow-[0_0_22px_rgba(239,68,68,0.9)]"
           >
             Não lembrei
           </button>
           <button
             type="button"
             onClick={() => handleRate(3)}
-            className="px-3 py-3 rounded bg-amber-100 text-amber-700 touch-manipulation"
+            className="px-3 py-3 rounded bg-amber-500 text-slate-900 touch-manipulation dark:shadow-[0_0_14px_rgba(245,158,11,0.6)] dark:hover:shadow-[0_0_22px_rgba(245,158,11,0.9)]"
           >
             Difícil
           </button>
           <button
             type="button"
             onClick={() => handleRate(5)}
-            className="px-3 py-3 rounded bg-green-100 text-green-700 touch-manipulation"
+            className="px-3 py-3 rounded bg-green-600 text-white touch-manipulation dark:shadow-[0_0_14px_rgba(34,197,94,0.6)] dark:hover:shadow-[0_0_22px_rgba(34,197,94,0.9)]"
           >
             Fácil
           </button>

@@ -16,7 +16,26 @@ export async function listUsers() {
   }));
 }
 
+// When ADMIN_EMAIL is configured, only that one account can ever be granted
+// admin access - closes off the real risk this endpoint otherwise carries
+// (any existing admin could promote an arbitrary second account, and a
+// leftover test fixture from earlier manual verification could easily be
+// forgotten in an admin-flagged state, as actually happened with an old
+// chattest@techspeak.dev row found in this dev DB). Demotion (isAdmin:
+// false) is never restricted - only granting new access is.
 export async function setUserAdminStatus(userId, isAdmin) {
+  if (isAdmin && process.env.ADMIN_EMAIL) {
+    const { rows: targetRows } = await pool.query('SELECT email FROM users WHERE id = $1', [
+      userId,
+    ]);
+    if (!targetRows[0]) return null;
+    if (targetRows[0].email !== process.env.ADMIN_EMAIL) {
+      const err = new Error('only the primary admin account can be granted admin access');
+      err.code = 'ADMIN_EMAIL_MISMATCH';
+      throw err;
+    }
+  }
+
   const { rows } = await pool.query(
     `UPDATE users SET is_admin = $1 WHERE id = $2 RETURNING id, email, name, plan, is_admin, created_at`,
     [isAdmin, userId],

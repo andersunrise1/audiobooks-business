@@ -19,7 +19,15 @@ export async function updateUserAdminStatus(req, res) {
     return res.status(400).json({ error: 'cannot remove your own admin access' });
   }
 
-  const user = await setUserAdminStatus(id, isAdmin);
+  let user;
+  try {
+    user = await setUserAdminStatus(id, isAdmin);
+  } catch (err) {
+    if (err.code === 'ADMIN_EMAIL_MISMATCH') {
+      return res.status(403).json({ error: err.message });
+    }
+    throw err;
+  }
 
   if (!user) {
     return res.status(404).json({ error: 'user not found' });

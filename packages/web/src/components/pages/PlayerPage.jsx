@@ -150,23 +150,23 @@ function PlayerPage() {
     localStorage.setItem('techspeak_font_family', family);
   }
 
-  // Nudges the reader toward re-listening/reviewing flashcards when they
-  // open a chapter they've already completed - shows for 8s then closes on
-  // its own, so it doesn't linger and get in the way of actually reading.
-  // Arming the toast (tipArmedForChapterId) happens during render, the same
-  // pattern resetForBookId above uses, since it's purely a reaction to
+  // Nudges the reader toward re-listening/reviewing flashcards once they
+  // reach the book's last chapter - shows for 8s then closes on its own, so
+  // it doesn't linger and get in the way of actually reading. Arming the
+  // toast (tipArmedForChapterId) happens during render, the same pattern
+  // resetForBookId above uses, since it's purely a reaction to
   // chapter/progress changing this render; only the 8s auto-hide itself
   // needs an effect (a real external timer to synchronize with), and that
   // effect's only setState call is deferred inside the timeout callback.
   // Gated on hasResumed (read as it was at the *start* of this render, since
   // setHasResumed(true) above doesn't retroactively change that binding) -
-  // without it, this would arm the tip for chapter 1 (still completed) in
-  // the same render the resume logic decides to jump away from it, since
-  // `chapter` here still reflects the pre-jump chapterIndex.
-  const isChapterCompleted = Boolean(progressByChapter[chapter?.id]?.completed);
+  // without it, this could arm the tip during the same render the resume
+  // logic decides to jump away from the last chapter, since `chapter` here
+  // still reflects the pre-jump chapterIndex.
+  const isLastChapter = chapters.length > 0 && chapterIndex === chapters.length - 1;
   const [tipArmedForChapterId, setTipArmedForChapterId] = useState(null);
   const [showRepeatTip, setShowRepeatTip] = useState(false);
-  if (hasResumed && isChapterCompleted && chapter?.id && tipArmedForChapterId !== chapter.id) {
+  if (hasResumed && isLastChapter && chapter?.id && tipArmedForChapterId !== chapter.id) {
     setTipArmedForChapterId(chapter.id);
     setShowRepeatTip(true);
   }

@@ -107,23 +107,26 @@ describe('PlayerPage', () => {
     // (chapter 2), not restart from chapter 1 like a fresh book would.
     expect(await screen.findByText(/Capítulo 2 de 3/)).toBeInTheDocument();
     expect(await screen.findByText('Ch2')).toBeInTheDocument();
-    // Regression check: the repetition tip below used to arm itself for
-    // c10 (completed) in the same render the resume logic above decided to
-    // jump away from it, so it would briefly show on c11 (not completed).
+    // Regression check: the repetition tip below (which only fires on the
+    // book's last chapter) used to arm itself off completion state instead,
+    // and could briefly show for an already-completed chapter the resume
+    // logic above was jumping away from in that same render.
     expect(screen.queryByText(/releia este capítulo/)).not.toBeInTheDocument();
   });
 
-  test('repetition tip shows on an already-completed chapter and can be dismissed', async () => {
+  test('repetition tip shows on the last chapter and can be dismissed', async () => {
     const user = userEvent.setup();
     renderPlayerPage('b3');
 
     await screen.findByText('Ch2');
-    // Both the side-arrow and the AudioPlayer's own control share this
-    // aria-label - either one navigates back to c10 (completed).
-    const [prevButton] = screen.getAllByRole('button', { name: 'Capítulo anterior' });
-    await user.click(prevButton);
+    expect(screen.queryByText(/releia este capítulo/)).not.toBeInTheDocument();
 
-    expect(await screen.findByText('Ch1')).toBeInTheDocument();
+    // Both the side-arrow and the AudioPlayer's own control share this
+    // aria-label - either one navigates forward to c12, the last chapter.
+    const [nextButton] = screen.getAllByRole('button', { name: 'Próximo capítulo' });
+    await user.click(nextButton);
+
+    expect(await screen.findByText('Ch3')).toBeInTheDocument();
     expect(await screen.findByText(/releia este capítulo/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Fechar dica' }));

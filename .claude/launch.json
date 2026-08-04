@@ -18,6 +18,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "web", "--workspace=packages/mobile"],
       "port": 8081
+    },
+    {
+      "name": "mobile",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--workspace=packages/mobile"],
+      "port": 8081
+    },
+    {
+      "name": "web-lan",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=packages/web", "--", "--host"],
+      "port": 5173
     }
   ]
 }

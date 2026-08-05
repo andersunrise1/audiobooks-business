@@ -85,6 +85,39 @@ describe('paymentService.createLifetimeCheckoutSession', () => {
       createMock.mock.restore();
     }
   });
+
+  // Regression: FRONTEND_URL became a comma-separated list on Dia 75 for
+  // multi-origin CORS support, but this function still built success_url/
+  // cancel_url from the raw env var - producing a malformed redirect
+  // target like "https://a.com,https://b.com/payment/success" that the
+  // browser can't load ("site can't be reached"), caught by a real test
+  // purchase against the live app.
+  test('uses only the first FRONTEND_URL entry when it is a comma-separated list', async () => {
+    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
+      url: 'https://checkout.stripe.com/test-session',
+    }));
+
+    try {
+      await withEnv(
+        { FRONTEND_URL: 'https://techspeaking.dev,https://www.techspeaking.dev' },
+        async () => {
+          const user = { id: 'user-1', email: 'a@b.com' };
+          await createLifetimeCheckoutSession(user);
+
+          const [args] = createMock.mock.calls[0].arguments;
+          assert.equal(
+            args.success_url,
+            'https://techspeaking.dev/payment/success?session_id={CHECKOUT_SESSION_ID}',
+          );
+          assert.equal(args.cancel_url, 'https://techspeaking.dev/payment/cancel');
+          assert.doesNotMatch(args.success_url, /,/);
+          assert.doesNotMatch(args.cancel_url, /,/);
+        },
+      );
+    } finally {
+      createMock.mock.restore();
+    }
+  });
 });
 
 describe('paymentService.constructWebhookEvent', () => {

@@ -23,7 +23,10 @@ export async function createLifetimeCheckoutSession(
   user,
   { priceBrlCents = LIFETIME_PRICE_BRL_CENTS, experiment } = {},
 ) {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  // FRONTEND_URL is a comma-separated list since Dia 75's multi-origin CORS
+  // support (app.js) - a redirect target needs exactly one URL, not the
+  // raw list, so take the first entry.
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
 
   return stripeClient.checkout.sessions.create({
     mode: 'payment',

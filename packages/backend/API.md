@@ -322,7 +322,7 @@ Body: `{ "isBetaTester" }` (boolean). Granting also sets `plan = 'pro'` (free Pr
 
 ### `PATCH /api/admin/support/tickets/:id`
 
-Body: `{ "status"?, "adminResponse"? }` — `status` must be `"open"` or `"resolved"` if present; either field can be omitted to leave it unchanged. 200 → the updated ticket, same shape as above. 400 if `status` is present but not one of the two valid values. 404 if the ticket doesn't exist. **No outbound email is sent** — there's no email-sending service integrated in this project yet (same class of gap as Anthropic/AWS/Stripe before their respective days), so `adminResponse` is stored for reference only; actually notifying the requester is manual for now.
+Body: `{ "status"?, "adminResponse"? }` — `status` must be `"open"` or `"resolved"` if present; either field can be omitted to leave it unchanged. 200 → the updated ticket, same shape as above. 400 if `status` is present but not one of the two valid values. 404 if the ticket doesn't exist. When `adminResponse` is set and Resend is configured (`RESEND_API_KEY`), an email is sent to the ticket's `email` from `suporte@techspeaking.dev` with the response - best-effort, a failed/unconfigured send never fails this request (`emailService.js`).
 
 ## Support (`/api/support`) — Dia 57-58
 

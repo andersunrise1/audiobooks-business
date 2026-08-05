@@ -29,6 +29,7 @@
     "multer": "^2.2.0",
     "pg": "^8.22.0",
     "redis": "^6.1.0",
+    "resend": "^6.18.1",
     "stripe": "^22.3.2"
   },
   "devDependencies": {

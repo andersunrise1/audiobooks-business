@@ -1,6 +1,7 @@
-import { after, before, describe, test } from 'node:test';
+import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { pool } from '../../src/config/database.js';
+import { resendClient } from '../../src/config/resend.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
 describe('POST /api/support/tickets', () => {
@@ -164,6 +165,37 @@ describe('Admin support ticket endpoints', () => {
     const data = await res.json();
     assert.equal(data.status, 'resolved');
     assert.equal(data.adminResponse, 'Resolvido, obrigado!');
+  });
+
+  test('PATCH /api/admin/support/tickets/:id emails the requester when Resend is configured', async () => {
+    const originalKey = process.env.RESEND_API_KEY;
+    process.env.RESEND_API_KEY = 're_test_123';
+    const sendMock = mock.method(resendClient.emails, 'send', async () => ({ data: { id: 'x' } }));
+
+    try {
+      const res = await fetch(`${baseUrl}/api/admin/support/tickets/${ticketId}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${adminAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ adminResponse: 'Aqui está a resposta!' }),
+      });
+      assert.equal(res.status, 200);
+
+      // The controller fires the email best-effort, without awaiting it -
+      // give its microtask a tick to run before asserting on the mock.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      assert.equal(sendMock.mock.calls.length, 1);
+      const [args] = sendMock.mock.calls[0].arguments;
+      assert.equal(args.to, 'ticket-test@example.com');
+      assert.match(args.text, /Aqui está a resposta!/);
+    } finally {
+      sendMock.mock.restore();
+      if (originalKey === undefined) delete process.env.RESEND_API_KEY;
+      else process.env.RESEND_API_KEY = originalKey;
+    }
   });
 
   test('PATCH /api/admin/support/tickets/:id returns 404 for a nonexistent ticket', async () => {

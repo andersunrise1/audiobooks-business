@@ -1,4 +1,5 @@
 import { listTickets, updateTicket } from '../services/supportTicketService.js';
+import { isEmailConfigured, sendSupportReply } from '../services/emailService.js';
 
 const VALID_STATUSES = ['open', 'resolved'];
 
@@ -18,6 +19,18 @@ export async function patchTicket(req, res) {
 
   if (!ticket) {
     return res.status(404).json({ error: 'ticket not found' });
+  }
+
+  // Best-effort: a failed/unconfigured email service must not undo the
+  // admin's response (already saved above) or fail this request - same
+  // resilience pattern as costTrackingService's best-effort logging.
+  if (adminResponse && isEmailConfigured()) {
+    sendSupportReply({
+      to: ticket.email,
+      subject: ticket.subject,
+      message: ticket.message,
+      adminResponse,
+    }).catch((err) => console.error('Failed to send support reply email', err));
   }
 
   res.json(ticket);

@@ -43,8 +43,7 @@ function AdminSupportPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Suporte</h1>
       <p className="text-sm text-slate-500 dark:text-stone-400">
-        Sem envio automático de e-mail nesta versão — a resposta fica registrada aqui; entre em
-        contato manualmente com o solicitante enquanto isso não existe.
+        Ao salvar uma resposta, ela é enviada por e-mail ao solicitante automaticamente.
       </p>
 
       {actionError && <p className="text-red-600 dark:text-red-400 text-sm">{actionError}</p>}

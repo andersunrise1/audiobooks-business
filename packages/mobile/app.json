@@ -34,9 +34,10 @@
         }
       ]
     ],
+    "owner": "techspeaking-app",
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_REAL_EAS_PROJECT_ID"
+        "projectId": "890802eb-2a1b-4b3a-a090-95adf731bd32"
       }
     }
   }

@@ -8,11 +8,11 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.techspeak.mobile",
+      "bundleIdentifier": "com.techspeaking.app",
       "buildNumber": "1"
     },
     "android": {
-      "package": "com.techspeak.mobile",
+      "package": "com.techspeaking.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

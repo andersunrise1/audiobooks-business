@@ -9,7 +9,7 @@ in" on this machine, not assumed). Neither exists in this environment.
 
 ## What's already done, for real
 
-`app.json`'s `android.package` (`com.techspeak.mobile`) and
+`app.json`'s `android.package` (`com.techspeaking.app`) and
 `android.versionCode` were set alongside iOS's equivalents (Dia 91-95's
 "configure iOS build" commit) since `app.json` is one shared config file for
 both platforms — there was nothing Android-specific left to add there.

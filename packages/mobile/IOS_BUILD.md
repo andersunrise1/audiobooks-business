@@ -19,11 +19,10 @@ ready, the external account isn't.
 
 ## What's already done, for real
 
-- `app.json`: `ios.bundleIdentifier` (`com.techspeak.mobile`) and
-  `ios.buildNumber` set. **`com.techspeak.mobile` is a placeholder** — bundle
-  IDs must be globally unique and match what you register in App Store
-  Connect; change it before your first real build if you want something
-  else.
+- `app.json`: `ios.bundleIdentifier` (`com.techspeaking.app`, the final
+  identifier decided 2026-08-06 — bundle IDs are permanent once published, so
+  this can't change again after the first real build) and `ios.buildNumber`
+  set.
 - `eas.json`: `development`/`preview`/`production` build profiles (the
   standard EAS layout — `preview` for internal/TestFlight-style distribution,
   `production` for App Store submission with `autoIncrement` so you don't

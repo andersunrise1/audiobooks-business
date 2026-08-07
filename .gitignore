@@ -7,4 +7,3 @@ build/
 .DS_Store
 .claude/settings.local.json
 packages/backend/backups/
-packages/backend/public/audio/generated/

@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
-import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/AuthContext.jsx';
 import { useTheme } from '../store/ThemeContext.jsx';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications.js';
+import TopNavBar from '../components/TopNavBar.jsx';
 import LoginScreen from '../screens/LoginScreen.jsx';
 import RegisterScreen from '../screens/RegisterScreen.jsx';
 import AudiobookListScreen from '../screens/AudiobookListScreen.jsx';
@@ -15,50 +16,29 @@ import FlashcardsScreen from '../screens/FlashcardsScreen.jsx';
 import DashboardScreen from '../screens/DashboardScreen.jsx';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
 
-function LogoutButton() {
-  const { logout } = useAuth();
-  return (
-    <Pressable onPress={logout} hitSlop={12} style={{ marginRight: 12 }}>
-      <Text style={{ color: '#2563eb' }}>Sair</Text>
-    </Pressable>
-  );
-}
+// TopNavBar replaces a native bottom tab bar - direct device feedback asked
+// for the same top-navbar interface as techspeaking.dev. Screens are
+// switched manually (not via a react-navigation tab navigator) since only
+// AudiobookListScreen needs `navigation` (to push Player) and none of the
+// three need `route` - a plain state switch is simpler and sidesteps any
+// tab-bar-positioning quirks. `<StatusBar style="light" />` here overrides
+// the app-wide theme-following status bar (App.jsx) while this always-black
+// bar is on screen, so status bar icons don't go dark-on-black in light mode.
+function MainTabs({ navigation }) {
+  const [active, setActive] = useState('Audiobooks');
+  const screens = {
+    Audiobooks: <AudiobookListScreen navigation={navigation} />,
+    Flashcards: <FlashcardsScreen />,
+    Dashboard: <DashboardScreen />,
+  };
 
-// Cycles light -> dark -> system -> light, same order as the web app's
-// ThemeToggle - the icon is the mode you'd land on next, matching that
-// existing convention rather than the mode currently active.
-function ThemeToggleButton() {
-  const { theme, cycleTheme } = useTheme();
-  const nextIcon = { light: '🌙', dark: '💻', system: '☀️' }[theme];
   return (
-    <Pressable onPress={cycleTheme} hitSlop={12} style={{ marginRight: 16 }}>
-      <Text style={{ fontSize: 16 }}>{nextIcon}</Text>
-    </Pressable>
-  );
-}
-
-function HeaderRight() {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <ThemeToggleButton />
-      <LogoutButton />
+    <View style={styles.flex}>
+      <StatusBar style="light" />
+      <TopNavBar active={active} onChange={setActive} />
+      {screens[active]}
     </View>
-  );
-}
-
-// Bottom tabs are the app's home base once authenticated (Dia 86-90's
-// "Dashboard"/"Flashcards" priorities live here); Player and Chat are
-// pushed on top as stack screens from Audiobooks, since a player/chat
-// session isn't itself a top-level destination.
-function MainTabs() {
-  return (
-    <Tab.Navigator screenOptions={{ headerRight: () => <HeaderRight /> }}>
-      <Tab.Screen name="Audiobooks" component={AudiobookListScreen} />
-      <Tab.Screen name="Flashcards" component={FlashcardsScreen} />
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-    </Tab.Navigator>
   );
 }
 
@@ -115,5 +95,6 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

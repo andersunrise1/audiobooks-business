@@ -44,6 +44,17 @@ function corsOrigin(origin, callback) {
 export function createApp() {
   const app = express();
 
+  // Railway (like Heroku/Render) terminates TLS at its own edge and forwards
+  // plain HTTP internally, so req.protocol is always 'http' unless Express
+  // is told to trust the X-Forwarded-Proto header from that one hop. Without
+  // this, resolveLocalMediaUrl (audiobookController.js) built cover/audio
+  // URLs as http://, which native apps refuse to load at all (Android
+  // blocks cleartext traffic by default) - real users saw missing covers
+  // and a play button that silently failed. `1` trusts exactly one proxy
+  // hop, matching Railway's own topology (not a wildcard trust-everyone
+  // setting, which would let a client spoof its own X-Forwarded-* headers).
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(enforceHttps);
   app.use(

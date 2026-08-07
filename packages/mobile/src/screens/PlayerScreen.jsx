@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { apiRequest } from '../services/api.js';
 import { useAuth } from '../store/AuthContext.jsx';
+import { useTheme } from '../store/ThemeContext.jsx';
 import TranscriptText from '../components/TranscriptText.jsx';
 import TranslationModal from '../components/TranslationModal.jsx';
 
@@ -10,6 +11,7 @@ import TranslationModal from '../components/TranslationModal.jsx';
 // below) so useAudioPlayer always starts fresh - the same reset-on-chapter-
 // change approach packages/web's AudioPlayer uses (Dia 25).
 function ChapterAudio({ audioUrl, onEnded }) {
+  const { colors } = useTheme();
   const player = useAudioPlayer(audioUrl ?? undefined);
   const status = useAudioPlayerStatus(player);
 
@@ -19,7 +21,11 @@ function ChapterAudio({ audioUrl, onEnded }) {
   }, [status.didJustFinish]);
 
   if (!audioUrl) {
-    return <Text style={styles.muted}>Áudio ainda não disponível para este capítulo.</Text>;
+    return (
+      <Text style={[styles.muted, { color: colors.muted }]}>
+        Áudio ainda não disponível para este capítulo.
+      </Text>
+    );
   }
 
   return (
@@ -30,7 +36,7 @@ function ChapterAudio({ audioUrl, onEnded }) {
       >
         <Text style={styles.playButtonText}>{status.playing ? 'Pausar' : 'Tocar'}</Text>
       </Pressable>
-      <Text style={styles.muted}>
+      <Text style={[styles.muted, { color: colors.muted }]}>
         {Math.floor(status.currentTime ?? 0)}s / {Math.floor(status.duration ?? 0)}s
       </Text>
     </View>
@@ -40,6 +46,7 @@ function ChapterAudio({ audioUrl, onEnded }) {
 export default function PlayerScreen({ route, navigation }) {
   const { audiobookId, title } = route.params;
   const { accessToken, isAuthenticated } = useAuth();
+  const { colors } = useTheme();
 
   const [chapters, setChapters] = useState([]);
   const [chapterIndex, setChapterIndex] = useState(0);
@@ -77,6 +84,12 @@ export default function PlayerScreen({ route, navigation }) {
   }, [isAuthenticated, accessToken]);
 
   const chapter = chapters[chapterIndex];
+  // Most of the catalog only has audio_url_female/audio_url_male populated
+  // (Dia 42) - plain audio_url only exists for a handful of legacy
+  // chapters. Without this fallback (mirroring web's PlayerPage.jsx), the
+  // play button silently disappeared for ~95% of chapters.
+  const resolvedAudioUrl =
+    chapter?.audio_url_female || chapter?.audio_url_male || chapter?.audio_url;
 
   useEffect(() => {
     if (!chapter?.id) return;
@@ -125,7 +138,7 @@ export default function PlayerScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -133,9 +146,11 @@ export default function PlayerScreen({ route, navigation }) {
 
   if (paywalled) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.title}>Este audiobook é exclusivo do Vitalício</Text>
-        <Text style={styles.muted}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={[styles.title, { color: colors.text }]}>
+          Este audiobook é exclusivo do Vitalício
+        </Text>
+        <Text style={[styles.muted, { color: colors.muted }]}>
           Faça login e adquira o acesso para continuar (compra pelo app web por enquanto).
         </Text>
       </View>
@@ -144,7 +159,7 @@ export default function PlayerScreen({ route, navigation }) {
 
   if (error) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <Text style={styles.error}>{error}</Text>
       </View>
     );
@@ -152,50 +167,62 @@ export default function PlayerScreen({ route, navigation }) {
 
   if (!chapter) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>Este audiobook ainda não tem capítulos.</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={[styles.muted, { color: colors.muted }]}>
+          Este audiobook ainda não tem capítulos.
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.chapterTitle}>{chapter.title}</Text>
-      <Text style={styles.muted}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      style={{ backgroundColor: colors.background }}
+    >
+      <Text style={[styles.chapterTitle, { color: colors.text }]}>{chapter.title}</Text>
+      <Text style={[styles.muted, { color: colors.muted }]}>
         Capítulo {chapterIndex + 1} de {chapters.length}
         {progressByChapter[chapter.id]?.completed && ' · concluído'}
       </Text>
 
-      <ChapterAudio key={chapter.id} audioUrl={chapter.audio_url} onEnded={handleEnded} />
+      <ChapterAudio key={chapter.id} audioUrl={resolvedAudioUrl} onEnded={handleEnded} />
 
       <TranscriptText transcript={chapter.transcript} words={words} onWordPress={handleWordPress} />
 
       <View style={styles.navRow}>
         <Pressable
-          style={[styles.navButton, chapterIndex === 0 && styles.navButtonDisabled]}
+          style={[
+            styles.navButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
+            chapterIndex === 0 && styles.navButtonDisabled,
+          ]}
           disabled={chapterIndex === 0}
           onPress={() => setChapterIndex((i) => i - 1)}
         >
-          <Text>Anterior</Text>
+          <Text style={{ color: colors.text }}>Anterior</Text>
         </Pressable>
         <Pressable
           style={[
             styles.navButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
             chapterIndex === chapters.length - 1 && styles.navButtonDisabled,
           ]}
           disabled={chapterIndex === chapters.length - 1}
           onPress={() => setChapterIndex((i) => Math.min(i + 1, chapters.length - 1))}
         >
-          <Text>Próximo</Text>
+          <Text style={{ color: colors.text }}>Próximo</Text>
         </Pressable>
       </View>
 
       {isAuthenticated && (
         <Pressable
-          style={styles.chatButton}
+          style={[styles.chatButton, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => navigation.navigate('Chat', { chapterId: chapter.id })}
         >
-          <Text style={styles.chatButtonText}>💬 Conversar com o tutor</Text>
+          <Text style={[styles.chatButtonText, { color: colors.text }]}>
+            💬 Conversar com o tutor
+          </Text>
         </Pressable>
       )}
 
@@ -221,12 +248,12 @@ const styles = StyleSheet.create({
   playButtonText: { color: '#fff', fontWeight: '600' },
   navRow: { flexDirection: 'row', gap: 8 },
   navButton: {
-    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
   navButtonDisabled: { opacity: 0.5 },
-  chatButton: { backgroundColor: '#f1f5f9', borderRadius: 8, padding: 14, alignItems: 'center' },
+  chatButton: { borderWidth: 1, borderRadius: 8, padding: 14, alignItems: 'center' },
   chatButtonText: { fontWeight: '600' },
 });

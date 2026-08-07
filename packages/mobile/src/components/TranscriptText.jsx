@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Text } from 'react-native';
 import { buildSegments } from '../utils/transcriptSegments.js';
+import { useTheme } from '../store/ThemeContext.jsx';
 
 // RN's Text supports nested Text children with their own onPress, the same
 // "inline tappable span" pattern packages/web's TranscriptDisplay.jsx uses
@@ -9,12 +10,13 @@ import { buildSegments } from '../utils/transcriptSegments.js';
 // MVP scope for this mobile port, matching Dia 86-90's "Player" priority
 // without pulling in every desktop/web player feature.
 export default function TranscriptText({ transcript, words, onWordPress }) {
+  const { colors } = useTheme();
   const segments = useMemo(() => buildSegments(transcript, words), [transcript, words]);
 
   if (!transcript) return null;
 
   return (
-    <Text style={{ fontSize: 16, lineHeight: 26, color: '#334155' }}>
+    <Text style={{ fontSize: 16, lineHeight: 26, color: colors.text }}>
       {segments.map((segment, index) =>
         segment.type === 'word' ? (
           <Text

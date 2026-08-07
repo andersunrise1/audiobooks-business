@@ -2,20 +2,41 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { apiRequest } from '../services/api.js';
 import { useAuth } from '../store/AuthContext.jsx';
+import { useTheme } from '../store/ThemeContext.jsx';
 import { getCachedStats, cacheStats } from '../services/offlineCache.js';
 
-function StatCard({ label, value, hint }) {
+// Mirrors packages/web/src/components/features/StatCard.jsx's ACCENTS map -
+// same colors, same one-metric-per-color mapping, so the mobile dashboard
+// doesn't look like a stripped-down grayscale version of the web one.
+const ACCENTS = {
+  purple: '#9333ea',
+  blue: '#2563eb',
+  amber: '#f59e0b',
+  pink: '#ec4899',
+};
+
+function StatCard({ label, value, hint, accent, colors }) {
   return (
-    <View style={styles.statCard}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      {hint && <Text style={styles.statHint}>{hint}</Text>}
+    <View
+      style={[
+        styles.statCard,
+        {
+          borderLeftColor: ACCENTS[accent],
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: ACCENTS[accent] }]}>{value}</Text>
+      {hint && <Text style={[styles.statHint, { color: colors.muted }]}>{hint}</Text>}
     </View>
   );
 }
 
 export default function DashboardScreen() {
   const { user, accessToken } = useAuth();
+  const { colors } = useTheme();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,8 +62,11 @@ export default function DashboardScreen() {
   }, [accessToken]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Olá, {user?.name || user?.email}</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      style={{ backgroundColor: colors.background }}
+    >
+      <Text style={[styles.title, { color: colors.text }]}>Olá, {user?.name || user?.email}</Text>
 
       {loading && <ActivityIndicator size="large" />}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -54,14 +78,31 @@ export default function DashboardScreen() {
 
       {stats && (
         <View style={styles.statsGrid}>
-          <StatCard label="Streak" value={`${stats.streakDays} dia(s)`} />
-          <StatCard label="Tempo estudado" value={`${stats.totalStudyMinutes} min`} />
+          <StatCard
+            label="Streak"
+            value={`${stats.streakDays} dia(s)`}
+            accent="purple"
+            colors={colors}
+          />
+          <StatCard
+            label="Tempo estudado"
+            value={`${stats.totalStudyMinutes} min`}
+            accent="blue"
+            colors={colors}
+          />
           <StatCard
             label="Palavras hoje"
             value={stats.wordsLearned.today}
             hint={`${stats.wordsLearned.week} nesta semana`}
+            accent="amber"
+            colors={colors}
           />
-          <StatCard label="Flashcards a revisar" value={stats.flashcardsDue} />
+          <StatCard
+            label="Flashcards a revisar"
+            value={stats.flashcardsDue}
+            accent="pink"
+            colors={colors}
+          />
         </View>
       )}
     </ScrollView>
@@ -78,6 +119,7 @@ const styles = StyleSheet.create({
     width: '47%',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    borderLeftWidth: 4,
     borderRadius: 10,
     padding: 14,
     gap: 4,

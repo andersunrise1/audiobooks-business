@@ -1,17 +1,41 @@
-import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Mirrors packages/web/src/components/features/TranslationPopup.jsx's
 // fields (word, part_of_speech, pronunciation, portuguese_translation,
 // technical_explanation, example_sentence, contexts) as a bottom-sheet-style
 // Modal instead of a fixed-position popup - the closer native-feeling
 // equivalent on mobile.
+//
+// Real bug fixed here: without a maxHeight + ScrollView, a word with a long
+// technical_explanation/example_sentence made the sheet grow past the top
+// of small-screen devices, clipping content instead of scrolling it - and
+// with no bottom safe-area padding, the last line sat under the gesture
+// nav bar on devices that have one.
 export default function TranslationModal({ word, onClose }) {
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+
   return (
-    <Modal visible={Boolean(word)} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={Boolean(word)} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[
+            styles.sheet,
+            { maxHeight: windowHeight * 0.75, paddingBottom: 20 + insets.bottom },
+          ]}
+          onPress={(e) => e.stopPropagation()}
+        >
           {word && (
-            <>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.header}>
                 <View style={styles.headerText}>
                   <Text style={styles.word}>{word.word}</Text>
@@ -34,7 +58,7 @@ export default function TranslationModal({ word, onClose }) {
               {word.example_sentence && (
                 <Text style={styles.example}>“{word.example_sentence}”</Text>
               )}
-            </>
+            </ScrollView>
           )}
         </Pressable>
       </Pressable>

@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../store/AuthContext.jsx';
+import { useTheme } from '../store/ThemeContext.jsx';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications.js';
 import LoginScreen from '../screens/LoginScreen.jsx';
 import RegisterScreen from '../screens/RegisterScreen.jsx';
@@ -25,13 +26,35 @@ function LogoutButton() {
   );
 }
 
+// Cycles light -> dark -> system -> light, same order as the web app's
+// ThemeToggle - the icon is the mode you'd land on next, matching that
+// existing convention rather than the mode currently active.
+function ThemeToggleButton() {
+  const { theme, cycleTheme } = useTheme();
+  const nextIcon = { light: '🌙', dark: '💻', system: '☀️' }[theme];
+  return (
+    <Pressable onPress={cycleTheme} hitSlop={12} style={{ marginRight: 16 }}>
+      <Text style={{ fontSize: 16 }}>{nextIcon}</Text>
+    </Pressable>
+  );
+}
+
+function HeaderRight() {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <ThemeToggleButton />
+      <LogoutButton />
+    </View>
+  );
+}
+
 // Bottom tabs are the app's home base once authenticated (Dia 86-90's
 // "Dashboard"/"Flashcards" priorities live here); Player and Chat are
 // pushed on top as stack screens from Audiobooks, since a player/chat
 // session isn't itself a top-level destination.
 function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerRight: () => <LogoutButton /> }}>
+    <Tab.Navigator screenOptions={{ headerRight: () => <HeaderRight /> }}>
       <Tab.Screen name="Audiobooks" component={AudiobookListScreen} />
       <Tab.Screen name="Flashcards" component={FlashcardsScreen} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
@@ -56,6 +79,7 @@ function AuthenticatedStack() {
 // screen that needed auth.
 export default function AppNavigator() {
   const { isAuthenticated, isReady } = useAuth();
+  const { isDark } = useTheme();
 
   // Registering on login (not on every app open) is deliberate - a token
   // is only useful once there's an account to associate it with server-
@@ -77,7 +101,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
       {isAuthenticated ? (
         <AuthenticatedStack />
       ) : (

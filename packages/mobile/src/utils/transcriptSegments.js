@@ -1,7 +1,13 @@
 // Direct port of packages/web/src/components/features/TranscriptDisplay.jsx's
 // buildSegments/normalize - pure JS, no DOM dependency, so the exact same
-// matching logic (including the Dia 42 fix: untagged tokens stay visible as
-// plain text instead of only rendering tagged words) applies on mobile too.
+// matching logic applies on mobile too. Every non-punctuation token becomes
+// a clickable "word" segment: `word` carries the already-loaded data when
+// the token matches a tagged vocabulary term (possibly multi-word, e.g.
+// "pull request"), or is null for any other token, which the caller
+// resolves on demand via onTranslateWord - this was mobile's real gap
+// (Dia 96-100 feedback: only pre-tagged words were clickable here, unlike
+// web's "click any word" behavior). A token that normalizes to an empty
+// string (pure punctuation) stays plain text - there's no real word there.
 export function normalize(text) {
   return text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
@@ -14,7 +20,7 @@ export function buildSegments(transcript, words) {
 
   while (i < tokens.length) {
     const token = tokens[i];
-    if (token === '' || /^\s+$/.test(token)) {
+    if (token === '' || /^\s+$/.test(token) || normalize(token) === '') {
       segments.push({ type: 'text', text: token });
       i += 1;
       continue;
@@ -31,10 +37,8 @@ export function buildSegments(transcript, words) {
       }
     }
 
-    const match = byWord.get(normalize(token));
-    segments.push(
-      match ? { type: 'word', text: token, word: match } : { type: 'text', text: token },
-    );
+    const match = byWord.get(normalize(token)) ?? null;
+    segments.push({ type: 'word', text: token, word: match });
     i += 1;
   }
 

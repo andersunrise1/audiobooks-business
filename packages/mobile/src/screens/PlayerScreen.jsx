@@ -136,6 +136,27 @@ export default function PlayerScreen({ route, navigation }) {
     }
   }
 
+  // Resolves any word in the transcript that isn't already tagged, mirroring
+  // web's PlayerPage.jsx handleTranslateWord exactly: the backend checks
+  // technical_dictionary before ever calling AI, and caches the result as a
+  // real words row, so the same word only costs a real AI call once, ever,
+  // across the whole catalog. Only wired in for authenticated users since it
+  // can trigger a real, rate-limited AI call.
+  async function handleTranslateWord(word) {
+    if (!isAuthenticated || !chapter) return null;
+    try {
+      const resolved = await apiRequest('/api/ai/translate-word', {
+        method: 'POST',
+        token: accessToken,
+        body: { word, context: chapter.transcript, chapterId: chapter.id },
+      });
+      return resolved;
+    } catch (err) {
+      console.error('failed to translate word', err);
+      return null;
+    }
+  }
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -188,7 +209,12 @@ export default function PlayerScreen({ route, navigation }) {
 
       <ChapterAudio key={chapter.id} audioUrl={resolvedAudioUrl} onEnded={handleEnded} />
 
-      <TranscriptText transcript={chapter.transcript} words={words} onWordPress={handleWordPress} />
+      <TranscriptText
+        transcript={chapter.transcript}
+        words={words}
+        onWordPress={handleWordPress}
+        onTranslateWord={handleTranslateWord}
+      />
 
       <View style={styles.navRow}>
         <Pressable

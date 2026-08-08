@@ -73,6 +73,36 @@ verification available without any paid account. It does **not** replace an
 EAS build for distribution (Expo Go is a development sandbox, not what ships
 to end users), but it is real device testing.
 
+## Shipping updates without a new APK (EAS Update)
+
+Every fix in this project's real-device testing so far has meant a brand new
+`.apk` download and reinstall - real friction for a tester, and eventually
+for actual customers if this app is ever sideloaded/distributed outside Play
+(where Play's own store listing would otherwise handle update delivery).
+`expo-updates` (installed) + `eas update:configure`'s output in `app.json`
+(`runtimeVersion.policy: "appVersion"`, `updates.url`) close most of that
+gap: **once a build that includes this config is installed**, the app checks
+for a published update on every cold start and applies it on the _next_
+launch - no download link, no reinstall, nothing the end user has to do.
+
+To publish a JS-only update to whoever already has a `preview`-channel build
+installed:
+
+```bash
+npm run update:preview --workspace=packages/mobile -- --message "describe what changed"
+```
+
+**The real limit, stated plainly**: this only covers JavaScript/asset
+changes. Anything that touches native code or config - a new native
+dependency (this project hit exactly that with `react-native-svg`/
+`@react-native-community/slider` this session), a permission, an icon, an
+`app.json` native field - still needs a real `eas build` + a new install,
+the same as before. EAS Update is the fix for "I changed some UI/logic," not
+"I added a native module." And since this config only takes effect starting
+with the build it first ships in, the very next `.apk` install is a one-time
+requirement before any of this works at all - nothing changes retroactively
+for a build already on a device today.
+
 ## Verified vs. not verified
 
 **Verified for real**: the full Dia 86-90 feature set plus Dia 91-95's push-

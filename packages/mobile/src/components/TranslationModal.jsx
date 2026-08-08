@@ -66,10 +66,13 @@ export default function TranslationModal({ word, onClose }) {
   );
 }
 
+// Deliberately light gray + black text regardless of the app's light/dark
+// theme (direct device feedback: the previous navy-blue sheet was hard to
+// read) - a fixed, always-legible popup rather than a themed one.
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f1f5f9',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
@@ -77,10 +80,10 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerText: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  word: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  partOfSpeech: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' },
-  close: { fontSize: 18, color: '#94a3b8' },
-  muted: { color: '#cbd5e1', fontSize: 14 },
-  translation: { color: '#fff', fontSize: 16 },
-  example: { color: '#94a3b8', fontSize: 14, fontStyle: 'italic' },
+  word: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  partOfSpeech: { fontSize: 12, color: '#475569', textTransform: 'uppercase' },
+  close: { fontSize: 18, color: '#475569' },
+  muted: { color: '#334155', fontSize: 14 },
+  translation: { color: '#0f172a', fontSize: 16 },
+  example: { color: '#475569', fontSize: 14, fontStyle: 'italic' },
 });

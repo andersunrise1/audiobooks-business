@@ -1,7 +1,18 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { useAuth } from '../store/AuthContext.jsx';
 import { useTheme } from '../store/ThemeContext.jsx';
+import RobotLogo from '../components/RobotLogo.jsx';
+import TechSpeakWordmark from '../components/TechSpeakWordmark.jsx';
 
 // No explicit navigation to a "logged in" screen on success: AppNavigator
 // swaps the entire stack based on isAuthenticated, the same pattern the web
@@ -9,11 +20,15 @@ import { useTheme } from '../store/ThemeContext.jsx';
 //
 // Full useTheme() integration was missing entirely here (real bug found on
 // a live device: dark-mode text defaulted to black-on-black, invisible) -
-// every color below is explicit. The large brand mark is a direct request
-// so a user landing here immediately recognizes the TechSpeak app.
+// every color below is explicit. The brand mark uses the real RobotLogo +
+// TECHSPEAKING wordmark (was a generic 🤖 emoji + "TechSpeak" text - real
+// device feedback caught this looked like a different, unbranded app).
+// KeyboardAvoidingView + ScrollView fix a second real device bug: the
+// keyboard covered the password field and the Entrar button with no way to
+// scroll past it.
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,62 +47,69 @@ export default function LoginScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.brand}>
-        <Text style={styles.brandIcon}>🤖</Text>
-        <Text style={[styles.brandText, { color: colors.text }]}>TechSpeak</Text>
-      </View>
-
-      <Text style={[styles.title, { color: colors.text }]}>Entrar</Text>
-
-      <TextInput
-        style={[
-          styles.input,
-          { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-        ]}
-        placeholder="Email"
-        placeholderTextColor={colors.muted}
-        accessibilityLabel="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={[
-          styles.input,
-          { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-        ]}
-        placeholder="Senha"
-        placeholderTextColor={colors.muted}
-        accessibilityLabel="Senha"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <Pressable
-        style={[styles.button, submitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={submitting}
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.buttonText}>{submitting ? 'Entrando...' : 'Entrar'}</Text>
-      </Pressable>
+        <View style={styles.brand}>
+          <RobotLogo size={72} dark={isDark} />
+          <TechSpeakWordmark fontSize={26} dark={isDark} showIcon={false} />
+        </View>
 
-      <Pressable onPress={() => navigation.navigate('Register')}>
-        <Text style={[styles.link, { color: colors.muted }]}>Não tem conta? Criar conta</Text>
-      </Pressable>
-    </View>
+        <Text style={[styles.title, { color: colors.text }]}>Entrar</Text>
+
+        <TextInput
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+          ]}
+          placeholder="Email"
+          placeholderTextColor={colors.muted}
+          accessibilityLabel="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+          ]}
+          placeholder="Senha"
+          placeholderTextColor={colors.muted}
+          accessibilityLabel="Senha"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <Pressable
+          style={[styles.button, submitting && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting}
+        >
+          <Text style={styles.buttonText}>{submitting ? 'Entrando...' : 'Entrar'}</Text>
+        </Pressable>
+
+        <Pressable onPress={() => navigation.navigate('Register')}>
+          <Text style={[styles.link, { color: colors.muted }]}>Não tem conta? Criar conta</Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  brand: { alignItems: 'center', marginBottom: 16, gap: 4 },
-  brandIcon: { fontSize: 64 },
-  brandText: { fontSize: 26, fontWeight: '800', letterSpacing: 0.5 },
+  flex: { flex: 1 },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 12 },
+  brand: { alignItems: 'center', marginBottom: 16, gap: 10 },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
   input: {
     borderWidth: 1,

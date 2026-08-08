@@ -30,7 +30,7 @@ function MainTabs({ navigation }) {
   const screens = {
     Audiobooks: <AudiobookListScreen navigation={navigation} />,
     Flashcards: <FlashcardsScreen />,
-    Dashboard: <DashboardScreen />,
+    Dashboard: <DashboardScreen navigation={navigation} onSelectTab={setActive} />,
   };
 
   return (

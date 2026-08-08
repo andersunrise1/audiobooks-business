@@ -1,58 +1,38 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { apiRequest } from '../services/api.js';
 import { useAuth } from '../store/AuthContext.jsx';
 import { useTheme } from '../store/ThemeContext.jsx';
 import TranscriptText from '../components/TranscriptText.jsx';
 import TranslationModal from '../components/TranslationModal.jsx';
+import AudioControls from '../components/AudioControls.jsx';
 
-// Chapter audio/progress controls, remounted per chapter (the `key={chapter.id}`
-// below) so useAudioPlayer always starts fresh - the same reset-on-chapter-
-// change approach packages/web's AudioPlayer uses (Dia 25).
-function ChapterAudio({ audioUrl, onEnded }) {
-  const { colors } = useTheme();
-  const player = useAudioPlayer(audioUrl ?? undefined);
-  const status = useAudioPlayerStatus(player);
-
-  useEffect(() => {
-    if (status.didJustFinish) onEnded();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status.didJustFinish]);
-
-  if (!audioUrl) {
-    return (
-      <Text style={[styles.muted, { color: colors.muted }]}>
-        Áudio ainda não disponível para este capítulo.
-      </Text>
-    );
-  }
-
-  return (
-    <View style={styles.playerControls}>
-      <Pressable
-        style={styles.playButton}
-        onPress={() => (status.playing ? player.pause() : player.play())}
-      >
-        <Text style={styles.playButtonText}>{status.playing ? 'Pausar' : 'Tocar'}</Text>
-      </Pressable>
-      <Text style={[styles.muted, { color: colors.muted }]}>
-        {Math.floor(status.currentTime ?? 0)}s / {Math.floor(status.duration ?? 0)}s
-      </Text>
-    </View>
-  );
-}
-
+// Rebuilt to match packages/web/src/components/pages/PlayerPage.jsx's
+// layout - real device feedback: the reading screen looked like a
+// stripped-down version of the site (no cover, no chapter count header, no
+// real audio controls, no side page-turn arrows). Cover + audiobook title
+// fetched here since mobile has no persistent Sidebar.jsx equivalent to
+// carry that context across screens.
 export default function PlayerScreen({ route, navigation }) {
   const { audiobookId, title } = route.params;
   const { accessToken, isAuthenticated } = useAuth();
   const { colors } = useTheme();
 
+  const [audiobook, setAudiobook] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [chapterIndex, setChapterIndex] = useState(0);
   const [words, setWords] = useState([]);
   const [progressByChapter, setProgressByChapter] = useState({});
   const [selectedWord, setSelectedWord] = useState(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [paywalled, setPaywalled] = useState(false);
@@ -60,6 +40,12 @@ export default function PlayerScreen({ route, navigation }) {
   useEffect(() => {
     navigation.setOptions({ title });
   }, [navigation, title]);
+
+  useEffect(() => {
+    apiRequest(`/api/audiobooks/${audiobookId}`)
+      .then(setAudiobook)
+      .catch(() => setAudiobook(null));
+  }, [audiobookId]);
 
   useEffect(() => {
     apiRequest(`/api/audiobooks/${audiobookId}/chapters`, { token: accessToken })
@@ -157,6 +143,14 @@ export default function PlayerScreen({ route, navigation }) {
     }
   }
 
+  function handlePrevChapter() {
+    setChapterIndex((i) => Math.max(i - 1, 0));
+  }
+
+  function handleNextChapter() {
+    setChapterIndex((i) => Math.min(i + 1, chapters.length - 1));
+  }
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -197,89 +191,124 @@ export default function PlayerScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      style={{ backgroundColor: colors.background }}
-    >
-      <Text style={[styles.chapterTitle, { color: colors.text }]}>{chapter.title}</Text>
-      <Text style={[styles.muted, { color: colors.muted }]}>
-        Capítulo {chapterIndex + 1} de {chapters.length}
-        {progressByChapter[chapter.id]?.completed && ' · concluído'}
-      </Text>
-
-      <ChapterAudio key={chapter.id} audioUrl={resolvedAudioUrl} onEnded={handleEnded} />
-
-      <TranscriptText
-        transcript={chapter.transcript}
-        words={words}
-        onWordPress={handleWordPress}
-        onTranslateWord={handleTranslateWord}
-      />
-
-      <View style={styles.navRow}>
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      {chapterIndex > 0 && (
         <Pressable
-          style={[
-            styles.navButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-            chapterIndex === 0 && styles.navButtonDisabled,
-          ]}
-          disabled={chapterIndex === 0}
-          onPress={() => setChapterIndex((i) => i - 1)}
+          style={[styles.navArrow, styles.navArrowLeft, { backgroundColor: colors.card }]}
+          onPress={handlePrevChapter}
         >
-          <Text style={{ color: colors.text }}>Anterior</Text>
+          <Text style={[styles.navArrowText, { color: colors.text }]}>‹</Text>
         </Pressable>
+      )}
+      {chapterIndex < chapters.length - 1 && (
         <Pressable
-          style={[
-            styles.navButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-            chapterIndex === chapters.length - 1 && styles.navButtonDisabled,
-          ]}
-          disabled={chapterIndex === chapters.length - 1}
-          onPress={() => setChapterIndex((i) => Math.min(i + 1, chapters.length - 1))}
+          style={[styles.navArrow, styles.navArrowRight, { backgroundColor: colors.card }]}
+          onPress={handleNextChapter}
         >
-          <Text style={{ color: colors.text }}>Próximo</Text>
-        </Pressable>
-      </View>
-
-      {isAuthenticated && (
-        <Pressable
-          style={[styles.chatButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={() => navigation.navigate('Chat', { chapterId: chapter.id })}
-        >
-          <Text style={[styles.chatButtonText, { color: colors.text }]}>
-            💬 Conversar com o tutor
-          </Text>
+          <Text style={[styles.navArrowText, { color: colors.text }]}>›</Text>
         </Pressable>
       )}
 
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <View style={[styles.cover, { backgroundColor: colors.card }]}>
+            {audiobook?.cover_image_url ? (
+              <Image source={{ uri: audiobook.cover_image_url }} style={styles.coverImage} />
+            ) : (
+              <Text style={styles.coverPlaceholder}>📖</Text>
+            )}
+          </View>
+          <View style={styles.headerText}>
+            <Text style={[styles.bookTitle, { color: colors.muted }]} numberOfLines={2}>
+              {audiobook?.title || title}
+            </Text>
+            <Text style={[styles.chapterCount, { color: colors.text }]}>
+              Capítulo {chapterIndex + 1} de {chapters.length}
+              {progressByChapter[chapter.id]?.completed && ' · concluído'}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={[styles.chapterTitle, { color: colors.text }]}>{chapter.title}</Text>
+
+        <TranscriptText
+          transcript={chapter.transcript}
+          words={words}
+          onWordPress={handleWordPress}
+          onTranslateWord={handleTranslateWord}
+        />
+
+        {isAuthenticated && (
+          <Pressable
+            style={[
+              styles.chatButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => navigation.navigate('Chat', { chapterId: chapter.id })}
+          >
+            <Text style={[styles.chatButtonText, { color: colors.text }]}>
+              💬 Conversar com o tutor
+            </Text>
+          </Pressable>
+        )}
+      </ScrollView>
+
+      <AudioControls
+        key={chapter.id}
+        src={resolvedAudioUrl}
+        onEnded={handleEnded}
+        speed={playbackSpeed}
+        onSpeedChange={setPlaybackSpeed}
+        onPrevChapter={handlePrevChapter}
+        onNextChapter={handleNextChapter}
+        hasPrevChapter={chapterIndex > 0}
+        hasNextChapter={chapterIndex < chapters.length - 1}
+      />
+
       <TranslationModal word={selectedWord} onClose={() => setSelectedWord(null)} />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 8 },
-  container: { padding: 16, gap: 16 },
-  chapterTitle: { fontSize: 20, fontWeight: 'bold' },
+  container: { padding: 16, paddingBottom: 24, gap: 16 },
   title: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
-  muted: { color: '#64748b', fontSize: 13 },
+  muted: { fontSize: 13 },
   error: { color: '#dc2626' },
-  playerControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  playButton: {
-    backgroundColor: '#2563eb',
+  header: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  cover: {
+    width: 56,
+    height: 76,
     borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  playButtonText: { color: '#fff', fontWeight: '600' },
-  navRow: { flexDirection: 'row', gap: 8 },
-  navButton: {
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+  coverImage: { width: '100%', height: '100%' },
+  coverPlaceholder: { fontSize: 24 },
+  headerText: { flex: 1, gap: 2 },
+  bookTitle: { fontSize: 12 },
+  chapterCount: { fontSize: 14, fontWeight: '600' },
+  chapterTitle: { fontSize: 20, fontWeight: 'bold' },
+  navArrow: {
+    position: 'absolute',
+    top: '45%',
+    zIndex: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  navButtonDisabled: { opacity: 0.5 },
+  navArrowLeft: { left: 6 },
+  navArrowRight: { right: 6 },
+  navArrowText: { fontSize: 24, lineHeight: 26 },
   chatButton: { borderWidth: 1, borderRadius: 8, padding: 14, alignItems: 'center' },
   chatButtonText: { fontWeight: '600' },
 });

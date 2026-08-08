@@ -43,6 +43,22 @@ function SeekBar({ currentTime, duration, onSeek }) {
   );
 }
 
+// A guarded wrapper for every direct native player call, not just the two
+// that were already suspected - a real device kept crashing on tapping
+// *any* book even after gating the playbackRate/loop effects on
+// status.isLoaded, so this is a broader, more conservative pass: no native
+// property is ever touched automatically (on mount, on a prop change, in
+// any effect) - only in direct response to the user tapping a control,
+// mirroring togglePlay's plain player.play()/pause(), the one call that
+// has never been implicated in a crash across every build so far.
+function safeCall(action, label) {
+  try {
+    action();
+  } catch (err) {
+    console.error(`AudioControls: failed to ${label}`, err);
+  }
+}
+
 // Direct port of packages/web/src/components/features/AudioPlayer.jsx's
 // control set (seek bar, speed cycle, skip ±10s, play/pause, prev/next
 // chapter, repeat) - the mobile player previously only had a play/pause
@@ -50,10 +66,11 @@ function SeekBar({ currentTime, duration, onSeek }) {
 // Fixed to the bottom, always black regardless of the app's light/dark
 // toggle - same deliberate choice web's own player bar makes.
 //
-// Remounted per chapter (`key={chapter.id}` in PlayerScreen), same as
-// before - speed is a controlled prop (lifted to PlayerScreen) so it
-// survives a chapter switch instead of resetting, matching a real bug web
-// itself hit and fixed (Dia 25).
+// Remounted per chapter (`key={chapter.id}` in PlayerScreen). Speed is
+// still a controlled prop (lifted to PlayerScreen) so the *chosen* value
+// survives a chapter switch even though each new player instance starts at
+// native default - togglePlay re-applies it the moment playback starts,
+// so it's never silently ignored, just applied a beat later than before.
 export default function AudioControls({
   src,
   onEnded,
@@ -69,48 +86,6 @@ export default function AudioControls({
   const status = useAudioPlayerStatus(player);
   const [repeat, setRepeat] = useState(false);
 
-  // expo-audio's AudioPlayer is a native-module handle, not React state -
-  // its own docs show `player.playbackRate = x` as the intended API, which
-  // the "no mutating a hook's return value" lint rule (aimed at plain
-  // objects/state) doesn't know about.
-  //
-  // Real device bug found here: these two effects fired on every single
-  // mount, writing playbackRate/loop onto the native player immediately -
-  // including chapters with no audio at all (`useAudioPlayer(undefined)`,
-  // since the `!src` early return below happens after every hook call, per
-  // Rules of Hooks) and, worse, even for chapters *with* real audio: the
-  // native player session can still be mid-initialization the instant this
-  // effect fires (JS returns synchronously; the underlying native
-  // AVPlayer/ExoPlayer session does not), so writing to it too early can
-  // throw natively. That matches the exact bug reported: the screen closing
-  // instantly on tapping *any* book, before any network data even had time
-  // to load. `status.isLoaded` (mirrors player.isLoaded) is expo-audio's own
-  // "safe to touch" signal - both effects now wait for it.
-  // try/catch belt-and-suspenders on top of the isLoaded guard: this
-  // environment has no way to attach a debugger or read a native crash log
-  // from a real device, so a failure here degrading to "speed/repeat
-  // silently doesn't apply" is far preferable to it taking the whole app
-  // down again.
-  useEffect(() => {
-    if (!src || !status.isLoaded) return;
-    try {
-      // eslint-disable-next-line react-hooks/immutability
-      player.playbackRate = speed;
-    } catch (err) {
-      console.error('failed to set playback rate', err);
-    }
-  }, [player, speed, src, status.isLoaded]);
-
-  useEffect(() => {
-    if (!src || !status.isLoaded) return;
-    try {
-      // eslint-disable-next-line react-hooks/immutability
-      player.loop = repeat;
-    } catch (err) {
-      console.error('failed to set loop', err);
-    }
-  }, [player, repeat, src, status.isLoaded]);
-
   useEffect(() => {
     if (status.didJustFinish && !repeat) onEnded?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,19 +100,45 @@ export default function AudioControls({
   }
 
   function togglePlay() {
-    if (status.playing) player.pause();
-    else player.play();
+    if (status.playing) {
+      safeCall(() => player.pause(), 'pause');
+      return;
+    }
+    // Applied here, right before play(), instead of an effect on mount -
+    // this is a direct user-gesture-triggered native call, the same
+    // pattern play()/pause() already use safely.
+    safeCall(() => {
+      player.playbackRate = speed;
+      player.loop = repeat;
+    }, 'apply speed/loop before play');
+    safeCall(() => player.play(), 'play');
   }
 
   function skip(delta) {
     const duration = status.duration || Infinity;
     const next = Math.min(Math.max((status.currentTime ?? 0) + delta, 0), duration);
-    player.seekTo(next);
+    safeCall(() => player.seekTo(next), 'seek');
   }
 
   function cycleSpeed() {
     const index = SPEED_OPTIONS.indexOf(speed);
-    onSpeedChange?.(SPEED_OPTIONS[(index + 1) % SPEED_OPTIONS.length]);
+    const next = SPEED_OPTIONS[(index + 1) % SPEED_OPTIONS.length];
+    onSpeedChange?.(next);
+    if (status.playing) {
+      safeCall(() => {
+        player.playbackRate = next;
+      }, 'change speed while playing');
+    }
+  }
+
+  function toggleRepeat() {
+    const next = !repeat;
+    setRepeat(next);
+    if (status.playing) {
+      safeCall(() => {
+        player.loop = next;
+      }, 'change loop while playing');
+    }
   }
 
   return (
@@ -147,7 +148,7 @@ export default function AudioControls({
         <SeekBar
           currentTime={status.currentTime ?? 0}
           duration={status.duration ?? 0}
-          onSeek={(value) => player.seekTo(value)}
+          onSeek={(value) => skip(value - (status.currentTime ?? 0))}
         />
         <Text style={[styles.time, styles.timeRight]}>{formatTime(status.duration)}</Text>
       </View>
@@ -189,7 +190,7 @@ export default function AudioControls({
 
         <Pressable
           style={[styles.smallButton, repeat && styles.repeatActive]}
-          onPress={() => setRepeat((r) => !r)}
+          onPress={toggleRepeat}
           hitSlop={8}
         >
           <Text style={styles.smallButtonText}>🔁</Text>

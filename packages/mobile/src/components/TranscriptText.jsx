@@ -46,7 +46,7 @@ export default function TranscriptText({ transcript, words, onWordPress, onTrans
             onPress={() => handlePress(segment)}
             style={{
               textDecorationLine: 'underline',
-              color: '#2563eb',
+              color: colors.text,
               opacity: loadingText === segment.text ? 0.5 : 1,
             }}
           >

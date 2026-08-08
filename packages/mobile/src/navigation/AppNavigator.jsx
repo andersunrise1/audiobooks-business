@@ -11,7 +11,6 @@ import LoginScreen from '../screens/LoginScreen.jsx';
 import RegisterScreen from '../screens/RegisterScreen.jsx';
 import AudiobookListScreen from '../screens/AudiobookListScreen.jsx';
 import PlayerScreen from '../screens/PlayerScreen.jsx';
-import ChatScreen from '../screens/ChatScreen.jsx';
 import FlashcardsScreen from '../screens/FlashcardsScreen.jsx';
 import DashboardScreen from '../screens/DashboardScreen.jsx';
 
@@ -47,7 +46,6 @@ function AuthenticatedStack() {
     <Stack.Navigator>
       <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ title: '' }} />
-      <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Tutor IA' }} />
     </Stack.Navigator>
   );
 }

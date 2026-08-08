@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useTheme } from '../store/ThemeContext.jsx';
 
@@ -82,6 +83,7 @@ export default function AudioControls({
   hasNextChapter,
 }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const player = useAudioPlayer(src ?? undefined);
   const status = useAudioPlayerStatus(player);
   const [repeat, setRepeat] = useState(false);
@@ -142,7 +144,7 @@ export default function AudioControls({
   }
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <View style={styles.seekRow}>
         <Text style={styles.time}>{formatTime(status.currentTime)}</Text>
         <SeekBar

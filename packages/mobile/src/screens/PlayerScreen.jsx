@@ -36,6 +36,15 @@ export default function PlayerScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [paywalled, setPaywalled] = useState(false);
+  // Ports web's PlayerPage.jsx repetition tip: nudges the reader to relisten
+  // (🔁) and review flashcards once they reach the last chapter. Web only
+  // arms this after its auto-resume-to-last-incomplete-chapter logic
+  // settles (hasResumed); mobile has no such resume jump, so arming simply
+  // whenever the last chapter becomes current is the direct equivalent.
+  // tipArmedForChapterId (not a plain boolean) keeps this from re-firing on
+  // every re-render of the same last chapter.
+  const [tipArmedForChapterId, setTipArmedForChapterId] = useState(null);
+  const [showRepeatTip, setShowRepeatTip] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title });
@@ -76,6 +85,17 @@ export default function PlayerScreen({ route, navigation }) {
   // play button silently disappeared for ~95% of chapters.
   const resolvedAudioUrl =
     chapter?.audio_url_female || chapter?.audio_url_male || chapter?.audio_url;
+
+  const isLastChapter = chapters.length > 0 && chapterIndex === chapters.length - 1;
+  if (isLastChapter && chapter?.id && tipArmedForChapterId !== chapter.id) {
+    setTipArmedForChapterId(chapter.id);
+    setShowRepeatTip(true);
+  }
+  useEffect(() => {
+    if (!showRepeatTip) return undefined;
+    const timer = setTimeout(() => setShowRepeatTip(false), 8000);
+    return () => clearTimeout(timer);
+  }, [showRepeatTip]);
 
   useEffect(() => {
     if (!chapter?.id) return;
@@ -192,6 +212,22 @@ export default function PlayerScreen({ route, navigation }) {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      {showRepeatTip && (
+        <View style={styles.tipWrap} pointerEvents="box-none">
+          <View style={styles.tipCard}>
+            <Text style={styles.tipText}>
+              💡 <Text style={styles.tipBold}>Dica:</Text> releia este capítulo mais vezes (use o
+              botão 🔁) e revise seus flashcards depois. A repetição é comprovadamente a forma mais
+              eficaz de fixar vocabulário novo na memória — é assim que seu inglês técnico avança de
+              verdade.
+            </Text>
+            <Pressable onPress={() => setShowRepeatTip(false)} hitSlop={8} style={styles.tipClose}>
+              <Text style={styles.tipCloseText}>✕</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {chapterIndex > 0 && (
         <Pressable
           style={[styles.navArrow, styles.navArrowLeft, { backgroundColor: colors.card }]}
@@ -237,20 +273,6 @@ export default function PlayerScreen({ route, navigation }) {
           onWordPress={handleWordPress}
           onTranslateWord={handleTranslateWord}
         />
-
-        {isAuthenticated && (
-          <Pressable
-            style={[
-              styles.chatButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-            onPress={() => navigation.navigate('Chat', { chapterId: chapter.id })}
-          >
-            <Text style={[styles.chatButtonText, { color: colors.text }]}>
-              💬 Conversar com o tutor
-            </Text>
-          </Pressable>
-        )}
       </ScrollView>
 
       <AudioControls
@@ -309,6 +331,31 @@ const styles = StyleSheet.create({
   navArrowLeft: { left: 6 },
   navArrowRight: { right: 6 },
   navArrowText: { fontSize: 24, lineHeight: 26 },
-  chatButton: { borderWidth: 1, borderRadius: 8, padding: 14, alignItems: 'center' },
-  chatButtonText: { fontWeight: '600' },
+  tipWrap: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    maxWidth: 420,
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 12,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  tipText: { flex: 1, color: '#0f172a', fontSize: 13, lineHeight: 19 },
+  tipBold: { fontWeight: '700' },
+  tipClose: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
+  tipCloseText: { color: '#94a3b8', fontSize: 15 },
 });

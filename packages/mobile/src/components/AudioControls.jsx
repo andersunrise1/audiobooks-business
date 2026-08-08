@@ -73,15 +73,43 @@ export default function AudioControls({
   // its own docs show `player.playbackRate = x` as the intended API, which
   // the "no mutating a hook's return value" lint rule (aimed at plain
   // objects/state) doesn't know about.
+  //
+  // Real device bug found here: these two effects fired on every single
+  // mount, writing playbackRate/loop onto the native player immediately -
+  // including chapters with no audio at all (`useAudioPlayer(undefined)`,
+  // since the `!src` early return below happens after every hook call, per
+  // Rules of Hooks) and, worse, even for chapters *with* real audio: the
+  // native player session can still be mid-initialization the instant this
+  // effect fires (JS returns synchronously; the underlying native
+  // AVPlayer/ExoPlayer session does not), so writing to it too early can
+  // throw natively. That matches the exact bug reported: the screen closing
+  // instantly on tapping *any* book, before any network data even had time
+  // to load. `status.isLoaded` (mirrors player.isLoaded) is expo-audio's own
+  // "safe to touch" signal - both effects now wait for it.
+  // try/catch belt-and-suspenders on top of the isLoaded guard: this
+  // environment has no way to attach a debugger or read a native crash log
+  // from a real device, so a failure here degrading to "speed/repeat
+  // silently doesn't apply" is far preferable to it taking the whole app
+  // down again.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
-    player.playbackRate = speed;
-  }, [player, speed]);
+    if (!src || !status.isLoaded) return;
+    try {
+      // eslint-disable-next-line react-hooks/immutability
+      player.playbackRate = speed;
+    } catch (err) {
+      console.error('failed to set playback rate', err);
+    }
+  }, [player, speed, src, status.isLoaded]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
-    player.loop = repeat;
-  }, [player, repeat]);
+    if (!src || !status.isLoaded) return;
+    try {
+      // eslint-disable-next-line react-hooks/immutability
+      player.loop = repeat;
+    } catch (err) {
+      console.error('failed to set loop', err);
+    }
+  }, [player, repeat, src, status.isLoaded]);
 
   useEffect(() => {
     if (status.didJustFinish && !repeat) onEnded?.();

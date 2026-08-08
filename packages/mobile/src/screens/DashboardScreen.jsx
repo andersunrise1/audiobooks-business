@@ -186,7 +186,7 @@ function CompletionMeter({ percent, colors }) {
             stroke="#2563eb"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            rotation="-90"
+            rotation={-90}
             originX={size / 2}
             originY={size / 2}
           />

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useTheme } from '../store/ThemeContext.jsx';
 
@@ -12,6 +11,36 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Tap-to-seek bar with zero native dependency (no @react-native-community/
+// slider) - that package was pulled after a real device reported the app
+// crashing on open right after it was added; a plain View-based track is
+// lower-risk than debugging a native module blind, with no way to attach a
+// debugger or read a crash log from this environment. Drag-to-seek is
+// traded for tap-to-seek as the honest cost of that tradeoff.
+function SeekBar({ currentTime, duration, onSeek }) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const progress = duration > 0 ? Math.min(Math.max(currentTime / duration, 0), 1) : 0;
+
+  function handlePress(event) {
+    if (!trackWidth || !duration) return;
+    const ratio = Math.min(Math.max(event.nativeEvent.locationX / trackWidth, 0), 1);
+    onSeek(ratio * duration);
+  }
+
+  return (
+    <Pressable
+      style={styles.seekTrackWrap}
+      onPress={handlePress}
+      onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+      hitSlop={8}
+    >
+      <View style={styles.seekTrack}>
+        <View style={[styles.seekTrackFill, { width: `${progress * 100}%` }]} />
+      </View>
+    </Pressable>
+  );
 }
 
 // Direct port of packages/web/src/components/features/AudioPlayer.jsx's
@@ -87,15 +116,10 @@ export default function AudioControls({
     <View style={styles.bar}>
       <View style={styles.seekRow}>
         <Text style={styles.time}>{formatTime(status.currentTime)}</Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={status.duration || 0}
-          value={Math.min(status.currentTime ?? 0, status.duration || 0)}
-          onSlidingComplete={(value) => player.seekTo(value)}
-          minimumTrackTintColor="#2563eb"
-          maximumTrackTintColor="#44403c"
-          thumbTintColor="#2563eb"
+        <SeekBar
+          currentTime={status.currentTime ?? 0}
+          duration={status.duration ?? 0}
+          onSeek={(value) => player.seekTo(value)}
         />
         <Text style={[styles.time, styles.timeRight]}>{formatTime(status.duration)}</Text>
       </View>
@@ -158,7 +182,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   seekRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  slider: { flex: 1, height: 32 },
+  seekTrackWrap: { flex: 1, justifyContent: 'center', paddingVertical: 10 },
+  seekTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#44403c',
+    overflow: 'hidden',
+  },
+  seekTrackFill: { height: '100%', backgroundColor: '#2563eb' },
   time: { color: '#a8a29e', fontSize: 11, width: 36 },
   timeRight: { textAlign: 'right' },
   controlsRow: {

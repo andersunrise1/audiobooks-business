@@ -1,7 +1,27 @@
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import Navbar from './Navbar.jsx';
 import Sidebar from './Sidebar.jsx';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts.js';
+
+// Only reachable place for /privacy and /terms outside typing the URL
+// directly - Google Play's store listing requires a public privacy policy
+// URL, so this footer is what makes that requirement real rather than a
+// page nobody can find.
+function Footer() {
+  return (
+    <footer className="border-t border-slate-200 dark:border-stone-700 px-4 sm:px-6 py-4 text-xs text-slate-500 dark:text-stone-400 flex flex-wrap gap-x-4 gap-y-1">
+      <Link to="/privacy" className="underline touch-manipulation">
+        Política de Privacidade
+      </Link>
+      <Link to="/terms" className="underline touch-manipulation">
+        Termos de Uso
+      </Link>
+      <Link to="/help" className="underline touch-manipulation">
+        Ajuda
+      </Link>
+    </footer>
+  );
+}
 
 function Layout() {
   useKeyboardShortcuts();
@@ -24,6 +44,7 @@ function Layout() {
           <Outlet />
         </main>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -27,6 +27,8 @@ const HelpCenterPage = lazy(() => import('./components/pages/HelpCenterPage.jsx'
 const AdminSupportPage = lazy(() => import('./components/pages/AdminSupportPage.jsx'));
 const FeedbackPage = lazy(() => import('./components/pages/FeedbackPage.jsx'));
 const AdminBetaFeedbackPage = lazy(() => import('./components/pages/AdminBetaFeedbackPage.jsx'));
+const PrivacyPolicyPage = lazy(() => import('./components/pages/PrivacyPolicyPage.jsx'));
+const TermsOfUsePage = lazy(() => import('./components/pages/TermsOfUsePage.jsx'));
 
 function App() {
   return (
@@ -45,6 +47,8 @@ function App() {
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/payment/cancel" element={<PaymentCancelPage />} />
                 <Route path="/help" element={<HelpCenterPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfUsePage />} />
 
                 <Route
                   path="/payment/success"

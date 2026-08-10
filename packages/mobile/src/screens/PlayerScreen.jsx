@@ -15,6 +15,13 @@ import TranscriptText from '../components/TranscriptText.jsx';
 import TranslationModal from '../components/TranslationModal.jsx';
 import AudioControls from '../components/AudioControls.jsx';
 
+const FONT_SIZES = [16, 18, 20];
+const FONT_FAMILIES = [
+  { value: undefined, label: 'Padrão' },
+  { value: 'serif', label: 'Serifada' },
+  { value: 'monospace', label: 'Mono' },
+];
+
 // Rebuilt to match packages/web/src/components/pages/PlayerPage.jsx's
 // layout - real device feedback: the reading screen looked like a
 // stripped-down version of the site (no cover, no chapter count header, no
@@ -45,6 +52,15 @@ export default function PlayerScreen({ route, navigation }) {
   // every re-render of the same last chapter.
   const [tipArmedForChapterId, setTipArmedForChapterId] = useState(null);
   const [showRepeatTip, setShowRepeatTip] = useState(false);
+  // Mirrors web's ReaderTopBar (Aa size cycle + Padrão/Serifada/Mono family
+  // picker) - real device feedback: there was no way to adjust reading text
+  // at all on mobile, on any book. Applies to every chapter/book equally
+  // since it lives here, not per-screen. FONT_SIZES/FONT_FAMILIES match
+  // web's text-base/lg/xl (16/18/20px) and font-sans/serif/mono, using RN's
+  // built-in generic family names instead of loading real font files - no
+  // new native dependency.
+  const [fontSizeIndex, setFontSizeIndex] = useState(1);
+  const [fontFamilyIndex, setFontFamilyIndex] = useState(0);
 
   useEffect(() => {
     navigation.setOptions({ title });
@@ -163,6 +179,10 @@ export default function PlayerScreen({ route, navigation }) {
     }
   }
 
+  function cycleFontSize() {
+    setFontSizeIndex((i) => (i + 1) % FONT_SIZES.length);
+  }
+
   function handlePrevChapter() {
     setChapterIndex((i) => Math.max(i - 1, 0));
   }
@@ -265,6 +285,44 @@ export default function PlayerScreen({ route, navigation }) {
           </View>
         </View>
 
+        <View style={styles.fontControls}>
+          <Pressable
+            style={[
+              styles.fontSizeButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={cycleFontSize}
+            accessibilityLabel="Alterar tamanho do texto"
+          >
+            <Text style={[styles.fontSizeButtonText, { color: colors.text }]}>Aa</Text>
+          </Pressable>
+          {FONT_FAMILIES.map((option, index) => {
+            const isActive = index === fontFamilyIndex;
+            return (
+              <Pressable
+                key={option.label}
+                onPress={() => setFontFamilyIndex(index)}
+                style={[
+                  styles.fontFamilyButton,
+                  {
+                    backgroundColor: isActive ? 'rgba(37,99,235,0.2)' : colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.fontFamilyButtonText,
+                    { color: isActive ? '#2563eb' : colors.text, fontFamily: option.value },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <Text style={[styles.chapterTitle, { color: colors.text }]}>{chapter.title}</Text>
 
         <TranscriptText
@@ -272,6 +330,8 @@ export default function PlayerScreen({ route, navigation }) {
           words={words}
           onWordPress={handleWordPress}
           onTranslateWord={handleTranslateWord}
+          fontSize={FONT_SIZES[fontSizeIndex]}
+          fontFamily={FONT_FAMILIES[fontFamilyIndex].value}
         />
       </ScrollView>
 
@@ -313,6 +373,25 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, gap: 2 },
   bookTitle: { fontSize: 12 },
   chapterCount: { fontSize: 14, fontWeight: '600' },
+  fontControls: { flexDirection: 'row', gap: 6 },
+  fontSizeButton: {
+    width: 36,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fontSizeButtonText: { fontSize: 14, fontWeight: '700' },
+  fontFamilyButton: {
+    paddingHorizontal: 10,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fontFamilyButtonText: { fontSize: 12, fontWeight: '600' },
   chapterTitle: { fontSize: 20, fontWeight: 'bold' },
   navArrow: {
     position: 'absolute',

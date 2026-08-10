@@ -110,7 +110,7 @@ export default function AudioControls({
     // this is a direct user-gesture-triggered native call, the same
     // pattern play()/pause() already use safely.
     safeCall(() => {
-      player.playbackRate = speed;
+      player.setPlaybackRate(speed);
       player.loop = repeat;
     }, 'apply speed/loop before play');
     safeCall(() => player.play(), 'play');
@@ -122,22 +122,26 @@ export default function AudioControls({
     safeCall(() => player.seekTo(next), 'seek');
   }
 
-  // Real device bug: gating these on `status.playing` (as togglePlay's own
-  // "only mutate right before play()" pattern suggested) meant tapping the
-  // speed/repeat button while paused updated the *displayed* label but
-  // never actually told the native player - so resuming playback kept the
-  // previous rate/loop value while the UI already showed the new one
-  // (reported: "0.7x" visibly selected but audio still playing at the old,
-  // faster rate). Web's <audio loop={repeat}> is declarative and never had
-  // this gap; expo-audio's imperative properties need every change applied
-  // unconditionally, same as web's own audioRef.current.playbackRate
-  // assignment in cycleSpeed, which has no such guard either.
+  // Real device bug (round 1): gating these on `status.playing` meant
+  // tapping the speed/repeat button while paused updated the *displayed*
+  // label but never actually told the native player. Fixed by applying
+  // unconditionally - but that alone didn't fix speed on a real device
+  // either (round 2): unlike `loop`, expo-audio's `playbackRate` is a
+  // *read-only* native property on both iOS and Android (confirmed by
+  // reading node_modules/expo-audio's own iOS/Android source - `Property
+  // ("playbackRate")` has no `.set` block, unlike `loop`/`shouldCorrectPitch`
+  // which do) - `player.playbackRate = x` silently does nothing at all.
+  // The only real way to change it is the imperative `setPlaybackRate(rate)`
+  // method, which the native side does wire up (`Function("setPlaybackRate")`).
+  // Web's plain `audioRef.current.playbackRate = x` has no equivalent gap
+  // since HTML5 <audio> genuinely does expose a settable property - that
+  // was never a valid comparison for this specific property.
   function cycleSpeed() {
     const index = SPEED_OPTIONS.indexOf(speed);
     const next = SPEED_OPTIONS[(index + 1) % SPEED_OPTIONS.length];
     onSpeedChange?.(next);
     safeCall(() => {
-      player.playbackRate = next;
+      player.setPlaybackRate(next);
     }, 'change speed');
   }
 

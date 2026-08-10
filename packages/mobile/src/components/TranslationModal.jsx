@@ -4,6 +4,7 @@ import {
   Text,
   Pressable,
   ScrollView,
+  ActivityIndicator,
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
@@ -48,15 +49,24 @@ export default function TranslationModal({ word, onClose }) {
                 </Pressable>
               </View>
 
-              {word.pronunciation && <Text style={styles.muted}>{word.pronunciation}</Text>}
-              {word.portuguese_translation && (
-                <Text style={styles.translation}>{word.portuguese_translation}</Text>
-              )}
-              {word.technical_explanation && (
-                <Text style={styles.muted}>{word.technical_explanation}</Text>
-              )}
-              {word.example_sentence && (
-                <Text style={styles.example}>“{word.example_sentence}”</Text>
+              {word.loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color="#475569" />
+                  <Text style={styles.muted}>Traduzindo...</Text>
+                </View>
+              ) : (
+                <>
+                  {word.pronunciation && <Text style={styles.muted}>{word.pronunciation}</Text>}
+                  {word.portuguese_translation && (
+                    <Text style={styles.translation}>{word.portuguese_translation}</Text>
+                  )}
+                  {word.technical_explanation && (
+                    <Text style={styles.muted}>{word.technical_explanation}</Text>
+                  )}
+                  {word.example_sentence && (
+                    <Text style={styles.example}>“{word.example_sentence}”</Text>
+                  )}
+                </>
               )}
             </ScrollView>
           )}
@@ -79,6 +89,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   headerText: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   word: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   partOfSpeech: { fontSize: 12, color: '#475569', textTransform: 'uppercase' },

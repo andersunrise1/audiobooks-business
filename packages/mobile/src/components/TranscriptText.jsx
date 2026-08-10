@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Text } from 'react-native';
 import { buildSegments, normalize } from '../utils/transcriptSegments.js';
 import { useTheme } from '../store/ThemeContext.jsx';
@@ -31,24 +31,28 @@ export default function TranscriptText({
   fontFamily,
 }) {
   const { colors } = useTheme();
-  const [loadingText, setLoadingText] = useState(null);
   const segments = useMemo(() => buildSegments(transcript, words), [transcript, words]);
 
   if (!transcript) return null;
 
+  // Real device feedback: the popup felt slow to "aparecer" for untagged
+  // words, since it only opened once the full round trip (DB lookup, and
+  // on a first-ever click for that word, a real AI call - up to a few
+  // seconds) had already resolved - there was no visible feedback at all
+  // in between besides the tapped word dimming slightly. Now the modal
+  // opens immediately with a `loading` placeholder (TranslationModal shows
+  // a spinner for it) and gets swapped for the real content once
+  // onTranslateWord resolves - the wait itself is unchanged, but the app
+  // responds to the tap instantly instead of staying silent.
   async function handlePress(segment) {
     if (segment.word) {
       onWordPress?.(segment.word);
       return;
     }
     if (!onTranslateWord) return;
-    setLoadingText(segment.text);
-    try {
-      const resolved = await onTranslateWord(normalize(segment.text));
-      if (resolved) onWordPress?.(resolved);
-    } finally {
-      setLoadingText(null);
-    }
+    onWordPress?.({ word: segment.text, loading: true });
+    const resolved = await onTranslateWord(normalize(segment.text));
+    onWordPress?.(resolved ?? null);
   }
 
   return (
@@ -62,14 +66,7 @@ export default function TranscriptText({
     >
       {segments.map((segment, index) =>
         segment.type === 'word' ? (
-          <Text
-            key={index}
-            onPress={() => handlePress(segment)}
-            style={{
-              color: colors.text,
-              opacity: loadingText === segment.text ? 0.5 : 1,
-            }}
-          >
+          <Text key={index} onPress={() => handlePress(segment)} style={{ color: colors.text }}>
             {segment.text}
           </Text>
         ) : (

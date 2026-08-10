@@ -31,7 +31,8 @@ const FONT_FAMILIES = [
 export default function PlayerScreen({ route, navigation }) {
   const { audiobookId, title } = route.params;
   const { accessToken, isAuthenticated } = useAuth();
-  const { colors } = useTheme();
+  const { colors, theme, cycleTheme } = useTheme();
+  const themeIcon = { light: '🌙', dark: '💻', system: '☀️' }[theme];
 
   const [audiobook, setAudiobook] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -145,7 +146,10 @@ export default function PlayerScreen({ route, navigation }) {
 
   async function handleWordPress(word) {
     setSelectedWord(word);
-    if (!isAuthenticated) return;
+    // A loading placeholder (opened instantly by TranscriptText while the
+    // real translation is still in flight) or a null/close has no real
+    // word.id yet - only a resolved word should count as a "click" here.
+    if (!isAuthenticated || !word?.id) return;
     try {
       const updated = await apiRequest('/api/user/words-learned', {
         method: 'POST',
@@ -278,10 +282,19 @@ export default function PlayerScreen({ route, navigation }) {
             <Text style={[styles.bookTitle, { color: colors.muted }]} numberOfLines={2}>
               {audiobook?.title || title}
             </Text>
-            <Text style={[styles.chapterCount, { color: colors.text }]}>
-              Capítulo {chapterIndex + 1} de {chapters.length}
-              {progressByChapter[chapter.id]?.completed && ' · concluído'}
-            </Text>
+            <View style={styles.chapterRow}>
+              <Text style={[styles.chapterCount, { color: colors.text }]}>
+                Capítulo {chapterIndex + 1} de {chapters.length}
+                {progressByChapter[chapter.id]?.completed && ' · concluído'}
+              </Text>
+              <Pressable
+                onPress={cycleTheme}
+                hitSlop={12}
+                accessibilityLabel="Alternar modo claro/escuro"
+              >
+                <Text style={styles.themeToggle}>{themeIcon}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -372,7 +385,14 @@ const styles = StyleSheet.create({
   coverPlaceholder: { fontSize: 24 },
   headerText: { flex: 1, gap: 2 },
   bookTitle: { fontSize: 12 },
+  chapterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   chapterCount: { fontSize: 14, fontWeight: '600' },
+  themeToggle: { fontSize: 17 },
   fontControls: { flexDirection: 'row', gap: 6 },
   fontSizeButton: {
     width: 36,

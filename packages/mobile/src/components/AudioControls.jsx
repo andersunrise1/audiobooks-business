@@ -122,25 +122,31 @@ export default function AudioControls({
     safeCall(() => player.seekTo(next), 'seek');
   }
 
+  // Real device bug: gating these on `status.playing` (as togglePlay's own
+  // "only mutate right before play()" pattern suggested) meant tapping the
+  // speed/repeat button while paused updated the *displayed* label but
+  // never actually told the native player - so resuming playback kept the
+  // previous rate/loop value while the UI already showed the new one
+  // (reported: "0.7x" visibly selected but audio still playing at the old,
+  // faster rate). Web's <audio loop={repeat}> is declarative and never had
+  // this gap; expo-audio's imperative properties need every change applied
+  // unconditionally, same as web's own audioRef.current.playbackRate
+  // assignment in cycleSpeed, which has no such guard either.
   function cycleSpeed() {
     const index = SPEED_OPTIONS.indexOf(speed);
     const next = SPEED_OPTIONS[(index + 1) % SPEED_OPTIONS.length];
     onSpeedChange?.(next);
-    if (status.playing) {
-      safeCall(() => {
-        player.playbackRate = next;
-      }, 'change speed while playing');
-    }
+    safeCall(() => {
+      player.playbackRate = next;
+    }, 'change speed');
   }
 
   function toggleRepeat() {
     const next = !repeat;
     setRepeat(next);
-    if (status.playing) {
-      safeCall(() => {
-        player.loop = next;
-      }, 'change loop while playing');
-    }
+    safeCall(() => {
+      player.loop = next;
+    }, 'change loop');
   }
 
   return (

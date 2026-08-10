@@ -66,7 +66,6 @@ export default function TranscriptText({
             key={index}
             onPress={() => handlePress(segment)}
             style={{
-              textDecorationLine: 'underline',
               color: colors.text,
               opacity: loadingText === segment.text ? 0.5 : 1,
             }}

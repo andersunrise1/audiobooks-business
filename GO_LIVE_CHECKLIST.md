@@ -19,9 +19,9 @@ real sales start:
   "edição de outros produtos digitais" / "portais e outros serviços de
   informação na internet" / "ensino via internet"). If missing, add it as a
   free secondary activity via [gov.br/mei](https://www.gov.br/mei).
-- **Open the Stripe account under the MEI's CNPJ**, not a personal CPF, so
-  revenue (including international sales) is correctly attributed to the
-  business from day one.
+- **Open the Mercado Pago account under the MEI's CNPJ**, not a personal
+  CPF, so revenue (including international sales) is correctly attributed
+  to the business from day one.
 - **Watch the MEI revenue ceiling** (R\$81,000/year, current rule) — combined
   domestic + international sales count together, no separate bucket for
   foreign customers. Crossing it means migrating to Simples Nacional (ME),
@@ -69,19 +69,25 @@ real sales start:
     75's CORS restriction checks against; forgetting this step means the
     real site simply won't be able to call its own API.
 
-## Phase 3 — Real payments (Stripe)
+## Phase 3 — Real payments (Mercado Pago)
 
-11. Create a real Stripe account, complete identity/business verification
-    (required before you can accept real money).
-12. Get the real `STRIPE_SECRET_KEY` and create a webhook endpoint in the
-    Stripe dashboard pointed at `https://your-domain.com/api/payment/webhook`
-    — copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
-13. Test one real purchase in Stripe's test mode first (test card
-    `4242 4242 4242 4242`, per `packages/backend/PAYMENT_TROUBLESHOOTING.md`),
-    then switch to live mode.
-14. Link your bank account in the Stripe dashboard (Settings → Payouts) —
-    this is separate from, and has nothing to do with, Google Play's or
-    Apple's own payment/banking setup.
+Switched from Stripe on 2026-08-11 (see `CLAUDE.md`) — Stripe's identity
+verification got stuck on a CEP-renumbering mismatch with no resolution
+timeline.
+
+11. Create a real Mercado Pago account under the MEI's CNPJ (Phase 0),
+    complete identity/business verification (required before you can accept
+    real money) at [mercadopago.com.br](https://www.mercadopago.com.br).
+12. Get the real `MERCADOPAGO_ACCESS_TOKEN` (Suas integrações → your
+    application → Credenciais de produção) and the webhook signing secret
+    (same application → Webhooks) — copy into `MERCADOPAGO_ACCESS_TOKEN` /
+    `MERCADOPAGO_WEBHOOK_SECRET`.
+13. Test one real purchase in sandbox mode first (test cards + cardholder
+    names per `packages/backend/PAYMENT_TROUBLESHOOTING.md`), then switch to
+    a production access token.
+14. Link your bank account in the Mercado Pago dashboard (Configurações →
+    Conta → Dados bancários) — this is separate from, and has nothing to do
+    with, Google Play's or Apple's own payment/banking setup.
 
 ## Phase 4 — Email **(some dev work required)**
 
@@ -112,7 +118,7 @@ real sales start:
 20. Decide the in-app-purchase question before submitting to either store:
     Apple/Google policy generally requires digital content purchased
     _inside_ the app to go through their own billing (Apple IAP / Google
-    Play Billing), not Stripe directly — neither is integrated in this
+    Play Billing), not Mercado Pago directly — neither is integrated in this
     codebase yet. The simpler near-term path is letting the mobile apps be
     free-to-browse-and-learn with purchases only happening through the web
     site (already fully built), avoiding IAP integration entirely for now.

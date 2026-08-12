@@ -1,9 +1,10 @@
 import { pool } from '../config/database.js';
 import {
-  isStripeConfigured,
+  isMercadoPagoConfigured,
   isWebhookConfigured,
   createLifetimeCheckoutSession,
-  constructWebhookEvent,
+  verifyWebhookSignature,
+  getPayment,
   grantLifetimeAccess,
   refundLifetimePurchase,
   isWithinRefundWindow,
@@ -11,14 +12,14 @@ import {
 } from '../services/paymentService.js';
 import { getVariantName, getVariantConfig, logConversion } from '../services/experimentService.js';
 
-export const STRIPE_NOT_CONFIGURED_ERROR =
-  'Payments are not configured (missing STRIPE_SECRET_KEY)';
+export const MERCADOPAGO_NOT_CONFIGURED_ERROR =
+  'Payments are not configured (missing MERCADOPAGO_ACCESS_TOKEN)';
 
 const PRICING_EXPERIMENT = 'pricing_price';
 
 export async function createCheckoutSession(req, res) {
-  if (!isStripeConfigured()) {
-    return res.status(503).json({ error: STRIPE_NOT_CONFIGURED_ERROR });
+  if (!isMercadoPagoConfigured()) {
+    return res.status(503).json({ error: MERCADOPAGO_NOT_CONFIGURED_ERROR });
   }
 
   const { rows } = await pool.query('SELECT id, email, plan FROM users WHERE id = $1', [
@@ -49,38 +50,45 @@ export async function createCheckoutSession(req, res) {
   res.json({ url: session.url });
 }
 
-export async function handleStripeWebhook(req, res) {
+// Mercado Pago retries a failed/slow-to-acknowledge notification every 15
+// minutes and expects a 200/201 within 22s - grantLifetimeAccess/
+// logConversion run before responding here (not queued for later), but
+// both are fast single-row DB writes, well inside that window.
+export async function handleMercadoPagoWebhook(req, res) {
   if (!isWebhookConfigured()) {
     return res
       .status(503)
-      .json({ error: 'Webhook is not configured (missing STRIPE_WEBHOOK_SECRET)' });
+      .json({ error: 'Webhook is not configured (missing MERCADOPAGO_WEBHOOK_SECRET)' });
   }
 
-  const signature = req.headers['stripe-signature'];
-  let event;
-
-  try {
-    event = constructWebhookEvent(req.body, signature);
-  } catch (err) {
-    console.error('Stripe webhook signature verification failed:', err.message);
+  if (!verifyWebhookSignature(req)) {
+    console.error('Mercado Pago webhook signature verification failed');
     return res.status(400).json({ error: 'invalid signature' });
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const userId = session.metadata?.userId;
+  const { type } = req.body ?? {};
+  const paymentId = req.body?.data?.id;
 
-    if (userId) {
-      await grantLifetimeAccess(userId, session.payment_intent ?? null);
-    } else {
-      console.error('checkout.session.completed webhook missing metadata.userId', session.id);
-    }
+  if (type === 'payment' && paymentId) {
+    const payment = await getPayment(paymentId);
 
-    const { experimentName, experimentSubjectId, experimentVariant } = session.metadata ?? {};
-    if (experimentName && experimentSubjectId && experimentVariant) {
-      await logConversion(experimentName, experimentSubjectId, experimentVariant, {
-        sessionId: session.id,
-      });
+    if (payment.status === 'approved') {
+      const userId = payment.metadata?.user_id;
+
+      if (userId) {
+        await grantLifetimeAccess(userId, String(payment.id));
+      } else {
+        console.error('approved payment webhook missing metadata.user_id', payment.id);
+      }
+
+      const experimentName = payment.metadata?.experiment_name;
+      const experimentSubjectId = payment.metadata?.experiment_subject_id;
+      const experimentVariant = payment.metadata?.experiment_variant;
+      if (experimentName && experimentSubjectId && experimentVariant) {
+        await logConversion(experimentName, experimentSubjectId, experimentVariant, {
+          paymentId: payment.id,
+        });
+      }
     }
   }
 
@@ -88,18 +96,18 @@ export async function handleStripeWebhook(req, res) {
 }
 
 // Self-service refund within the CDC Art. 49 7-day window (HelpCenterPage's
-// FAQ) - actually calls Stripe's real Refunds API and revokes access, not
-// just a support-ticket request. Guard order mirrors the other 400/403
+// FAQ) - actually calls Mercado Pago's real refund API and revokes access,
+// not just a support-ticket request. Guard order mirrors the other 400/403
 // checks in this app (specific, actionable errors before the generic
 // "contact support" catch-all), so a user sees exactly why they can't
 // self-refund instead of a vague failure.
 export async function refundPurchase(req, res) {
-  if (!isStripeConfigured()) {
-    return res.status(503).json({ error: STRIPE_NOT_CONFIGURED_ERROR });
+  if (!isMercadoPagoConfigured()) {
+    return res.status(503).json({ error: MERCADOPAGO_NOT_CONFIGURED_ERROR });
   }
 
   const { rows } = await pool.query(
-    'SELECT id, plan, stripe_payment_intent_id, purchased_at, refunded_at FROM users WHERE id = $1',
+    'SELECT id, plan, mp_payment_id, purchased_at, refunded_at FROM users WHERE id = $1',
     [req.user.id],
   );
   const user = rows[0];
@@ -116,7 +124,7 @@ export async function refundPurchase(req, res) {
     return res.status(400).json({ error: 'this purchase has already been refunded' });
   }
 
-  if (!user.stripe_payment_intent_id) {
+  if (!user.mp_payment_id) {
     return res.status(400).json({
       error:
         'no purchase record found for this account - contact support if you believe this is an error',

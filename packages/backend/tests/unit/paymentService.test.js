@@ -1,10 +1,13 @@
 import { describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'crypto';
+import { Preference, Payment, PaymentRefund } from 'mercadopago';
 import {
-  isStripeConfigured,
+  isMercadoPagoConfigured,
   isWebhookConfigured,
   createLifetimeCheckoutSession,
-  constructWebhookEvent,
+  verifyWebhookSignature,
+  getPayment,
   grantLifetimeAccess,
   refundLifetimePurchase,
   isWithinRefundWindow,
@@ -12,7 +15,6 @@ import {
   LIFETIME_PRICE_BRL_CENTS,
   LIFETIME_PRODUCT_NAME,
 } from '../../src/services/paymentService.js';
-import { stripeClient } from '../../src/config/stripe.js';
 import { pool } from '../../src/config/database.js';
 
 function withEnv(vars, fn) {
@@ -33,68 +35,88 @@ function withEnv(vars, fn) {
     });
 }
 
-describe('paymentService.isStripeConfigured', () => {
-  test('is false when STRIPE_SECRET_KEY is unset', async () => {
-    await withEnv({ STRIPE_SECRET_KEY: undefined }, () => {
-      assert.equal(isStripeConfigured(), false);
+function fakeSignatureHeaders({ dataId, secret, ts = String(Date.now()) }) {
+  const requestId = 'req-123';
+  const manifest = `id:${String(dataId).toLowerCase()};request-id:${requestId};ts:${ts};`;
+  const v1 = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+  return {
+    headers: { 'x-signature': `ts=${ts},v1=${v1}`, 'x-request-id': requestId },
+    query: { 'data.id': dataId },
+  };
+}
+
+describe('paymentService.isMercadoPagoConfigured', () => {
+  test('is false when MERCADOPAGO_ACCESS_TOKEN is unset', async () => {
+    await withEnv({ MERCADOPAGO_ACCESS_TOKEN: undefined }, () => {
+      assert.equal(isMercadoPagoConfigured(), false);
     });
   });
 
-  test('is true when STRIPE_SECRET_KEY is set', async () => {
-    await withEnv({ STRIPE_SECRET_KEY: 'sk_test_123' }, () => {
-      assert.equal(isStripeConfigured(), true);
+  test('is true when MERCADOPAGO_ACCESS_TOKEN is set', async () => {
+    await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-123' }, () => {
+      assert.equal(isMercadoPagoConfigured(), true);
     });
   });
 });
 
 describe('paymentService.isWebhookConfigured', () => {
-  test('is false when STRIPE_WEBHOOK_SECRET is unset', async () => {
-    await withEnv({ STRIPE_WEBHOOK_SECRET: undefined }, () => {
+  test('is false when MERCADOPAGO_WEBHOOK_SECRET is unset', async () => {
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: undefined }, () => {
       assert.equal(isWebhookConfigured(), false);
     });
   });
 
-  test('is true when STRIPE_WEBHOOK_SECRET is set', async () => {
-    await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_123' }, () => {
+  test('is true when MERCADOPAGO_WEBHOOK_SECRET is set', async () => {
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'secret-123' }, () => {
       assert.equal(isWebhookConfigured(), true);
     });
   });
 });
 
 describe('paymentService.createLifetimeCheckoutSession', () => {
-  test('creates a one-time payment session with the right price and metadata', async () => {
-    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
-      url: 'https://checkout.stripe.com/test-session',
+  test('creates a one-time preference with the right price and metadata', async () => {
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-preference',
     }));
 
     try {
       const user = { id: 'user-1', email: 'a@b.com' };
       const result = await createLifetimeCheckoutSession(user);
 
-      assert.equal(result.url, 'https://checkout.stripe.com/test-session');
+      assert.equal(result.url, 'https://www.mercadopago.com.br/checkout/test-preference');
 
       const [args] = createMock.mock.calls[0].arguments;
-      assert.equal(args.mode, 'payment');
-      assert.equal(args.customer_email, 'a@b.com');
-      assert.equal(args.metadata.userId, 'user-1');
-      assert.equal(args.line_items[0].price_data.unit_amount, LIFETIME_PRICE_BRL_CENTS);
-      assert.equal(args.line_items[0].price_data.currency, 'brl');
-      assert.equal(args.line_items[0].price_data.product_data.name, LIFETIME_PRODUCT_NAME);
-      assert.equal(args.line_items[0].quantity, 1);
+      assert.equal(args.body.payer.email, 'a@b.com');
+      assert.equal(args.body.metadata.user_id, 'user-1');
+      assert.equal(args.body.items[0].unit_price, LIFETIME_PRICE_BRL_CENTS / 100);
+      assert.equal(args.body.items[0].currency_id, 'BRL');
+      assert.equal(args.body.items[0].title, LIFETIME_PRODUCT_NAME);
+      assert.equal(args.body.items[0].quantity, 1);
+      assert.equal(args.body.auto_return, 'approved');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  test('falls back to sandbox_init_point when init_point is absent', async () => {
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      sandbox_init_point: 'https://sandbox.mercadopago.com.br/checkout/test-preference',
+    }));
+
+    try {
+      const result = await createLifetimeCheckoutSession({ id: 'user-1', email: 'a@b.com' });
+      assert.equal(result.url, 'https://sandbox.mercadopago.com.br/checkout/test-preference');
     } finally {
       createMock.mock.restore();
     }
   });
 
   // Regression: FRONTEND_URL became a comma-separated list on Dia 75 for
-  // multi-origin CORS support, but this function still built success_url/
-  // cancel_url from the raw env var - producing a malformed redirect
-  // target like "https://a.com,https://b.com/payment/success" that the
-  // browser can't load ("site can't be reached"), caught by a real test
-  // purchase against the live app.
+  // multi-origin CORS support - this must build back_urls from only the
+  // first entry, not the raw list (same class of bug the Stripe version had).
   test('uses only the first FRONTEND_URL entry when it is a comma-separated list', async () => {
-    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
-      url: 'https://checkout.stripe.com/test-session',
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-preference',
     }));
 
     try {
@@ -105,67 +127,103 @@ describe('paymentService.createLifetimeCheckoutSession', () => {
           await createLifetimeCheckoutSession(user);
 
           const [args] = createMock.mock.calls[0].arguments;
-          assert.equal(
-            args.success_url,
-            'https://techspeaking.dev/payment/success?session_id={CHECKOUT_SESSION_ID}',
-          );
-          assert.equal(args.cancel_url, 'https://techspeaking.dev/payment/cancel');
-          assert.doesNotMatch(args.success_url, /,/);
-          assert.doesNotMatch(args.cancel_url, /,/);
+          assert.equal(args.body.back_urls.success, 'https://techspeaking.dev/payment/success');
+          assert.equal(args.body.back_urls.failure, 'https://techspeaking.dev/payment/cancel');
+          assert.doesNotMatch(args.body.back_urls.success, /,/);
+          assert.doesNotMatch(args.body.back_urls.failure, /,/);
         },
       );
     } finally {
       createMock.mock.restore();
     }
   });
-});
 
-describe('paymentService.constructWebhookEvent', () => {
-  test('delegates to the Stripe SDK with the configured webhook secret', async () => {
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'checkout.session.completed',
+  test('stashes experiment identifiers snake_cased for the webhook to read back', async () => {
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-preference',
     }));
 
-    await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, () => {
-      const event = constructWebhookEvent('raw-body', 'test-signature');
-      assert.equal(event.type, 'checkout.session.completed');
+    try {
+      const user = { id: 'user-1', email: 'a@b.com' };
+      await createLifetimeCheckoutSession(user, {
+        experiment: { name: 'pricing_price', subjectId: 'subj-1', variant: 'discount' },
+      });
 
-      const args = constructMock.mock.calls[0].arguments;
-      assert.deepEqual(args, ['raw-body', 'test-signature', 'whsec_test']);
+      const [args] = createMock.mock.calls[0].arguments;
+      assert.equal(args.body.metadata.experiment_name, 'pricing_price');
+      assert.equal(args.body.metadata.experiment_subject_id, 'subj-1');
+      assert.equal(args.body.metadata.experiment_variant, 'discount');
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+});
+
+describe('paymentService.verifyWebhookSignature', () => {
+  test('accepts a signature computed with the configured secret', async () => {
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, () => {
+      const { headers, query } = fakeSignatureHeaders({ dataId: 'PAY123', secret: 'whsecret' });
+      assert.equal(verifyWebhookSignature({ headers, query }), true);
     });
-
-    constructMock.mock.restore();
   });
 
-  test('throws when the signature is invalid', () => {
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => {
-      throw new Error('invalid signature');
+  test('rejects a signature computed with the wrong secret', async () => {
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, () => {
+      const { headers, query } = fakeSignatureHeaders({ dataId: 'PAY123', secret: 'wrong' });
+      assert.equal(verifyWebhookSignature({ headers, query }), false);
     });
+  });
+
+  test('is false when the x-signature header is missing', async () => {
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, () => {
+      assert.equal(
+        verifyWebhookSignature({ headers: { 'x-request-id': 'req-1' }, query: { 'data.id': '1' } }),
+        false,
+      );
+    });
+  });
+
+  test('is false when data.id is missing from the query string', async () => {
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, () => {
+      const { headers } = fakeSignatureHeaders({ dataId: 'PAY123', secret: 'whsecret' });
+      assert.equal(verifyWebhookSignature({ headers, query: {} }), false);
+    });
+  });
+});
+
+describe('paymentService.getPayment', () => {
+  test('delegates to the Mercado Pago SDK', async () => {
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      status: 'approved',
+    }));
 
     try {
-      assert.throws(() => constructWebhookEvent('raw-body', 'bad-signature'));
+      const payment = await getPayment('pay-123');
+      assert.equal(payment.status, 'approved');
+      const [args] = getMock.mock.calls[0].arguments;
+      assert.equal(args.id, 'pay-123');
     } finally {
-      constructMock.mock.restore();
+      getMock.mock.restore();
     }
   });
 });
 
 describe('paymentService.grantLifetimeAccess', () => {
-  test('updates the user plan to pro and records the payment intent', async () => {
+  test('updates the user plan to pro and records the payment id', async () => {
     const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
 
     try {
-      await grantLifetimeAccess('user-1', 'pi_123');
+      await grantLifetimeAccess('user-1', 'pay-123');
       const [sql, params] = queryMock.mock.calls[0].arguments;
       assert.match(sql, /UPDATE users/);
       assert.match(sql, /plan = 'pro'/);
-      assert.deepEqual(params, ['user-1', 'pi_123']);
+      assert.deepEqual(params, ['user-1', 'pay-123']);
     } finally {
       queryMock.mock.restore();
     }
   });
 
-  test('defaults the payment intent to null when not given', async () => {
+  test('defaults the payment id to null when not given', async () => {
     const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
 
     try {
@@ -195,17 +253,17 @@ describe('paymentService.isWithinRefundWindow', () => {
 });
 
 describe('paymentService.refundLifetimePurchase', () => {
-  test('calls the real Stripe refund API and downgrades the account', async () => {
-    const refundMock = mock.method(stripeClient.refunds, 'create', async () => ({
-      id: 're_123',
+  test('calls the real Mercado Pago refund API and downgrades the account', async () => {
+    const refundMock = mock.method(PaymentRefund.prototype, 'total', async () => ({
+      id: 1,
     }));
     const queryMock = mock.method(pool, 'query', async () => ({ rows: [] }));
 
     try {
-      await refundLifetimePurchase({ id: 'user-1', stripe_payment_intent_id: 'pi_123' });
+      await refundLifetimePurchase({ id: 'user-1', mp_payment_id: 'pay-123' });
 
       const [refundArgs] = refundMock.mock.calls[0].arguments;
-      assert.equal(refundArgs.payment_intent, 'pi_123');
+      assert.equal(refundArgs.payment_id, 'pay-123');
 
       const [sql, params] = queryMock.mock.calls[0].arguments;
       assert.match(sql, /plan = 'free'/);

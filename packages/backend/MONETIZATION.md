@@ -60,6 +60,6 @@ years could cost more in AI calls than they paid once. The fix is a
 1. ~~A plan-check helper~~ — **built (Dia 49)**: `services/planService.js`'s `getUserPlan(userId)`/`isPaidPlan(plan)`, a fresh DB read per call (same pattern as `requireAdmin.js`, not a JWT payload change — the access token still only carries `sub`/`email`, so this reads current `plan` on every check rather than trusting a cached value).
 2. ~~Free-tier audiobook access limiting~~ — **built (Dia 49)**: browsing (`GET /api/audiobooks`, `GET /:id`) stays public; `GET /:id/chapters` uses a new `optionalAuth` middleware (populates `req.user` if a valid token is present, never rejects) and 403s for non-`is_free` audiobooks unless the caller's plan is paid.
 3. ~~Plan-aware chat rate limiting~~ — **built (Dia 49)**: `rateLimitService.getDailyAiLimit(plan)` now takes a plan and returns `AI_DAILY_RATE_LIMIT_FREE`/`AI_DAILY_RATE_LIMIT_PRO`.
-4. ~~One-time Stripe Checkout~~ — **built (Dia 47)**.
+4. ~~One-time checkout~~ — **built (Dia 47, Stripe; rebuilt on Mercado Pago 2026-08-11 after a stuck Stripe identity-verification review — see `PAYMENT_TROUBLESHOOTING.md`)**.
 5. **A purchase-history table** for future book packs — still a gap. A flat `plan` column can represent "has lifetime access" but can't represent "which optional book packs this specific user bought," which the pricing model needs once expansion packs exist.
 6. **Corporate features** are the largest remaining gap — team management and SSO are both greenfield, not extensions of existing code.

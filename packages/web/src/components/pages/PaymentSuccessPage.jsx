@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 
-// The Stripe redirect can beat the webhook to us, so `user.plan` may still
-// read 'free' on the first refreshUser() call - poll a few times before
-// giving up and telling the user it just needs a little more time.
+// The Mercado Pago redirect can beat the webhook to us, so `user.plan` may
+// still read 'free' on the first refreshUser() call - poll a few times
+// before giving up and telling the user it just needs a little more time.
 const MAX_ATTEMPTS = 5;
 const RETRY_DELAY_MS = 2000;
 
 function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  // Mercado Pago's back_urls redirect appends its own query params
+  // (payment_id/preference_id/status/...), not Stripe's session_id.
+  const paymentId = searchParams.get('payment_id') || searchParams.get('preference_id');
   const { user, refreshUser } = useAuth();
   const [checking, setChecking] = useState(true);
 
@@ -39,7 +41,7 @@ function PaymentSuccessPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-md">
-      {!sessionId && (
+      {!paymentId && (
         <p className="text-red-600 dark:text-red-400 text-sm">
           Sessão de pagamento não encontrada.
         </p>

@@ -27,9 +27,9 @@ function AdminRevenuePage() {
       <h1 className="text-2xl font-bold">Revenue</h1>
 
       <p className="text-sm text-slate-600 dark:text-amber-100 border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 rounded-lg p-3">
-        Cobrança ainda não foi implementada (Stripe está planejado para uma etapa futura) — não
-        existe nenhum valor real de receita hoje. Esta página mostra a única informação genuína
-        disponível: a distribuição de usuários por plano.
+        A cobrança via Mercado Pago já está implementada, mas nenhuma conta real está configurada
+        ainda — não existe nenhum valor real de receita hoje. Esta página mostra a única informação
+        genuína disponível: a distribuição de usuários por plano.
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

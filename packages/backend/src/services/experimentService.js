@@ -6,8 +6,8 @@ import { pool } from '../config/database.js';
 // R$57 purchase (Dia 46), so this tests price anchors PRICING.md itself
 // names as the alternatives worth validating (R$47/57/67), plus a UI
 // variant on the Dia 49 paywall message. Neither variant is live against a
-// real Stripe account yet (no test-mode keys exist), so these are built and
-// tested against mocked Stripe calls, same as every other payment path.
+// real Mercado Pago account yet (no real credentials exist), so these are
+// built and tested against mocked SDK calls, same as every other payment path.
 export const EXPERIMENTS = {
   pricing_price: {
     variants: {

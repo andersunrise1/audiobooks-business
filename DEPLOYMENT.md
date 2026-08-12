@@ -76,14 +76,14 @@ untested, same honest caveat as `PAYMENT_TROUBLESHOOTING.md`/`IOS_BUILD.md`.
   instructions it gives you (usually a CNAME).
 - Update Railway's `FRONTEND_URL` to the real domain instead of the
   `*.vercel.app` one once DNS is live.
-- Point the Stripe webhook (Dia 47/50) at
-  `https://your-domain.com/api/payment/webhook` instead of the Railway
-  subdomain, if you switch.
+- Point the Mercado Pago webhook notification URL (Dia 47/50, on Mercado
+  Pago since 2026-08-11) at `https://your-domain.com/api/payment/webhook`
+  instead of the Railway subdomain, if you switch.
 
 ## 4. Post-deploy smoke check
 
 Once both are live, repeat the same golden-path check this project has run
 locally many times (Dia 80's `LAUNCH_CHECKLIST.md`, most recently): register
 → login → browse the catalog → play a free audiobook → check the AI chat →
-confirm `/api/payment/create-checkout-session` returns a real Stripe
-Checkout URL (not the 503 you'd see locally without keys).
+confirm `/api/payment/create-checkout-session` returns a real Mercado Pago
+checkout URL (not the 503 you'd see locally without credentials).

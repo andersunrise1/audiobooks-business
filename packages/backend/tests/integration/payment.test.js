@@ -1,8 +1,8 @@
 import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHmac } from 'node:crypto';
+import { Preference, Payment, PaymentRefund } from 'mercadopago';
 import { pool } from '../../src/config/database.js';
-import { stripeClient } from '../../src/config/stripe.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
 function withEnv(vars, fn) {
@@ -21,6 +21,27 @@ function withEnv(vars, fn) {
         else process.env[key] = originals[key];
       }
     });
+}
+
+// Builds a real, correctly-signed webhook request the exact way Mercado
+// Pago's own servers would (see paymentService.js's verifyWebhookSignature)
+// - exercises the real signature-checking code path instead of mocking it
+// away, since that's exactly the part most worth testing for real.
+function postWebhook(baseUrl, { dataId, secret, type = 'payment', body }) {
+  const ts = String(Date.now());
+  const requestId = 'req-test-1';
+  const manifest = `id:${String(dataId).toLowerCase()};request-id:${requestId};ts:${ts};`;
+  const v1 = createHmac('sha256', secret).update(manifest).digest('hex');
+
+  return fetch(`${baseUrl}/api/payment/webhook?data.id=${dataId}&type=${type}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-signature': `ts=${ts},v1=${v1}`,
+      'x-request-id': requestId,
+    },
+    body: JSON.stringify(body ?? { type, data: { id: dataId } }),
+  });
 }
 
 describe('POST /api/payment/create-checkout-session', () => {
@@ -46,8 +67,8 @@ describe('POST /api/payment/create-checkout-session', () => {
     assert.equal(res.status, 401);
   });
 
-  test('returns 503 when Stripe is not configured', async () => {
-    assert.ok(!process.env.STRIPE_SECRET_KEY);
+  test('returns 503 when Mercado Pago is not configured', async () => {
+    assert.ok(!process.env.MERCADOPAGO_ACCESS_TOKEN);
 
     const res = await fetch(`${baseUrl}/api/payment/create-checkout-session`, {
       method: 'POST',
@@ -56,16 +77,16 @@ describe('POST /api/payment/create-checkout-session', () => {
 
     assert.equal(res.status, 503);
     const data = await res.json();
-    assert.match(data.error, /STRIPE_SECRET_KEY/);
+    assert.match(data.error, /MERCADOPAGO_ACCESS_TOKEN/);
   });
 
-  test('creates a checkout session and returns its URL', async () => {
-    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
-      url: 'https://checkout.stripe.com/test-session',
+  test('creates a preference and returns its checkout URL', async () => {
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-preference',
     }));
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const res = await fetch(`${baseUrl}/api/payment/create-checkout-session`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -73,10 +94,10 @@ describe('POST /api/payment/create-checkout-session', () => {
 
         assert.equal(res.status, 200);
         const data = await res.json();
-        assert.equal(data.url, 'https://checkout.stripe.com/test-session');
+        assert.equal(data.url, 'https://www.mercadopago.com.br/checkout/test-preference');
 
         const [args] = createMock.mock.calls[0].arguments;
-        assert.equal(args.metadata.userId, userId);
+        assert.equal(args.body.metadata.user_id, userId);
       });
     } finally {
       createMock.mock.restore();
@@ -84,12 +105,12 @@ describe('POST /api/payment/create-checkout-session', () => {
   });
 
   test('charges the pricing_price variant price for the given subjectId (Dia 55-56)', async () => {
-    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
-      url: 'https://checkout.stripe.com/test-session',
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-preference',
     }));
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const subjectId = randomUUID();
         const assignment = await fetch(
           `${baseUrl}/api/experiments/pricing_price/assignment?subjectId=${subjectId}`,
@@ -106,10 +127,10 @@ describe('POST /api/payment/create-checkout-session', () => {
         assert.equal(res.status, 200);
 
         const [args] = createMock.mock.calls[0].arguments;
-        assert.equal(args.line_items[0].price_data.unit_amount, assignment.config.priceBrlCents);
-        assert.equal(args.metadata.experimentName, 'pricing_price');
-        assert.equal(args.metadata.experimentSubjectId, subjectId);
-        assert.equal(args.metadata.experimentVariant, assignment.variant);
+        assert.equal(args.body.items[0].unit_price, assignment.config.priceBrlCents / 100);
+        assert.equal(args.body.metadata.experiment_name, 'pricing_price');
+        assert.equal(args.body.metadata.experiment_subject_id, subjectId);
+        assert.equal(args.body.metadata.experiment_variant, assignment.variant);
       });
     } finally {
       createMock.mock.restore();
@@ -120,7 +141,7 @@ describe('POST /api/payment/create-checkout-session', () => {
     await pool.query(`UPDATE users SET plan = 'pro' WHERE id = $1`, [userId]);
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const res = await fetch(`${baseUrl}/api/payment/create-checkout-session`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -147,48 +168,33 @@ describe('POST /api/payment/webhook', () => {
     await stopTestServer(server);
   });
 
-  function postWebhook(body) {
-    return fetch(`${baseUrl}/api/payment/webhook`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'stripe-signature': 'test-signature' },
-      body: JSON.stringify(body),
-    });
-  }
-
   test('returns 503 when the webhook secret is not configured', async () => {
-    assert.ok(!process.env.STRIPE_WEBHOOK_SECRET);
+    assert.ok(!process.env.MERCADOPAGO_WEBHOOK_SECRET);
 
-    const res = await postWebhook({ type: 'checkout.session.completed' });
+    const res = await postWebhook(baseUrl, { dataId: 'pay-1', secret: 'whatever' });
     assert.equal(res.status, 503);
   });
 
   test('rejects an invalid signature', async () => {
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => {
-      throw new Error('signature mismatch');
+    await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+      const res = await postWebhook(baseUrl, { dataId: 'pay-1', secret: 'wrong-secret' });
+      assert.equal(res.status, 400);
     });
-
-    try {
-      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
-        const res = await postWebhook({ type: 'checkout.session.completed' });
-        assert.equal(res.status, 400);
-      });
-    } finally {
-      constructMock.mock.restore();
-    }
   });
 
-  test('grants lifetime access on a real checkout.session.completed event', async () => {
+  test('grants lifetime access on a real approved payment notification', async () => {
     const registered = await registerTestUser(baseUrl);
     userId = registered.user.id;
 
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs_test_123', metadata: { userId } } },
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      id: 'pay-approved',
+      status: 'approved',
+      metadata: { user_id: userId },
     }));
 
     try {
-      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
-        const res = await postWebhook({});
+      await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+        const res = await postWebhook(baseUrl, { dataId: 'pay-approved', secret: 'whsecret' });
         assert.equal(res.status, 200);
         const data = await res.json();
         assert.equal(data.received, true);
@@ -197,33 +203,53 @@ describe('POST /api/payment/webhook', () => {
       const { rows } = await pool.query('SELECT plan FROM users WHERE id = $1', [userId]);
       assert.equal(rows[0].plan, 'pro');
     } finally {
-      constructMock.mock.restore();
+      getMock.mock.restore();
     }
   });
 
-  test('logs an experiment conversion when the session carries experiment metadata (Dia 55-56)', async () => {
+  test('does not grant access for a pending (not yet approved) payment', async () => {
+    const registered = await registerTestUser(baseUrl);
+    const pendingUserId = registered.user.id;
+
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      id: 'pay-pending',
+      status: 'pending',
+      metadata: { user_id: pendingUserId },
+    }));
+
+    try {
+      await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+        const res = await postWebhook(baseUrl, { dataId: 'pay-pending', secret: 'whsecret' });
+        assert.equal(res.status, 200);
+      });
+
+      const { rows } = await pool.query('SELECT plan FROM users WHERE id = $1', [pendingUserId]);
+      assert.equal(rows[0].plan, 'free');
+    } finally {
+      getMock.mock.restore();
+      await pool.query('DELETE FROM users WHERE id = $1', [pendingUserId]);
+    }
+  });
+
+  test('logs an experiment conversion when the payment carries experiment metadata (Dia 55-56)', async () => {
     const registered = await registerTestUser(baseUrl);
     const experimentUserId = registered.user.id;
     const subjectId = randomUUID();
 
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'checkout.session.completed',
-      data: {
-        object: {
-          id: 'cs_test_experiment',
-          metadata: {
-            userId: experimentUserId,
-            experimentName: 'pricing_price',
-            experimentSubjectId: subjectId,
-            experimentVariant: 'discount',
-          },
-        },
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      id: 'pay-experiment',
+      status: 'approved',
+      metadata: {
+        user_id: experimentUserId,
+        experiment_name: 'pricing_price',
+        experiment_subject_id: subjectId,
+        experiment_variant: 'discount',
       },
     }));
 
     try {
-      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
-        const res = await postWebhook({});
+      await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+        const res = await postWebhook(baseUrl, { dataId: 'pay-experiment', secret: 'whsecret' });
         assert.equal(res.status, 200);
       });
 
@@ -234,49 +260,51 @@ describe('POST /api/payment/webhook', () => {
       );
       assert.equal(rows.length, 1);
       assert.equal(rows[0].variant, 'discount');
-      assert.equal(rows[0].metadata.sessionId, 'cs_test_experiment');
+      assert.equal(rows[0].metadata.paymentId, 'pay-experiment');
     } finally {
-      constructMock.mock.restore();
+      getMock.mock.restore();
       await pool.query('DELETE FROM users WHERE id = $1', [experimentUserId]);
     }
   });
 
-  test('ignores unrelated event types without touching the database', async () => {
+  test('ignores unrelated notification types without touching the database', async () => {
     const registered = await registerTestUser(baseUrl);
     const otherUserId = registered.user.id;
 
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'payment_intent.created',
-      data: { object: {} },
-    }));
-
     try {
-      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
-        const res = await postWebhook({});
+      await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+        const res = await postWebhook(baseUrl, {
+          dataId: 'merchant-order-1',
+          secret: 'whsecret',
+          type: 'merchant_order',
+        });
         assert.equal(res.status, 200);
       });
 
       const { rows } = await pool.query('SELECT plan FROM users WHERE id = $1', [otherUserId]);
       assert.equal(rows[0].plan, 'free');
     } finally {
-      constructMock.mock.restore();
       await pool.query('DELETE FROM users WHERE id = $1', [otherUserId]);
     }
   });
 
-  test('is idempotent when Stripe redelivers the same event (Dia 50)', async () => {
+  test('is idempotent when Mercado Pago redelivers the same notification (Dia 50)', async () => {
     const registered = await registerTestUser(baseUrl);
     const redeliveredUserId = registered.user.id;
 
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs_test_redelivered', metadata: { userId: redeliveredUserId } } },
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      id: 'pay-redelivered',
+      status: 'approved',
+      metadata: { user_id: redeliveredUserId },
     }));
 
     try {
-      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
-        const first = await postWebhook({});
-        const second = await postWebhook({});
+      await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+        const first = await postWebhook(baseUrl, { dataId: 'pay-redelivered', secret: 'whsecret' });
+        const second = await postWebhook(baseUrl, {
+          dataId: 'pay-redelivered',
+          secret: 'whsecret',
+        });
         assert.equal(first.status, 200);
         assert.equal(second.status, 200);
       });
@@ -286,26 +314,27 @@ describe('POST /api/payment/webhook', () => {
       ]);
       assert.equal(rows[0].plan, 'pro');
     } finally {
-      constructMock.mock.restore();
+      getMock.mock.restore();
       await pool.query('DELETE FROM users WHERE id = $1', [redeliveredUserId]);
     }
   });
 
-  test('does not crash on a checkout.session.completed event missing metadata.userId (Dia 50)', async () => {
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs_test_no_metadata', metadata: {} } },
+  test('does not crash on an approved payment missing metadata.user_id (Dia 50)', async () => {
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      id: 'pay-no-metadata',
+      status: 'approved',
+      metadata: {},
     }));
 
     try {
-      await withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, async () => {
-        const res = await postWebhook({});
+      await withEnv({ MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' }, async () => {
+        const res = await postWebhook(baseUrl, { dataId: 'pay-no-metadata', secret: 'whsecret' });
         assert.equal(res.status, 200);
         const data = await res.json();
         assert.equal(data.received, true);
       });
     } finally {
-      constructMock.mock.restore();
+      getMock.mock.restore();
     }
   });
 });
@@ -340,14 +369,14 @@ describe('POST /api/payment/refund', () => {
     assert.equal(res.status, 401);
   });
 
-  test('returns 503 when Stripe is not configured', async () => {
-    assert.ok(!process.env.STRIPE_SECRET_KEY);
+  test('returns 503 when Mercado Pago is not configured', async () => {
+    assert.ok(!process.env.MERCADOPAGO_ACCESS_TOKEN);
     const res = await postRefund(accessToken);
     assert.equal(res.status, 503);
   });
 
   test('rejects a free-plan user (nothing to refund)', async () => {
-    await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+    await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
       const res = await postRefund(accessToken);
       assert.equal(res.status, 400);
       const data = await res.json();
@@ -359,7 +388,7 @@ describe('POST /api/payment/refund', () => {
     await pool.query(`UPDATE users SET plan = 'pro' WHERE id = $1`, [userId]);
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const res = await postRefund(accessToken);
         assert.equal(res.status, 400);
         const data = await res.json();
@@ -373,12 +402,12 @@ describe('POST /api/payment/refund', () => {
   test('rejects a purchase older than the refund window', async () => {
     const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
     await pool.query(
-      `UPDATE users SET plan = 'pro', stripe_payment_intent_id = 'pi_old', purchased_at = $2 WHERE id = $1`,
+      `UPDATE users SET plan = 'pro', mp_payment_id = 'pay-old', purchased_at = $2 WHERE id = $1`,
       [userId, eightDaysAgo],
     );
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const res = await postRefund(accessToken);
         assert.equal(res.status, 403);
         const data = await res.json();
@@ -386,22 +415,22 @@ describe('POST /api/payment/refund', () => {
       });
     } finally {
       await pool.query(
-        `UPDATE users SET plan = 'free', stripe_payment_intent_id = NULL, purchased_at = NULL WHERE id = $1`,
+        `UPDATE users SET plan = 'free', mp_payment_id = NULL, purchased_at = NULL WHERE id = $1`,
         [userId],
       );
     }
   });
 
-  test('refunds a real recent purchase, calling Stripe and downgrading the account', async () => {
+  test('refunds a real recent purchase, calling Mercado Pago and downgrading the account', async () => {
     await pool.query(
-      `UPDATE users SET plan = 'pro', stripe_payment_intent_id = 'pi_recent', purchased_at = now() WHERE id = $1`,
+      `UPDATE users SET plan = 'pro', mp_payment_id = 'pay-recent', purchased_at = now() WHERE id = $1`,
       [userId],
     );
 
-    const refundMock = mock.method(stripeClient.refunds, 'create', async () => ({ id: 're_1' }));
+    const refundMock = mock.method(PaymentRefund.prototype, 'total', async () => ({ id: 1 }));
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const res = await postRefund(accessToken);
         assert.equal(res.status, 200);
         const data = await res.json();
@@ -409,7 +438,7 @@ describe('POST /api/payment/refund', () => {
       });
 
       const [args] = refundMock.mock.calls[0].arguments;
-      assert.equal(args.payment_intent, 'pi_recent');
+      assert.equal(args.payment_id, 'pay-recent');
 
       const { rows } = await pool.query('SELECT plan, refunded_at FROM users WHERE id = $1', [
         userId,
@@ -423,12 +452,12 @@ describe('POST /api/payment/refund', () => {
 
   test('rejects a second refund attempt on the same purchase', async () => {
     await pool.query(
-      `UPDATE users SET plan = 'pro', stripe_payment_intent_id = 'pi_again', purchased_at = now(), refunded_at = now() WHERE id = $1`,
+      `UPDATE users SET plan = 'pro', mp_payment_id = 'pay-again', purchased_at = now(), refunded_at = now() WHERE id = $1`,
       [userId],
     );
 
     try {
-      await withEnv({ STRIPE_SECRET_KEY: 'sk_test_fake' }, async () => {
+      await withEnv({ MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake' }, async () => {
         const res = await postRefund(accessToken);
         assert.equal(res.status, 400);
         const data = await res.json();
@@ -436,7 +465,7 @@ describe('POST /api/payment/refund', () => {
       });
     } finally {
       await pool.query(
-        `UPDATE users SET plan = 'free', stripe_payment_intent_id = NULL, purchased_at = NULL, refunded_at = NULL WHERE id = $1`,
+        `UPDATE users SET plan = 'free', mp_payment_id = NULL, purchased_at = NULL, refunded_at = NULL WHERE id = $1`,
         [userId],
       );
     }
@@ -462,21 +491,22 @@ describe('Payment sandbox flow (Dia 50)', () => {
   });
 
   // Chains the full purchase flow end to end through our own code - only the
-  // actual network calls to Stripe are mocked, which is the only real
-  // boundary we can control without a live test-mode account (see
+  // actual network calls to Mercado Pago are mocked, which is the only real
+  // boundary we can control without a live sandbox account (see
   // PAYMENT_TROUBLESHOOTING.md for what still needs a real sandbox run).
   test('create-checkout-session -> webhook -> GET /api/auth/me reflects the purchase', async () => {
-    const createMock = mock.method(stripeClient.checkout.sessions, 'create', async () => ({
-      url: 'https://checkout.stripe.com/test-sandbox-session',
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-sandbox-preference',
     }));
-    const constructMock = mock.method(stripeClient.webhooks, 'constructEvent', () => ({
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs_test_sandbox', metadata: { userId } } },
+    const getMock = mock.method(Payment.prototype, 'get', async () => ({
+      id: 'pay-sandbox',
+      status: 'approved',
+      metadata: { user_id: userId },
     }));
 
     try {
       await withEnv(
-        { STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_test' },
+        { MERCADOPAGO_ACCESS_TOKEN: 'TEST-fake', MERCADOPAGO_WEBHOOK_SECRET: 'whsecret' },
         async () => {
           const before = await fetch(`${baseUrl}/api/auth/me`, {
             headers: { Authorization: `Bearer ${accessToken}` },
@@ -489,15 +519,11 @@ describe('Payment sandbox flow (Dia 50)', () => {
           });
           assert.equal(checkoutRes.status, 200);
           const { url } = await checkoutRes.json();
-          assert.equal(url, 'https://checkout.stripe.com/test-sandbox-session');
+          assert.equal(url, 'https://www.mercadopago.com.br/checkout/test-sandbox-preference');
 
-          const webhookRes = await fetch(`${baseUrl}/api/payment/webhook`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'stripe-signature': 'test-signature',
-            },
-            body: JSON.stringify({}),
+          const webhookRes = await postWebhook(baseUrl, {
+            dataId: 'pay-sandbox',
+            secret: 'whsecret',
           });
           assert.equal(webhookRes.status, 200);
 
@@ -509,7 +535,7 @@ describe('Payment sandbox flow (Dia 50)', () => {
       );
     } finally {
       createMock.mock.restore();
-      constructMock.mock.restore();
+      getMock.mock.restore();
     }
   });
 });

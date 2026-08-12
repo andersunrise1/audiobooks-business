@@ -1,10 +1,10 @@
 const CONTACT_EMAIL = 'suporte@techspeaking.dev';
-const LAST_UPDATED = '10 de agosto de 2026';
+const LAST_UPDATED = '11 de agosto de 2026';
 
 // Grounded in what the app actually does today, not generic boilerplate:
 // every data category and every third party listed below corresponds to a
 // real table/integration in this codebase (users, word_clicks, flashcards,
-// ai_usage_log, support_tickets, experiment_events, Stripe, Anthropic,
+// ai_usage_log, support_tickets, experiment_events, Mercado Pago, Anthropic,
 // Resend, Railway, Vercel). Two honest gaps called out explicitly rather
 // than glossed over: there's no self-service data export/delete yet (both
 // go through suporte@techspeaking.dev manually), and the AI chat tutor
@@ -59,7 +59,7 @@ function PrivacyPolicyPage() {
         </p>
         <p>
           <strong>Dados de pagamento:</strong> quando você compra o Vitalício, o número do seu
-          cartão nunca passa pelos nossos servidores — ele vai direto para o Stripe, nosso
+          cartão nunca passa pelos nossos servidores — ele vai direto para o Mercado Pago, nosso
           processador de pagamentos. Nós guardamos apenas a confirmação da compra (data, e se foi
           reembolsada).
         </p>
@@ -103,8 +103,8 @@ function PrivacyPolicyPage() {
         <p>Só compartilhamos dados com os prestadores de serviço necessários para operar:</p>
         <ul className="list-disc pl-5 flex flex-col gap-1">
           <li>
-            <strong>Stripe</strong> (pagamentos) — recebe seus dados de pagamento diretamente; nunca
-            passam pelo nosso servidor.
+            <strong>Mercado Pago</strong> (pagamentos) — recebe seus dados de pagamento diretamente;
+            nunca passam pelo nosso servidor.
           </li>
           <li>
             <strong>Anthropic</strong> (o modelo de IA Claude) — recebe o texto da palavra/trecho do
@@ -150,8 +150,8 @@ function PrivacyPolicyPage() {
         <p>
           Senhas são armazenadas com hash (nunca em texto simples), a comunicação entre seu
           dispositivo e nossos servidores é sempre criptografada (HTTPS), e o acesso a dados de
-          pagamento é feito inteiramente pelo Stripe — nós nunca vemos nem guardamos o número do seu
-          cartão.
+          pagamento é feito inteiramente pelo Mercado Pago — nós nunca vemos nem guardamos o número
+          do seu cartão.
         </p>
       </Section>
 

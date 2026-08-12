@@ -15,7 +15,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import experimentRoutes from './routes/experimentRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import betaRoutes from './routes/betaRoutes.js';
-import { handleStripeWebhook } from './controllers/paymentController.js';
+import { handleMercadoPagoWebhook } from './controllers/paymentController.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { enforceHttps } from './middleware/security.js';
 import { generalRateLimit, authRateLimit } from './middleware/generalRateLimit.js';
@@ -61,11 +61,6 @@ export function createApp() {
     cors({ origin: corsOrigin, exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'] }),
   );
 
-  // Stripe webhook signature verification needs the raw request body, so
-  // this route is registered (with express.raw()) before the global JSON
-  // parser below - every other route still gets normal JSON parsing.
-  app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
-
   // Serves locally-generated narration audio (scripts/generateNarration.js).
   // helmet() defaults Cross-Origin-Resource-Policy to 'same-origin', which
   // would otherwise block the frontend (a different origin/port in dev)
@@ -88,6 +83,15 @@ export function createApp() {
   );
 
   app.use(express.json());
+
+  // Mercado Pago's webhook signature (x-signature/x-request-id) is computed
+  // from headers + the notification's query string, not the raw body (see
+  // paymentService.js's verifyWebhookSignature) - unlike Stripe's raw-byte
+  // HMAC, so this can run after the global JSON parser like any other route.
+  // Registered before the rate limiter below (same position the old Stripe
+  // route had) since Mercado Pago's own servers, not a browser, call this.
+  app.post('/api/payment/webhook', handleMercadoPagoWebhook);
+
   app.use('/api', generalRateLimit);
 
   app.get('/api/health', (req, res) => {

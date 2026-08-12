@@ -89,5 +89,6 @@ customization scope, matching the plan.
 ## What this document does _not_ do
 
 It doesn't implement the AI chat limit, one-time-purchase checks, or
-Stripe — see `packages/backend/MONETIZATION.md` for the honest gap list
-and what Dia 47+ needs to build to make this real.
+the payment provider (Mercado Pago, since 2026-08-11) — see
+`packages/backend/MONETIZATION.md` for the honest gap list and what Dia 47+
+needs to build to make this real.

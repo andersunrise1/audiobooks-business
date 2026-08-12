@@ -209,9 +209,15 @@ export default function PlayerScreen({ route, navigation }) {
         <Text style={[styles.title, { color: colors.text }]}>
           Este audiobook é exclusivo do Vitalício
         </Text>
-        <Text style={[styles.muted, { color: colors.muted }]}>
-          Faça login e adquira o acesso para continuar (compra pelo app web por enquanto).
-        </Text>
+        {isAuthenticated ? (
+          <Pressable onPress={() => navigation.navigate('Pricing')} style={styles.paywallButton}>
+            <Text style={styles.paywallButtonText}>Comprar Vitalício</Text>
+          </Pressable>
+        ) : (
+          <Text style={[styles.muted, { color: colors.muted }]}>
+            Faça login e adquira o acesso para continuar.
+          </Text>
+        )}
       </View>
     );
   }
@@ -372,6 +378,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
   muted: { fontSize: 13 },
   error: { color: '#dc2626' },
+  paywallButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  paywallButtonText: { color: '#ffffff', fontWeight: '600', fontSize: 15 },
   header: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   cover: {
     width: 56,

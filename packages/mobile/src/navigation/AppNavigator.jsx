@@ -13,6 +13,7 @@ import AudiobookListScreen from '../screens/AudiobookListScreen.jsx';
 import PlayerScreen from '../screens/PlayerScreen.jsx';
 import FlashcardsScreen from '../screens/FlashcardsScreen.jsx';
 import DashboardScreen from '../screens/DashboardScreen.jsx';
+import PricingScreen from '../screens/PricingScreen.jsx';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,7 +36,7 @@ function MainTabs({ navigation }) {
   return (
     <View style={styles.flex}>
       <StatusBar style="light" />
-      <TopNavBar active={active} onChange={setActive} />
+      <TopNavBar active={active} onChange={setActive} navigation={navigation} />
       {screens[active]}
     </View>
   );
@@ -46,6 +47,7 @@ function AuthenticatedStack() {
     <Stack.Navigator>
       <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ title: '' }} />
+      <Stack.Screen name="Pricing" component={PricingScreen} options={{ title: 'Vitalício' }} />
     </Stack.Navigator>
   );
 }

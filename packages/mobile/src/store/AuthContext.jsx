@@ -46,6 +46,17 @@ export function AuthProvider({ children }) {
     setAuth(null);
   }
 
+  // Mirrors packages/web/src/store/AuthContext.jsx's refreshUser - the JWT
+  // isn't reissued when a purchase completes server-side (Dia 47's webhook
+  // flips plan mid-session), so PricingScreen polls this after a checkout
+  // instead of relying on stale token contents.
+  async function refreshUser() {
+    if (!auth?.accessToken) return null;
+    const { user } = await apiRequest('/api/auth/me', { token: auth.accessToken });
+    setAuth((prev) => (prev ? { ...prev, user } : prev));
+    return user;
+  }
+
   const value = {
     user: auth?.user ?? null,
     accessToken: auth?.accessToken ?? null,
@@ -54,6 +65,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

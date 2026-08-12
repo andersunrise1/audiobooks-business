@@ -10,6 +10,18 @@ Nothing here is code work unless explicitly marked **(dev work)** — most
 steps are account creation, configuration, and business decisions only you
 can make.
 
+**Status as of 2026-08-12: Phases 1-3 are done, for real.** `techspeaking.dev`
+(domain via Cloudflare) and `api.techspeaking.dev` are both live — Railway
+project `cozy-contentment` hosts the backend + Postgres (auto-deploys from
+`main` on every push), Vercel hosts the frontend build. Real Mercado Pago
+production credentials (`MERCADOPAGO_ACCESS_TOKEN`/`MERCADOPAGO_WEBHOOK_SECRET`)
+are configured on Railway — confirmed live by calling
+`POST /api/payment/create-checkout-session` against the real production
+backend and getting back a genuine `mercadopago.com.br` checkout URL (200 OK,
+not the 503 this doc used to expect). **A real customer can go to
+`techspeaking.dev` right now and actually buy the Vitalício.** Phases 4-6
+(email, backups/monitoring, mobile stores) remain honestly not done.
+
 ## Phase 0 — Business/tax setup (already done: MEI)
 
 MEI is already open — this phase is just the remaining loose ends before
@@ -34,7 +46,10 @@ real sales start:
   accountant should confirm specifics before real money moves. Many
   accountants serve MEI accounts for R\$50-150/month.
 
-## Phase 1 — Hosting (web + backend + database)
+## Phase 1 — Hosting (web + backend + database) — done
+
+Railway (`cozy-contentment` project) for backend + Postgres, Vercel for the
+frontend, matching the plan below exactly.
 
 1. **Pick a hosting provider.** For a solo developer, [Railway](https://railway.app)
    or [Render](https://render.com) are the simplest — both can host the
@@ -56,7 +71,10 @@ real sales start:
    frontend if you'd rather split web hosting from the backend.
 6. Point `packages/web`'s `VITE_API_URL` at the real backend URL and rebuild.
 
-## Phase 2 — Domain
+## Phase 2 — Domain — done
+
+`techspeaking.dev` / `api.techspeaking.dev`, registered and DNS-managed via
+Cloudflare, both serving real HTTPS traffic.
 
 7. Buy a domain (Registro.br for `.com.br`, Namecheap/Google Domains for
    `.com`).
@@ -69,11 +87,12 @@ real sales start:
     75's CORS restriction checks against; forgetting this step means the
     real site simply won't be able to call its own API.
 
-## Phase 3 — Real payments (Mercado Pago)
+## Phase 3 — Real payments (Mercado Pago) — done
 
 Switched from Stripe on 2026-08-11 (see `CLAUDE.md`) — Stripe's identity
 verification got stuck on a CEP-renumbering mismatch with no resolution
-timeline.
+timeline. Production credentials activated instantly (no extended business
+review, unlike Stripe) and confirmed live on 2026-08-12.
 
 11. Create a real Mercado Pago account under the MEI's CNPJ (Phase 0),
     complete identity/business verification (required before you can accept

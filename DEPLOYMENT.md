@@ -7,11 +7,14 @@ this way because Vercel's serverless model isn't a good fit for the Express
 backend's long-lived `pg.Pool` connections, but it's excellent (and free) for
 a static Vite build; Railway handles the stateful pieces well and cheaply.
 
-Nothing in this doc has been run against a real Railway/Vercel account (none
-exist in this dev environment) — the commands/scripts below were verified
-locally (`npm run start:backend` confirmed to migrate + boot correctly
-against the real local Postgres), but the actual dashboard clicks are
-untested, same honest caveat as `PAYMENT_TROUBLESHOOTING.md`/`IOS_BUILD.md`.
+**Done for real as of 2026-08-12**: this exact plan is what's actually
+deployed. Railway project `cozy-contentment` hosts the backend + Postgres at
+`api.techspeaking.dev`; Vercel hosts the frontend at `techspeaking.dev`;
+Cloudflare manages the domain. Confirmed live: `GET /api/health` returns
+`{"status":"ok"}`, `/pricing` renders with real pricing-experiment data, and
+`POST /api/payment/create-checkout-session` returns a genuine
+`mercadopago.com.br` checkout URL using real production Mercado Pago
+credentials configured in Railway's environment variables.
 
 ## 1. Railway — backend + database
 

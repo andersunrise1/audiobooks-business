@@ -80,19 +80,46 @@ describe('paymentService.createLifetimeCheckoutSession', () => {
     }));
 
     try {
-      const user = { id: 'user-1', email: 'a@b.com' };
-      const result = await createLifetimeCheckoutSession(user);
+      await withEnv({ FRONTEND_URL: 'https://techspeaking.dev' }, async () => {
+        const user = { id: 'user-1', email: 'a@b.com' };
+        const result = await createLifetimeCheckoutSession(user);
 
-      assert.equal(result.url, 'https://www.mercadopago.com.br/checkout/test-preference');
+        assert.equal(result.url, 'https://www.mercadopago.com.br/checkout/test-preference');
 
-      const [args] = createMock.mock.calls[0].arguments;
-      assert.equal(args.body.payer.email, 'a@b.com');
-      assert.equal(args.body.metadata.user_id, 'user-1');
-      assert.equal(args.body.items[0].unit_price, LIFETIME_PRICE_BRL_CENTS / 100);
-      assert.equal(args.body.items[0].currency_id, 'BRL');
-      assert.equal(args.body.items[0].title, LIFETIME_PRODUCT_NAME);
-      assert.equal(args.body.items[0].quantity, 1);
-      assert.equal(args.body.auto_return, 'approved');
+        const [args] = createMock.mock.calls[0].arguments;
+        assert.equal(args.body.payer.email, 'a@b.com');
+        assert.equal(args.body.metadata.user_id, 'user-1');
+        assert.equal(args.body.items[0].unit_price, LIFETIME_PRICE_BRL_CENTS / 100);
+        assert.equal(args.body.items[0].currency_id, 'BRL');
+        assert.equal(args.body.items[0].title, LIFETIME_PRODUCT_NAME);
+        assert.equal(args.body.items[0].quantity, 1);
+        assert.equal(args.body.auto_return, 'approved');
+      });
+    } finally {
+      createMock.mock.restore();
+    }
+  });
+
+  // Real bug caught by testing against the live Mercado Pago API (not
+  // assumed from docs): auto_return fails preference creation outright
+  // unless back_urls.success is a real https:// URL - a plain
+  // http://localhost back_url is otherwise accepted on its own. Confirmed
+  // directly against the sandbox API before this fix existed (a genuine
+  // 400 "auto_return invalid. back_url.success must be defined").
+  test('omits auto_return when FRONTEND_URL is not https (e.g. local dev)', async () => {
+    const createMock = mock.method(Preference.prototype, 'create', async () => ({
+      init_point: 'https://www.mercadopago.com.br/checkout/test-preference',
+    }));
+
+    try {
+      await withEnv({ FRONTEND_URL: 'http://localhost:5173' }, async () => {
+        const user = { id: 'user-1', email: 'a@b.com' };
+        await createLifetimeCheckoutSession(user);
+
+        const [args] = createMock.mock.calls[0].arguments;
+        assert.equal('auto_return' in args.body, false);
+        assert.equal(args.body.back_urls.success, 'http://localhost:5173/payment/success');
+      });
     } finally {
       createMock.mock.restore();
     }

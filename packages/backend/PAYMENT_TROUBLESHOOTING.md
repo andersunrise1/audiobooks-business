@@ -15,19 +15,36 @@ checklist for this project is:
 - [x] Webhook funciona — `POST /api/payment/webhook`
 - [x] Acesso liberado — `users.plan` flips to `'pro'` and the frontend reflects
       it without a re-login (Dia 48's `refreshUser()`)
-- [ ] **Real Mercado Pago sandbox run** — still not done. This dev environment
-      has no Mercado Pago account/credentials yet. Every test covering the
-      payment flow (`tests/unit/paymentService.test.js`,
-      `tests/integration/payment.test.js`) mocks the Mercado Pago SDK at the
-      `Preference.create` / `Payment.get` / `PaymentRefund.total` boundary —
-      the only boundary controllable without real credentials — plus a real,
-      correctly-computed webhook signature (the HMAC itself needs no external
-      account, so that part _is_ exercised for real). This proves our own
-      code (route guards, signature verification, DB writes, `plan`
-      propagation to the frontend) is correct, but a genuine Mercado
-      Pago-hosted checkout page and a real webhook delivery have never been
-      exercised. The rest of this document is a checklist for whenever real
-      credentials exist.
+- [x] **Real Mercado Pago sandbox checkout page** — done 2026-08-11. A real
+      test-mode `MERCADOPAGO_ACCESS_TOKEN` was configured and
+      `create-checkout-session` was called against the live local backend:
+      confirmed a genuine `mercadopago.com.br` checkout page loads, showing
+      the correct product name and price. This surfaced a real bug (see
+      below) that no amount of mocking would have caught.
+- [ ] **Real webhook delivery + a completed test purchase** — still not done.
+      `notification_url` currently points at `http://localhost:3000`, which
+      Mercado Pago's servers can't reach — completing a real sandbox payment
+      right now would leave `users.plan` stuck at `'free'` even though the
+      "payment" succeeded, since the webhook never arrives. Needs the ngrok
+      setup in step 2 below first. Every test covering the payment flow
+      (`tests/unit/paymentService.test.js`, `tests/integration/payment.test.js`)
+      mocks the Mercado Pago SDK at the `Preference.create` / `Payment.get` /
+      `PaymentRefund.total` boundary, plus a real, correctly-computed webhook
+      signature (the HMAC itself needs no external account, so that part
+      _is_ exercised for real) — this proves our own code (route guards,
+      signature verification, DB writes, `plan` propagation to the frontend)
+      is correct, but an actual webhook delivery has never been exercised.
+
+**Real bug found by this live test, not caught by any mock**: Mercado Pago
+rejects preference creation outright (`400 auto_return invalid. back_url.success
+must be defined`) whenever `auto_return: 'approved'` is combined with a
+non-`https://` `back_urls.success` — a plain `http://localhost:5173` back URL
+is otherwise accepted on its own, just not together with `auto_return`. Fixed
+in `paymentService.js` by only sending `auto_return` when `FRONTEND_URL` is a
+real `https://` URL; local dev now gets a working checkout without it (the
+buyer has to click their own way back instead of auto-redirecting, a fine
+trade-off for dev-only), and production will include it automatically once a
+real `https://` domain is configured.
 
 ## Once you have real Mercado Pago credentials
 

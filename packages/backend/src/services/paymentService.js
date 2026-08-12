@@ -38,6 +38,16 @@ export async function createLifetimeCheckoutSession(
   const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
   const backendUrl = process.env.BACKEND_PUBLIC_URL || 'http://localhost:3000';
 
+  // Real bug caught by testing against the live API, not assumed from docs:
+  // Mercado Pago rejects auto_return with "back_url.success must be
+  // defined" whenever back_urls.success isn't a real https:// URL - a plain
+  // `http://localhost:5173` back_url is otherwise accepted (checkout still
+  // works, the buyer just has to click their own way back), but combining
+  // it with auto_return fails the whole preference creation outright. Only
+  // send auto_return once there's a real https:// FRONTEND_URL (i.e. a real
+  // deployed domain) so local dev can still create a working preference.
+  const canAutoReturn = frontendUrl.startsWith('https://');
+
   const preference = new Preference(mpClient);
   const result = await preference.create({
     body: {
@@ -65,10 +75,10 @@ export async function createLifetimeCheckoutSession(
         failure: `${frontendUrl}/payment/cancel`,
         pending: `${frontendUrl}/payment/cancel`,
       },
-      auto_return: 'approved',
+      ...(canAutoReturn ? { auto_return: 'approved' } : {}),
       // Needs a publicly reachable URL - on this dev machine there's no
-      // real Mercado Pago account/tunnel yet, same accepted local
-      // limitation Stripe's webhook had before it (PAYMENT_TROUBLESHOOTING.md).
+      // tunnel set up yet, same accepted local limitation Stripe's webhook
+      // had before it (PAYMENT_TROUBLESHOOTING.md).
       notification_url: `${backendUrl}/api/payment/webhook`,
     },
   });

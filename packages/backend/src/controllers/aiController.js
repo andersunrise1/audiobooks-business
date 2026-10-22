@@ -17,6 +17,12 @@ import {
 } from '../services/aiFallbackService.js';
 import { lookupWord, insertDictionaryEntry } from '../services/technicalDictionaryService.js';
 import { pool } from '../config/database.js';
+import {
+  checkRateLimit,
+  rateLimitExceededMessage,
+  getDailyAiLimit,
+} from '../services/rateLimitService.js';
+import { getUserPlan } from '../services/planService.js';
 
 export async function explainWord(req, res) {
   const { word, context } = req.body;
@@ -85,6 +91,17 @@ async function insertWordOrGetExisting(word, chapterId, entry) {
 // `words` row for this exact (word, chapter) > the shared
 // technical_dictionary > a live AI call, which also seeds
 // technical_dictionary so future chapters get a free hit.
+//
+// Real bug fixed here: this route used to be gated by the shared aiRateLimit
+// *middleware*, which ran before any of the three tiers below and so
+// counted every single click against the daily AI quota - even the first
+// two tiers, which PRICING.md explicitly promises are unlimited ("não usa
+// IA... custo zero, sem motivo pra limitar", deliberately distinct from the
+// AI chat tutor's own 10/day cap). The rate limit is now only checked right
+// here, immediately before the one branch that actually calls real AI - a
+// word already known (either per-chapter or anywhere else in the whole
+// catalog, via technical_dictionary) always resolves for free, matching
+// the real promise instead of contradicting it.
 export async function translateWord(req, res) {
   const { word, context, chapterId } = req.body;
 
@@ -109,6 +126,15 @@ export async function translateWord(req, res) {
 
   if (!isAiConfigured()) {
     return res.status(503).json({ error: AI_NOT_CONFIGURED_ERROR });
+  }
+
+  const plan = await getUserPlan(req.user.id);
+  const limit = getDailyAiLimit(plan);
+  const { allowed, count } = await checkRateLimit(req.user.id, limit);
+  res.set('X-RateLimit-Limit', String(limit));
+  res.set('X-RateLimit-Remaining', String(Math.max(0, limit - count)));
+  if (!allowed) {
+    return res.status(429).json({ error: rateLimitExceededMessage(limit) });
   }
 
   try {

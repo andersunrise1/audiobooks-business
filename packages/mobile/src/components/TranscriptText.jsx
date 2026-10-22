@@ -44,6 +44,16 @@ export default function TranscriptText({
   // a spinner for it) and gets swapped for the real content once
   // onTranslateWord resolves - the wait itself is unchanged, but the app
   // responds to the tap instantly instead of staying silent.
+  //
+  // Real bug fixed here: a failed translation (most commonly the daily AI
+  // rate limit, shared across explain/chat/remedial/translate-word) used to
+  // be caught by onTranslateWord itself and swallowed down to `null`, which
+  // just closed the modal with zero indication anything went wrong - the
+  // word "simply didn't translate," worse the further into a reading
+  // session a user got and more of their daily AI quota they'd already
+  // spent. onTranslateWord now throws on failure instead, caught here, so
+  // the real backend error message (e.g. the rate-limit text) replaces the
+  // loading state in the modal rather than the modal just vanishing.
   async function handlePress(segment) {
     if (segment.word) {
       onWordPress?.(segment.word);
@@ -51,8 +61,14 @@ export default function TranscriptText({
     }
     if (!onTranslateWord) return;
     onWordPress?.({ word: segment.text, loading: true });
-    const resolved = await onTranslateWord(normalize(segment.text));
-    onWordPress?.(resolved ?? null);
+    try {
+      const resolved = await onTranslateWord(normalize(segment.text));
+      onWordPress?.(
+        resolved ?? { word: segment.text, error: 'Não foi possível traduzir esta palavra.' },
+      );
+    } catch (err) {
+      onWordPress?.({ word: segment.text, error: err.message });
+    }
   }
 
   return (

@@ -84,6 +84,42 @@ describe('TranscriptDisplay', () => {
     expect(await screen.findByText('determinacao')).toBeInTheDocument();
   });
 
+  // Real bug: a failed translation (most commonly the daily AI rate limit)
+  // used to be caught and swallowed by PlayerPage's handleTranslateWord,
+  // so the word just silently did nothing when tapped - no error, no
+  // popup, nothing. onTranslateWord now rejects instead of returning null,
+  // and TranscriptDisplay must surface that real message to the user.
+  test('shows the real error message when onTranslateWord rejects (e.g. rate limit)', async () => {
+    const user = userEvent.setup();
+    const onTranslateWord = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('Limite diário de 10 requisições de IA atingido. Tente novamente amanhã.'),
+      );
+
+    render(
+      <TranscriptDisplay
+        words={[]}
+        activeWordId={null}
+        transcript="She showed real grit today."
+        onTranslateWord={onTranslateWord}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'grit' }));
+
+    expect(
+      await screen.findByText(
+        'Limite diário de 10 requisições de IA atingido. Tente novamente amanhã.',
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByText('Fechar'));
+    expect(
+      screen.queryByText('Limite diário de 10 requisições de IA atingido. Tente novamente amanhã.'),
+    ).not.toBeInTheDocument();
+  });
+
   test('keeps the full sentence visible when only some words are tagged', () => {
     const partialWords = [{ id: 'w2', word: 'deployed', portuguese_translation: 'implantei' }];
     const { container } = render(

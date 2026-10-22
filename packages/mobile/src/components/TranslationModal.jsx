@@ -54,6 +54,8 @@ export default function TranslationModal({ word, onClose }) {
                   <ActivityIndicator size="small" color="#475569" />
                   <Text style={styles.muted}>Traduzindo...</Text>
                 </View>
+              ) : word.error ? (
+                <Text style={styles.errorText}>{word.error}</Text>
               ) : (
                 <>
                   {word.pronunciation && <Text style={styles.muted}>{word.pronunciation}</Text>}
@@ -90,6 +92,7 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  errorText: { color: '#dc2626', fontSize: 14, paddingVertical: 4 },
   headerText: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   word: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   partOfSpeech: { fontSize: 12, color: '#475569', textTransform: 'uppercase' },

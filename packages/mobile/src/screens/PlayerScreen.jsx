@@ -170,17 +170,11 @@ export default function PlayerScreen({ route, navigation }) {
   // can trigger a real, rate-limited AI call.
   async function handleTranslateWord(word) {
     if (!isAuthenticated || !chapter) return null;
-    try {
-      const resolved = await apiRequest('/api/ai/translate-word', {
-        method: 'POST',
-        token: accessToken,
-        body: { word, context: chapter.transcript, chapterId: chapter.id },
-      });
-      return resolved;
-    } catch (err) {
-      console.error('failed to translate word', err);
-      return null;
-    }
+    return apiRequest('/api/ai/translate-word', {
+      method: 'POST',
+      token: accessToken,
+      body: { word, context: chapter.transcript, chapterId: chapter.id },
+    });
   }
 
   function cycleFontSize() {

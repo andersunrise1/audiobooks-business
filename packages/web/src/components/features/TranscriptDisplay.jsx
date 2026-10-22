@@ -57,11 +57,20 @@ function TranscriptDisplay({
 }) {
   const [selectedWord, setSelectedWord] = useState(null);
   const [loadingText, setLoadingText] = useState(null);
+  const [translateError, setTranslateError] = useState(null);
 
   const segments = useMemo(() => buildSegments(transcript ?? '', words), [transcript, words]);
 
   if (!transcript) return null;
 
+  // Real bug fixed here: a failed on-demand translation (most commonly the
+  // daily AI rate limit, shared across explain/chat/remedial/translate-word)
+  // used to be caught and swallowed with only a console.error - the word
+  // just silently did nothing when tapped, with zero indication why. Since
+  // reading goes top-to-bottom, the quota tends to run out partway through
+  // a session, which reads as "words stop translating further down the
+  // page" even though it's really about click order, not position. Now the
+  // real backend error message (e.g. the rate-limit text) is shown instead.
   async function selectSegment(segment) {
     if (segment.word) {
       setSelectedWord(segment.word);
@@ -71,9 +80,12 @@ function TranscriptDisplay({
 
     if (!onTranslateWord) return;
     setLoadingText(segment.text);
+    setTranslateError(null);
     try {
       const resolved = await onTranslateWord(normalize(segment.text));
       if (resolved) setSelectedWord(resolved);
+    } catch (err) {
+      setTranslateError(err.message);
     } finally {
       setLoadingText(null);
     }
@@ -107,6 +119,22 @@ function TranscriptDisplay({
           ),
         )}
       </p>
+
+      {translateError && (
+        <p
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-2"
+        >
+          {translateError}
+          <button
+            type="button"
+            onClick={() => setTranslateError(null)}
+            className="underline touch-manipulation"
+          >
+            Fechar
+          </button>
+        </p>
+      )}
 
       <TranslationPopup
         key={selectedWord?.id ?? selectedWord?.word}

@@ -261,18 +261,13 @@ function PlayerPage() {
   // authenticated users since it can trigger a real, rate-limited AI call.
   async function handleTranslateWord(word) {
     if (!isAuthenticated || !chapter) return null;
-    try {
-      const resolved = await apiRequest('/api/ai/translate-word', {
-        method: 'POST',
-        token: accessToken,
-        body: { word, context: chapter.transcript, chapterId: chapter.id },
-      });
-      await handleWordClick(resolved);
-      return resolved;
-    } catch (err) {
-      console.error('failed to translate word', err);
-      return null;
-    }
+    const resolved = await apiRequest('/api/ai/translate-word', {
+      method: 'POST',
+      token: accessToken,
+      body: { word, context: chapter.transcript, chapterId: chapter.id },
+    });
+    await handleWordClick(resolved);
+    return resolved;
   }
 
   if (loading) return <p>Carregando...</p>;

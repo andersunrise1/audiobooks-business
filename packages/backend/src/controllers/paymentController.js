@@ -11,9 +11,18 @@ import {
   REFUND_WINDOW_DAYS,
 } from '../services/paymentService.js';
 import { getVariantName, getVariantConfig, logConversion } from '../services/experimentService.js';
+import {
+  isGooglePlayConfigured,
+  getProductPurchase,
+  acknowledgeProductPurchase,
+  grantLifetimeAccessFromGooglePlay,
+} from '../services/googlePlayService.js';
 
 export const MERCADOPAGO_NOT_CONFIGURED_ERROR =
   'Payments are not configured (missing MERCADOPAGO_ACCESS_TOKEN)';
+
+export const GOOGLE_PLAY_NOT_CONFIGURED_ERROR =
+  'Google Play purchase verification is not configured (missing GOOGLE_PLAY_PACKAGE_NAME or GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH)';
 
 const PRICING_EXPERIMENT = 'pricing_price';
 
@@ -139,4 +148,40 @@ export async function refundPurchase(req, res) {
 
   await refundLifetimePurchase(user);
   res.json({ refunded: true });
+}
+
+// The mobile app's Play Billing counterpart to createCheckoutSession/the MP
+// webhook above: the client already completed the purchase with Google
+// directly (that's how Play Billing works - there's no "create a session"
+// step), so this just verifies the resulting purchaseToken server-side
+// before granting access, the same trust boundary the MP webhook's
+// getPayment()/approved check provides for the web path.
+export async function verifyGooglePlayPurchase(req, res) {
+  if (!isGooglePlayConfigured()) {
+    return res.status(503).json({ error: GOOGLE_PLAY_NOT_CONFIGURED_ERROR });
+  }
+
+  const { purchaseToken } = req.body;
+  if (!purchaseToken) {
+    return res.status(400).json({ error: 'purchaseToken is required' });
+  }
+
+  let purchase;
+  try {
+    purchase = await getProductPurchase(purchaseToken);
+  } catch (err) {
+    console.error('Google Play purchase verification failed:', err.message);
+    return res.status(400).json({ error: 'could not verify this purchase with Google Play' });
+  }
+
+  if (purchase.purchaseState !== 0) {
+    return res.status(400).json({ error: 'this purchase has not completed yet' });
+  }
+
+  if (purchase.acknowledgementState === 0) {
+    await acknowledgeProductPurchase(purchaseToken);
+  }
+
+  await grantLifetimeAccessFromGooglePlay(req.user.id, purchaseToken);
+  res.json({ granted: true });
 }

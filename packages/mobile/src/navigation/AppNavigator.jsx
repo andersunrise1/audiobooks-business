@@ -13,7 +13,13 @@ import AudiobookListScreen from '../screens/AudiobookListScreen.jsx';
 import PlayerScreen from '../screens/PlayerScreen.jsx';
 import FlashcardsScreen from '../screens/FlashcardsScreen.jsx';
 import DashboardScreen from '../screens/DashboardScreen.jsx';
-import PricingScreen from '../screens/PricingScreen.jsx';
+// No .jsx extension here, unlike every other import in this file - Metro
+// only applies its PricingScreen.web.jsx/PricingScreen.jsx platform-specific
+// resolution when the specifier has no extension. The web variant exists
+// because expo-iap's useIAP hook has no web implementation and throws from
+// its own internal listener setup the moment it mounts (see
+// PricingScreen.web.jsx's own comment).
+import PricingScreen from '../screens/PricingScreen';
 
 const Stack = createNativeStackNavigator();
 

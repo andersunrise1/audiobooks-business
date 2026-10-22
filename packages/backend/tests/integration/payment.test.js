@@ -2,6 +2,7 @@ import { after, before, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, createHmac } from 'node:crypto';
 import { Preference, Payment, PaymentRefund } from 'mercadopago';
+import { google } from 'googleapis';
 import { pool } from '../../src/config/database.js';
 import { startTestServer, stopTestServer, registerTestUser } from '../helpers/testServer.js';
 
@@ -536,6 +537,174 @@ describe('Payment sandbox flow (Dia 50)', () => {
     } finally {
       createMock.mock.restore();
       getMock.mock.restore();
+    }
+  });
+});
+
+// Content doesn't matter - isGooglePlayConfigured only checks the path
+// exists, and every real Android Publisher API call below is mocked.
+const FAKE_GOOGLE_PLAY_KEY_PATH = new URL('../../package.json', import.meta.url).pathname.replace(
+  /^\/([A-Za-z]:)/,
+  '$1',
+);
+
+describe('POST /api/payment/google-play/verify', () => {
+  let server;
+  let baseUrl;
+  let accessToken;
+  let userId;
+
+  before(async () => {
+    ({ server, baseUrl } = await startTestServer());
+    const registered = await registerTestUser(baseUrl);
+    accessToken = registered.accessToken;
+    userId = registered.user.id;
+  });
+
+  after(async () => {
+    await stopTestServer(server);
+  });
+
+  function postVerify(token, purchaseToken) {
+    return fetch(`${baseUrl}/api/payment/google-play/verify`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purchaseToken }),
+    });
+  }
+
+  test('rejects unauthenticated requests', async () => {
+    const res = await fetch(`${baseUrl}/api/payment/google-play/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purchaseToken: 'tok-1' }),
+    });
+    assert.equal(res.status, 401);
+  });
+
+  test('returns 503 when Google Play is not configured', async () => {
+    await withEnv(
+      { GOOGLE_PLAY_PACKAGE_NAME: undefined, GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH: undefined },
+      async () => {
+        const res = await postVerify(accessToken, 'tok-1');
+        assert.equal(res.status, 503);
+      },
+    );
+  });
+
+  test('requires a purchaseToken', async () => {
+    await withEnv(
+      {
+        GOOGLE_PLAY_PACKAGE_NAME: 'com.techspeaking.app',
+        GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH: FAKE_GOOGLE_PLAY_KEY_PATH,
+      },
+      async () => {
+        const res = await postVerify(accessToken, undefined);
+        assert.equal(res.status, 400);
+      },
+    );
+  });
+
+  test('rejects a purchase Google reports as not completed', async () => {
+    const androidpublisherMock = mock.method(google, 'androidpublisher', () => ({
+      purchases: {
+        products: {
+          get: async () => ({ data: { purchaseState: 1, acknowledgementState: 0 } }),
+          acknowledge: async () => ({}),
+        },
+      },
+    }));
+
+    try {
+      await withEnv(
+        {
+          GOOGLE_PLAY_PACKAGE_NAME: 'com.techspeaking.app',
+          GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH: FAKE_GOOGLE_PLAY_KEY_PATH,
+        },
+        async () => {
+          const res = await postVerify(accessToken, 'tok-canceled');
+          assert.equal(res.status, 400);
+        },
+      );
+
+      const { rows } = await pool.query('SELECT plan FROM users WHERE id = $1', [userId]);
+      assert.equal(rows[0].plan, 'free');
+    } finally {
+      androidpublisherMock.mock.restore();
+    }
+  });
+
+  test('grants lifetime access for a real purchase, acknowledging it when not yet acknowledged', async () => {
+    const acknowledgeMock = mock.fn(async () => ({}));
+    const androidpublisherMock = mock.method(google, 'androidpublisher', () => ({
+      purchases: {
+        products: {
+          get: async () => ({ data: { purchaseState: 0, acknowledgementState: 0 } }),
+          acknowledge: acknowledgeMock,
+        },
+      },
+    }));
+
+    try {
+      await withEnv(
+        {
+          GOOGLE_PLAY_PACKAGE_NAME: 'com.techspeaking.app',
+          GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH: FAKE_GOOGLE_PLAY_KEY_PATH,
+        },
+        async () => {
+          const res = await postVerify(accessToken, 'tok-approved-1');
+          assert.equal(res.status, 200);
+          const data = await res.json();
+          assert.equal(data.granted, true);
+        },
+      );
+
+      assert.equal(acknowledgeMock.mock.calls.length, 1);
+      const { rows } = await pool.query(
+        'SELECT plan, google_play_purchase_token FROM users WHERE id = $1',
+        [userId],
+      );
+      assert.equal(rows[0].plan, 'pro');
+      assert.equal(rows[0].google_play_purchase_token, 'tok-approved-1');
+    } finally {
+      androidpublisherMock.mock.restore();
+      await pool.query(
+        `UPDATE users SET plan = 'free', google_play_purchase_token = NULL, purchased_at = NULL WHERE id = $1`,
+        [userId],
+      );
+    }
+  });
+
+  test('does not re-acknowledge an already-acknowledged purchase (e.g. a retried verify call)', async () => {
+    const acknowledgeMock = mock.fn(async () => ({}));
+    const androidpublisherMock = mock.method(google, 'androidpublisher', () => ({
+      purchases: {
+        products: {
+          get: async () => ({ data: { purchaseState: 0, acknowledgementState: 1 } }),
+          acknowledge: acknowledgeMock,
+        },
+      },
+    }));
+
+    try {
+      await withEnv(
+        {
+          GOOGLE_PLAY_PACKAGE_NAME: 'com.techspeaking.app',
+          GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH: FAKE_GOOGLE_PLAY_KEY_PATH,
+        },
+        async () => {
+          const res = await postVerify(accessToken, 'tok-approved-2');
+          assert.equal(res.status, 200);
+        },
+      );
+
+      assert.equal(acknowledgeMock.mock.calls.length, 0);
+    } finally {
+      androidpublisherMock.mock.restore();
+      await pool.query(
+        `UPDATE users SET plan = 'free', google_play_purchase_token = NULL, purchased_at = NULL WHERE id = $1`,
+        [userId],
+      );
     }
   });
 });

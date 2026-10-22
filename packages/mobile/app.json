@@ -32,6 +32,15 @@
     },
     "plugins": [
       "expo-audio",
+      "expo-iap",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.2.0"
+          }
+        }
+      ],
       [
         "expo-notifications",
         {

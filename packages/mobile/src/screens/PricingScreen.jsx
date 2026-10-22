@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Linking, AppState, StyleSheet } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, Pressable, ScrollView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIAP } from 'expo-iap';
 import { apiRequest } from '../services/api.js';
 import { useAuth } from '../store/AuthContext.jsx';
 import { useTheme } from '../store/ThemeContext.jsx';
+
+// Must match googlePlayService.js's LIFETIME_PRODUCT_ID exactly, and the
+// product id configured in Play Console (GOOGLE_PLAY_BILLING.md).
+const LIFETIME_PRODUCT_ID = 'techspeak_vitalicio';
 
 const FEATURES = [
   'Todos os audiobooks, para sempre (25 hoje, crescendo)',
@@ -11,68 +16,92 @@ const FEATURES = [
   'Tradução ao clicar em qualquer palavra, ilimitada',
 ];
 
-// Mirrors packages/web/src/components/pages/PricingPage.jsx, adapted for
-// where mobile is actually simpler: this screen only exists inside the
-// authenticated stack (there's no anonymous mobile browsing to a pricing
-// page the way the website has), so there's no visitor-id/localStorage
-// system to port - the logged-in user's own id is used as the Dia 55-56
-// pricing_price experiment's subjectId for both the price shown here and
-// the price actually charged, which is what keeps the two in sync.
+// Buys through Google Play Billing (expo-iap), not Mercado Pago - a Play
+// Store policy requirement for digital content purchased inside an Android
+// app (see CLAUDE.md's "Google Play Billing" entry). The website
+// (PricingPage.jsx) keeps selling via Mercado Pago unaffected; either path
+// sets the same users.plan = 'pro', so access is shared regardless of which
+// one a customer used.
 //
-// The real purchase still happens in a real browser, same as web - opened
-// via Linking.openURL rather than a native in-app browser module, avoiding
-// a new native dependency after this session's earlier native-crash
-// debugging. There's no custom URL scheme wired up to bring the user
-// straight back into a specific screen when they finish (real deep-linking
-// work, not attempted here) - instead, an AppState listener refetches the
-// user's plan every time the app returns to the foreground while this
-// screen is mounted, so coming back from a completed checkout picks up the
-// real plan without any extra tap.
+// Real consequence of this: Dia 55-56's pricing_price A/B test (web's
+// PricingPage shows R$57 vs R$47 depending on experiment variant) can't
+// apply here - an in-app product's price is fixed in Play Console, Google
+// charges and localizes it, and our code never sees or controls that
+// amount. So this screen shows whatever Google itself reports as the
+// product's real price (product.displayPrice) once fetched, rather than a
+// number our own backend decided - it's the only number guaranteed to
+// match what's actually charged.
 export default function PricingScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { user, accessToken, refreshUser } = useAuth();
 
-  const [priceBrlCents, setPriceBrlCents] = useState(5700);
-  const [badge, setBadge] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!user?.id) return;
-    apiRequest(`/api/experiments/pricing_price/assignment?subjectId=${user.id}`)
-      .then((assignment) => {
-        setPriceBrlCents(assignment?.config?.priceBrlCents ?? 5700);
-        setBadge(assignment?.config?.badge ?? null);
-      })
-      .catch(() => {});
-  }, [user?.id]);
+  const { connected, products, fetchProducts, requestPurchase, finishTransaction } = useIAP({
+    onPurchaseSuccess: (purchase) => grantAndFinish(purchase),
+    onPurchaseError: (err) => {
+      setError(err?.message || 'Não foi possível concluir a compra.');
+      setLoading(false);
+    },
+  });
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') refreshUser().catch(() => {});
-    });
-    return () => subscription.remove();
-  }, [refreshUser]);
+    if (Platform.OS !== 'android' || !connected) return;
+    fetchProducts({ skus: [LIFETIME_PRODUCT_ID], type: 'in-app' }).catch(() => {});
+  }, [connected, fetchProducts]);
+
+  // Sends the purchase token to the backend for real server-side
+  // verification against the Android Publisher API (never trusts the
+  // client's own claim that it paid) before granting access - mirrors what
+  // the Mercado Pago webhook does for the web path. finishTransaction only
+  // runs after that verification succeeds, since Google expects an
+  // acknowledgement either way and this project's backend is the one
+  // source of truth for whether the purchase was actually valid.
+  const grantAndFinish = useCallback(
+    async (purchase) => {
+      try {
+        await apiRequest('/api/payment/google-play/verify', {
+          method: 'POST',
+          token: accessToken,
+          body: { purchaseToken: purchase.purchaseToken },
+        });
+        await finishTransaction({ purchase, isConsumable: false });
+        await refreshUser();
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [accessToken, finishTransaction, refreshUser],
+  );
 
   async function handleBuy() {
+    if (Platform.OS !== 'android') {
+      setError('A compra pelo app só está disponível no Android, por enquanto.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const { url } = await apiRequest('/api/payment/create-checkout-session', {
-        method: 'POST',
-        token: accessToken,
-        body: { subjectId: user.id },
+      await requestPurchase({
+        request: { google: { skus: [LIFETIME_PRODUCT_ID] } },
+        type: 'in-app',
       });
-      await Linking.openURL(url);
+      // The actual result (success or failure) arrives via the
+      // onPurchaseSuccess/onPurchaseError callbacks passed to useIAP above,
+      // not as this call's own resolution.
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   }
 
   const alreadyOwns = user?.plan === 'pro';
+  const product = products.find((p) => p.id === LIFETIME_PRODUCT_ID);
+  const displayPrice = product?.displayPrice ?? 'R$ 57';
 
   return (
     <ScrollView
@@ -85,14 +114,8 @@ export default function PricingScreen() {
       </Text>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {badge && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{badge}</Text>
-          </View>
-        )}
-
         <Text style={[styles.price, { color: colors.text }]}>
-          R$ {(priceBrlCents / 100).toFixed(0)}
+          {displayPrice}
           <Text style={[styles.priceSuffix, { color: colors.muted }]}> pagamento único</Text>
         </Text>
 
@@ -116,7 +139,7 @@ export default function PricingScreen() {
             style={[styles.buyButton, loading && styles.buyButtonDisabled]}
           >
             <Text style={styles.buyButtonText}>
-              {loading ? 'Abrindo pagamento...' : 'Comprar Vitalício'}
+              {loading ? 'Processando compra...' : 'Comprar Vitalício'}
             </Text>
           </Pressable>
         )}
@@ -138,14 +161,6 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
   },
-  badge: {
-    backgroundColor: '#fef3c7',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-  },
-  badgeText: { color: '#0f172a', fontSize: 12, fontWeight: '600' },
   price: { fontSize: 34, fontWeight: 'bold' },
   priceSuffix: { fontSize: 15, fontWeight: 'normal' },
   features: { gap: 8 },

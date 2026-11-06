@@ -27,11 +27,26 @@ below resolves that by splitting **content** (audiobooks, flashcards,
 pronunciation, word translation — all free or near-free to serve) from
 **AI usage** (capped, regardless of plan).
 
-## Free — R$ 0 (trial)
+## Free — R$ 0 (com anúncios)
 
-- **2 audiobooks** — enough to complete one real 5-chapter audiobook
-  (Dia 41's template) and start a second.
-- **Flashcards** for words learned from those 2 audiobooks.
+**Mudança de modelo (2026-11-06)**: o grátis cresceu de 2 para **8
+audiobooks** (migration 058), cobrindo os 3 pilares do catálogo (Career,
+DevOps, Software Engineering) em nível iniciante/intermediário — todo
+conteúdo `advanced` continua exclusivo do Vitalício. A razão não é
+generosidade: um modelo pago-por-anúncio (Google AdMob, só no app mobile,
+igual ao Duolingo) depende do usuário grátis **voltar** repetidamente — com
+só 2 audiobooks ele terminava em um dia e desinstalava antes de gerar
+impressão de anúncio nenhuma. O trial antigo de "2 audiobooks" otimizava
+pressão de compra; este otimiza retenção + receita de anúncio, sem abrir
+mão da pressão de compra (ainda faltam 17 de 25 audiobooks, incluindo todo
+o conteúdo avançado).
+
+- **8 audiobooks** — veja a lista completa em `MONETIZATION.md`.
+- **Anúncios** (banner + intersticial ocasional, só no app mobile) nos
+  pontos de transição natural: lista de audiobooks e tela de "capítulo
+  concluído" — nunca durante a reprodução. Ausentes no site e no desktop
+  por enquanto (ver honest gap em `MONETIZATION.md`).
+- **Flashcards** para as palavras aprendidas nesses 8 audiobooks.
 - **1 chat com o tutor por dia.**
 
 ## TECHSPEAKING Vitalício — R$ 57 (pagamento único)
@@ -40,6 +55,8 @@ pronunciation, word translation — all free or near-free to serve) from
   audiobooks, ~7 horas de conteúdo) e qualquer audiobook adicionado no
   futuro ao catálogo principal (não confundir com pacotes pagos à parte,
   abaixo).
+- **Sem anúncios** — o mesmo toggle (`plan === 'pro'`) que libera o
+  catálogo completo também desliga o AdMob no app mobile.
 - **Flashcards ilimitados**, sem restrição de audiobook de origem.
 - **Tradução ao clicar na palavra, ilimitada** — não usa IA (consulta ao
   `technical_dictionary`), custo zero, sem motivo pra limitar.

@@ -6,6 +6,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../store/AuthContext.jsx';
 import { useTheme } from '../store/ThemeContext.jsx';
 import { registerForPushNotificationsAsync } from '../services/pushNotifications.js';
+// No .js extension here (same deliberate exception as PricingScreen below)
+// - Metro only resolves ads.web.js instead of ads.js for an extension-less
+// specifier. See ads.web.js's own comment for why.
+import { initializeAds } from '../services/ads';
 import TopNavBar from '../components/TopNavBar.jsx';
 import LoginScreen from '../screens/LoginScreen.jsx';
 import RegisterScreen from '../screens/RegisterScreen.jsx';
@@ -77,6 +81,14 @@ export default function AppNavigator() {
       registerForPushNotificationsAsync();
     }
   }, [isAuthenticated]);
+
+  // Consent/SDK init isn't tied to having an account - runs once the app
+  // itself is ready, not gated on login the way push registration is.
+  useEffect(() => {
+    if (isReady) {
+      initializeAds();
+    }
+  }, [isReady]);
 
   if (!isReady) {
     return (

@@ -14,6 +14,11 @@ import { useTheme } from '../store/ThemeContext.jsx';
 import TranscriptText from '../components/TranscriptText.jsx';
 import TranslationModal from '../components/TranslationModal.jsx';
 import AudioControls from '../components/AudioControls.jsx';
+// No .js extension here - Metro resolves useChapterInterstitialAd.web.js
+// instead of useChapterInterstitialAd.js for web builds
+// (react-native-google-mobile-ads has no web implementation). See that
+// file's own comment.
+import { useChapterInterstitialAd } from '../hooks/useChapterInterstitialAd';
 
 const FONT_SIZES = [16, 18, 20];
 const FONT_FAMILIES = [
@@ -30,8 +35,9 @@ const FONT_FAMILIES = [
 // carry that context across screens.
 export default function PlayerScreen({ route, navigation }) {
   const { audiobookId, title } = route.params;
-  const { accessToken, isAuthenticated } = useAuth();
+  const { user, accessToken, isAuthenticated } = useAuth();
   const { colors, theme, cycleTheme } = useTheme();
+  const { showIfReady: showChapterInterstitialAd } = useChapterInterstitialAd(user);
   const themeIcon = { light: '🌙', dark: '💻', system: '☀️' }[theme];
 
   const [audiobook, setAudiobook] = useState(null);
@@ -142,6 +148,11 @@ export default function PlayerScreen({ route, navigation }) {
       completed: true,
       listeningCount: (previous?.listening_count ?? 0) + 1,
     });
+    // The natural break point this project settled on for the one
+    // interstitial per chapter (PRICING.md's "Free" section) - never
+    // during playback. A no-op if ads aren't loaded yet/shouldn't show
+    // for this user (shouldShowAds).
+    showChapterInterstitialAd();
   }
 
   async function handleWordPress(word) {

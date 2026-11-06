@@ -11,6 +11,10 @@ import {
 import { apiRequest } from '../services/api.js';
 import { useAuth } from '../store/AuthContext.jsx';
 import { useTheme } from '../store/ThemeContext.jsx';
+// No .jsx extension here - Metro resolves BannerAdSlot.web.jsx instead of
+// BannerAdSlot.jsx for web builds (react-native-google-mobile-ads has no
+// web implementation). See BannerAdSlot.web.jsx's own comment.
+import BannerAdSlot from '../components/BannerAdSlot';
 
 export default function AudiobookListScreen({ navigation }) {
   const { user } = useAuth();
@@ -49,6 +53,7 @@ export default function AudiobookListScreen({ navigation }) {
       contentContainerStyle={styles.list}
       data={audiobooks}
       keyExtractor={(item) => item.id}
+      ListHeaderComponent={<BannerAdSlot user={user} />}
       ListEmptyComponent={<Text style={styles.muted}>Nenhum audiobook cadastrado ainda.</Text>}
       renderItem={({ item }) => (
         <Pressable

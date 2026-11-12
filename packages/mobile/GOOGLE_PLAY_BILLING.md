@@ -32,9 +32,16 @@ import extension-less or the web build will break the same way again.
 
 - `expo-iap` - the purchase library itself (buys/verifies against Google
   Play, confirms OpenIAP).
-- `expo-build-properties` - required to pin `android.kotlinVersion` to
-  `2.2.0` (expo-iap's own requirement), set via `app.json`'s `plugins`
-  array.
+- `expo-build-properties` - was used to pin `android.kotlinVersion` to
+  `2.2.0`, but that pin **broke the first real EAS production build
+  (2026-11-12)**: it only changes the `kotlinVersion` Expo reads (and so the
+  KSP version it picks), while the Kotlin Gradle Plugin actually on the
+  classpath stays at React Native 0.86's own `2.1.20` - a 2.1.20/2.2.0
+  mismatch that fails Gradle with a `KotlinJvmCompilerOptions.getJvmDefault()`
+  `NoSuchMethodError`. The pin was removed from `app.json`; expo-iap's
+  `build.gradle` already passes `-Xskip-metadata-version-check`, so it
+  compiles fine on 2.1.20. Don't reintroduce a `kotlinVersion` pin without
+  also bumping the actual KGP classpath.
 
 Both are real native code - like `expo-audio`/`expo-notifications` before
 them, this needs a **new EAS build**, not `eas update` (same rule

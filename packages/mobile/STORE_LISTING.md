@@ -30,20 +30,23 @@ COMO FUNCIONA
 - Pratique com flashcards de repetição espaçada, criados automaticamente a partir das palavras que você clicou
 - Acompanhe sua sequência de estudo e seu progresso no painel
 
-Comece gratuitamente com 2 audiobooks completos. O acesso a todo o catálogo é um pagamento único — sem mensalidade.
+GRÁTIS PARA COMEÇAR
+- 8 audiobooks completos liberados de graça, com anúncios
+- TECHSPEAKING Vitalício: todo o catálogo, sem anúncios, com um pagamento único — sem mensalidade
+- A mesma conta funciona no app e no site techspeaking.dev
 ```
 
-(1269 caracteres)
+(~1450 caracteres — updated 2026-11-12 for the 8-audiobook free tier + AdMob; the original said "2
+audiobooks", which stopped being true on 2026-11-06)
 
 ## Categoria sugerida
 
 Educação (com a tag secundária "Linguagem", mesmo padrão usado por apps como o Memrise).
 
-## Ainda faltam (fora do escopo de texto)
+## Imagens (em `store-assets/`)
 
-- **Capturas de tela** — fotos reais do app rodando (tela do audiobook, tradução de palavra,
-  flashcards, dashboard). Pode ser gerado a partir do preview mobile-web ou direto do celular.
-- **Gráfico de destaque** (banner 1024×500px) — asset de design, ainda não existe.
-
-Essas duas peças fazem mais sentido depois que o app já estiver com a interface 100% final, pra
-evitar refazer.
+- `icon-512.png` — ícone da loja (512×512), redimensionado de `assets/icon.png`.
+- `feature-1024x500.png` — gráfico de destaque.
+- `screenshot-01..04-*.png` — capturas reais (1080×1920) do app rodando via mobile-web contra o
+  backend local com um usuário de teste: catálogo, player com transcrição, tradução de palavra,
+  flashcard. Refazer se a interface mudar.

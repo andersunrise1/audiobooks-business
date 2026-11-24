@@ -7,17 +7,21 @@ import mobileAds, { AdsConsent, TestIds } from 'react-native-google-mobile-ads';
 // code, not real revenue.
 const ADS_PLATFORM = Platform.OS === 'android';
 
-// TODO: replace with real ad unit IDs from your AdMob account once it
-// exists (see ../ADMOB.md) - these are Google's own published TEST ids,
-// safe to ship as placeholders during development. A real id without a
-// real AdMob account/app linked just fails to fill (no revenue, no risk),
-// but clicking your own real ads to "test" them can get the AdMob account
-// banned for invalid traffic - always test with TestIds until real IDs
-// are wired in and verified on a real device.
-export const AD_UNIT_IDS = {
-  banner: TestIds.BANNER,
-  interstitial: TestIds.INTERSTITIAL,
-};
+// Real ad unit IDs from the AdMob account created 2026-11-24 (see
+// ../ADMOB.md). The app registered there is "TECHSPEAKING" (Android).
+//
+// Flip USE_TEST_ADS to true during development. This matters more than it
+// looks: **never click your own real ads**. Google bans AdMob accounts for
+// "invalid traffic" even when the click was accidental, and there is no easy
+// appeal. Test ads are labelled "Test Ad" on screen and are safe to tap.
+const USE_TEST_ADS = false;
+
+export const AD_UNIT_IDS = USE_TEST_ADS
+  ? { banner: TestIds.BANNER, interstitial: TestIds.INTERSTITIAL }
+  : {
+      banner: 'ca-app-pub-1938532240303090/2989395809',
+      interstitial: 'ca-app-pub-1938532240303090/3605754731',
+    };
 
 // Vitalicio (plan === 'pro') removes ads entirely - the same check the
 // paywall itself already uses (AudiobookListScreen's `isPro`), just read

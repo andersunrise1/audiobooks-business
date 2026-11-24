@@ -2,12 +2,31 @@
 
 Ad-supported free tier (2026-11-06 decision, alongside expanding the free
 catalog from 2 to 8 audiobooks — see `../PRICING.md`'s "Free" section and
-`packages/backend/MONETIZATION.md` for the reasoning). This covers the real
-AdMob account setup this dev machine doesn't have yet; the code itself
-(`src/services/ads.js`, `src/components/BannerAdSlot.jsx`,
-`src/hooks/useChapterInterstitialAd.js`) is already built and ships with
-Google's own published **test** IDs as placeholders, so nothing breaks
-before a real account exists — it just shows test ads during development.
+`packages/backend/MONETIZATION.md` for the reasoning). **The AdMob account exists as of 2026-11-24, and the real IDs are already
+wired in.** The app registered there is "TECHSPEAKING" (Android):
+
+|              | ID                                       |
+| ------------ | ---------------------------------------- |
+| App ID       | `ca-app-pub-1938532240303090~2765521173` |
+| Banner       | `ca-app-pub-1938532240303090/2989395809` |
+| Interstitial | `ca-app-pub-1938532240303090/3605754731` |
+
+These are not secrets — they ship inside the app, which anyone can unpack.
+What is secret is access to the Google account, not these numbers.
+
+The same AdMob account also holds the DIVISA app (a separate project, see
+its own `mobile/ADMOB.md`). One account covers both; don't create a second.
+
+**Still missing:** billing details in the AdMob payments profile. Without
+them the account review never starts, and without an approved review the app
+won't serve real ads. That's a bank-details step, for the account owner.
+
+Registering it had one wrinkle worth remembering: TECHSPEAKING is in
+**closed testing**, so it does not appear in AdMob's Play Store search — it
+had to be added manually as "not yet on a store". Once it reaches open
+production, link it to `com.techspeaking.app` from the app's AdMob settings.
+
+Sections 1-3 below describe that setup as it was done.
 
 ## 1. Create an AdMob account
 
